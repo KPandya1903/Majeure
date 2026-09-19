@@ -1,0 +1,128 @@
+[
+  {
+    "shipment_id": "SHP-DEMO-001",
+    "bill_of_lading": {
+      "bl_number": "DEMO-BL-0001",
+      "carrier": "Demo Ocean Line",
+      "shipper": "Demo Electronics Co.",
+      "consignee": "Demo Retail BV",
+      "vessel_name": "DEMO VOYAGER",
+      "voyage_number": "042W",
+      "port_of_loading": {"port_id": "port1188", "name": "Shanghai", "country": "China", "lat": 31.19, "lon": 121.64},
+      "port_of_discharge": {"port_id": "port1114", "name": "Rotterdam", "country": "The Netherlands", "lat": 51.92, "lon": 4.22},
+      "transshipment_ports": [
+        {"port_id": "port1201", "name": "Singapore", "country": "Singapore", "lat": 1.27, "lon": 103.71}
+      ],
+      "route_chokepoints": ["chokepoint:malacca-strait", "chokepoint:bab-el-mandeb-strait", "chokepoint:suez-canal"],
+      "etd": "2026-09-12T00:00:00Z",
+      "eta": "2026-10-20T00:00:00Z",
+      "cargo_description": "Consumer electronics, 40' HC",
+      "container_count": 12,
+      "cargo_value_usd": 480000
+    },
+    "contract_terms": {
+      "incoterm": "CIF",
+      "force_majeure_clause": "Neither party is liable for delay caused by strikes, war, blockade, hostilities, or closure of ports or canals beyond its reasonable control, provided written notice is given within 48 hours.",
+      "demurrage_usd_per_day": 150,
+      "detention_usd_per_day": 100,
+      "free_time_days": 5,
+      "late_delivery_penalty_usd_per_day": 1000,
+      "deviation_permitted": true,
+      "notice_period_hours": 48,
+      "governing_law": "English law"
+    }
+  },
+  {
+    "shipment_id": "SHP-DEMO-002",
+    "bill_of_lading": {
+      "bl_number": "DEMO-BL-0002",
+      "carrier": "Demo Gulf Feeder",
+      "shipper": "Demo Petrochemicals FZE",
+      "consignee": "Demo Polymers Pvt Ltd",
+      "vessel_name": "DEMO FALCON",
+      "voyage_number": "117E",
+      "port_of_loading": {"port_id": "port744", "name": "Jebel Ali", "country": "United Arab Emirates", "lat": 25.0, "lon": 55.08},
+      "port_of_discharge": {"port_id": "port776", "name": "Mumbai-Jawaharlal Nehru (Nhava Sheva)", "country": "India", "lat": 18.92, "lon": 72.94},
+      "transshipment_ports": [],
+      "route_chokepoints": ["chokepoint:strait-of-hormuz"],
+      "etd": "2026-09-22T00:00:00Z",
+      "eta": "2026-09-27T00:00:00Z",
+      "cargo_description": "Polyethylene resin, 20' dry",
+      "container_count": 30,
+      "cargo_value_usd": 610000
+    },
+    "contract_terms": {
+      "incoterm": "FOB",
+      "force_majeure_clause": "Force majeure covers natural disasters and government-ordered port closures only. War risk and security incidents are excluded and remain at the buyer's risk.",
+      "demurrage_usd_per_day": 220,
+      "detention_usd_per_day": 120,
+      "free_time_days": 3,
+      "late_delivery_penalty_usd_per_day": 2500,
+      "deviation_permitted": false,
+      "notice_period_hours": 24,
+      "governing_law": "Laws of the DIFC"
+    }
+  },
+  {
+    "shipment_id": "SHP-DEMO-003",
+    "bill_of_lading": {
+      "bl_number": "DEMO-BL-0003",
+      "carrier": "Demo Pacific Lines",
+      "shipper": "Demo Auto Parts Co. Ltd",
+      "consignee": "Demo Distribution Inc.",
+      "vessel_name": "DEMO HORIZON",
+      "voyage_number": "009N",
+      "port_of_loading": {"port_id": "port1065", "name": "Busan", "country": "Korea", "lat": 35.09, "lon": 128.94},
+      "port_of_discharge": {"port_id": "port664", "name": "Los Angeles-Long Beach", "country": "United States", "lat": 33.76, "lon": -118.24},
+      "transshipment_ports": [],
+      "route_chokepoints": [],
+      "etd": "2026-09-15T00:00:00Z",
+      "eta": "2026-10-01T00:00:00Z",
+      "cargo_description": "Automotive parts, 40' dry",
+      "container_count": 8,
+      "cargo_value_usd": 350000
+    },
+    "contract_terms": {
+      "incoterm": "DAP",
+      "force_majeure_clause": "Standard BIMCO force majeure clause.",
+      "demurrage_usd_per_day": 175,
+      "detention_usd_per_day": 90,
+      "free_time_days": 4,
+      "late_delivery_penalty_usd_per_day": 500,
+      "deviation_permitted": true,
+      "notice_period_hours": 72,
+      "governing_law": "New York law"
+    }
+  },
+  {
+    "shipment_id": "SHP-DEMO-004",
+    "bill_of_lading": {
+      "bl_number": "DEMO-BL-0004",
+      "carrier": "Demo Atlantic Express",
+      "shipper": "Demo Machinery GmbH",
+      "consignee": "Demo Agro Industria Ltda",
+      "vessel_name": "DEMO MERIDIAN",
+      "voyage_number": "221S",
+      "port_of_loading": {"port_id": "port446", "name": "Hamburg", "country": "Germany", "lat": 53.52, "lon": 9.96},
+      "port_of_discharge": {"port_id": "port1160", "name": "Santos", "country": "Brazil", "lat": -23.92, "lon": -46.34},
+      "transshipment_ports": [],
+      "route_chokepoints": ["chokepoint:dover-strait"],
+      "etd": "2026-09-18T00:00:00Z",
+      "eta": "2026-10-08T00:00:00Z",
+      "cargo_description": "Agricultural machinery, flat racks",
+      "container_count": 6,
+      "cargo_value_usd": 920000
+    },
+    "contract_terms": {
+      "incoterm": "CFR",
+      "force_majeure_clause": "Neither party is liable for delay caused by events beyond its reasonable control, including port closures and severe weather.",
+      "demurrage_usd_per_day": 200,
+      "detention_usd_per_day": 110,
+      "free_time_days": 7,
+      "late_delivery_penalty_usd_per_day": 800,
+      "deviation_permitted": true,
+      "notice_period_hours": 48,
+      "governing_law": "English law"
+    }
+  }
+]
