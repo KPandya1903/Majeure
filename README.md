@@ -140,6 +140,26 @@ that can't be used is logged with `recommended_action = NULL` and retried on the
   ```
   Config format: `name:model:reasoning:structured[:temperature]`.
 
+**Measured on an Apple M4 (16 GB) with `nemotron-3-nano:4b`** (2026-09-19; 3 real decisions × 2 repeats):
+
+| Config | Pre-mitigation risk | Action fits contract | Cost grounded | Total | Median time |
+|---|---|---|---|---|---|
+| 4k context, thinking, free-form (Ollama default) | 33% | 100% | 100% | 89% | 57 s |
+| 16k context, thinking, free-form | 50% | 100% | 100% | 92% | 65 s |
+| 16k, thinking, JSON schema | 33% | 100% | 100% | 89% | 46 s (some calls stall ~3 min) |
+| 16k, **no thinking**, JSON schema | 100% | 67% (proposed an impossible reroute) | 83% | 92% | 17 s |
+| **16k, no thinking, JSON schema, feasible actions only** (current code) | **100%** | **100%** | **100%** | **94%** | **24 s** |
+
+All configurations parsed 100% of replies and cited the source. With thinking on, the 4B
+model's risk scores swung between runs (0.00 vs 0.70 for the same case) and mostly rated
+risk after its own mitigation. With thinking off, repeats were identical. Since then,
+`task.allowed_actions` only lists **feasible** actions: an impossible reroute, or force
+majeure the clause excludes, is removed, so a schema-constrained model cannot pick them.
+**Recommended for small local models:**
+`NEMOTRON_MODEL=portguard-nemotron`, `NEMOTRON_REASONING=none`, `NEMOTRON_STRUCTURED=on`.
+Bigger Nemotron models may use thinking well: re-run `eval_model.py` on your hardware and
+pick the winner.
+
 ### 2.2 If local isn't enough (last resort)
 
 * **NVIDIA hosted API (uses your credits):** set `NEMOTRON_BASE_URL=https://integrate.api.nvidia.com/v1`,

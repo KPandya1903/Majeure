@@ -21,7 +21,8 @@ import pandas as pd
 from common import CHOKEPOINTS, DATA_DIR, PORTS_CSV, iso, nearby_ports, setup_logging, utcnow
 from exposure import compute_exposure
 from fetch_traffic import CHOKEPOINT_LAYER, PORT_LAYER, query_daily
-from run_nemotron import REASON_PRIORITY, RULES_MODEL, SYSTEM_PROMPT, decision_schema, parse_decision, rules_decision
+from run_nemotron import (REASON_PRIORITY, RULES_MODEL, SYSTEM_PROMPT, decision_schema, feasible_actions, parse_decision,
+                          rules_decision)
 from schemas import Analysis, MatchContext, NemotronPayload, Shipment, Task, Traffic, XtractSignal
 
 OUT_JSON = DATA_DIR / "backtest.json"
@@ -129,7 +130,8 @@ def run_scenario(sc: dict, signals: dict, ports: pd.DataFrame, client=None) -> d
             alt = {"port_id": near.iloc[0].port_id, "name": near.iloc[0].port_name, "distance_km": float(near.iloc[0].distance_km)}
     exposure = compute_exposure(signal, shipment, mc, traffic_known, aware_at=as_of, alternate_port=alt)
     payload = NemotronPayload(request_id=str(uuid.uuid4()), created_at=as_of, signal=signal, shipment=shipment,
-                              match_context=mc, analysis=Analysis(exposure=exposure, traffic=traffic_known), task=Task())
+                              match_context=mc, analysis=Analysis(exposure=exposure, traffic=traffic_known),
+                              task=Task(allowed_actions=feasible_actions(exposure)))
     decision, model = rules_decision(payload), RULES_MODEL
     if client is not None:
         try:

@@ -132,8 +132,14 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     conn = connect(args.db)
     conn.row_factory = sqlite3.Row
-    decisions = conn.execute("""SELECT * FROM decision_logs WHERE recommended_action IS NOT NULL
-                                AND human_decision <> 'overridden' ORDER BY decision_id""").fetchall()
+    # Only the latest usable decision per (event or signal, shipment): superseded ones are never shown or sent.
+    decisions = conn.execute("""SELECT d.* FROM decision_logs d
+                                WHERE d.recommended_action IS NOT NULL AND d.human_decision <> 'overridden'
+                                  AND d.decision_id = (SELECT MAX(x.decision_id) FROM decision_logs x
+                                                       WHERE x.recommended_action IS NOT NULL
+                                                         AND x.shipment_id = d.shipment_id
+                                                         AND COALESCE(x.event_id, x.signal_id) = COALESCE(d.event_id, d.signal_id))
+                                ORDER BY d.decision_id""").fetchall()
     existing = {(r["decision_id"], r["kind"]): r["status"] for r in conn.execute("SELECT decision_id, kind, status FROM action_drafts")}
     todo = [(d, k) for d in decisions for k in needed_kinds(d)
             if (d["decision_id"], k) not in existing or (args.redo and existing[(d["decision_id"], k)] == "draft")]

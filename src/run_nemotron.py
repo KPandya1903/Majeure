@@ -227,8 +227,15 @@ def build_payload(conn: sqlite3.Connection, item: dict, now: datetime) -> Nemotr
     return NemotronPayload(
         request_id=str(uuid.uuid4()), created_at=now, signal=signal, shipment=shipment, match_context=match,
         analysis=Analysis(exposure=exposure, traffic=traffic, corroboration=corroboration),
-        task=Task(instructions=TASK_INSTRUCTIONS),
+        task=Task(allowed_actions=feasible_actions(exposure), instructions=TASK_INSTRUCTIONS),
     )
+
+
+def feasible_actions(exposure) -> list[str]:
+    """All actions except options the analysis rules out: an impossible reroute, or force majeure the clause
+    excludes. With structured output the model cannot pick them (small models otherwise sometimes do)."""
+    unavailable = {o.action for o in exposure.options if not o.available} if exposure else set()
+    return [a for a in Task().allowed_actions if a not in unavailable]
 
 
 # --------------------------------------------------------------------------- decisions

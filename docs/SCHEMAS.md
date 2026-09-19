@@ -451,7 +451,7 @@ Nemotron receives) always contain every field.
     },
     "match_context": { "$ref": "#/$defs/MatchContext" },
     "analysis":      { "$ref": "#/$defs/Analysis", "description": "Rule-based context computed before the model is called." },
-    "task":          { "$ref": "#/$defs/Task", "description": "Defaults to all six allowed actions." }
+    "task":          { "$ref": "#/$defs/Task", "description": "allowed_actions = the six actions minus options analysis.exposure marks unavailable (impossible reroute, force majeure the clause excludes)." }
   },
   "$defs": {
     "PortRef": {
