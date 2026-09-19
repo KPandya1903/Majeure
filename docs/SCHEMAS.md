@@ -21,10 +21,23 @@ well.
 
 ## 1. SQLite database schema
 
-File: `data/portguard.db`. The spec asks for `signals`, `shipments` and `decision_logs`. There
-are two supporting tables as well: `ports`, the PortWatch reference data loaded from the CSV,
-and `signal_ports`, which links one signal to all the ports it affects (a PortWatch event can
-list up to 37).
+File: `data/portguard.db`. The spec asks for `signals`, `shipments` and `decision_logs`. The
+supporting tables are:
+
+| Table | Written by | Purpose |
+|---|---|---|
+| `ports` | `init_db.py` (from the PortWatch CSV) | Reference ports |
+| `signal_ports` | `init_db.py`, `xtract.py` | Every port or chokepoint a signal touches. A sea area adds its straits (`SEA_AREA_LINKS`) |
+| `events`, `event_signals` | `cluster_events.py` (rebuilt each run) | Reports clustered into real-world events, with corroboration |
+| `traffic_daily`, `traffic_stats` | `init_db.py` (from `fetch_traffic.py` CSVs) | Measured transits and port calls |
+| `action_drafts` | `draft_actions.py`, dashboard | Force majeure notices and customer emails |
+| `xtract_results` | `xtract.py` | Nemotron's re-reading of news signals, re-applied after every load |
+| `alerts_sent` | `alerts.py` | Alerts already sent, one per decision and channel |
+
+Columns added after the first release (`decision_logs.event_id`, `estimated_cost_usd`,
+`force_majeure_applicable`) are also added in place by `init_db.py` (`MIGRATIONS`), so
+existing databases keep their data. Changed `CHECK` lists (new sources or match methods) only
+take effect after `init_db.py --reset`.
 
 ```sql
 PRAGMA foreign_keys = ON;
@@ -78,7 +91,7 @@ CREATE TABLE IF NOT EXISTS signals (
     location_country TEXT,
     location_lat     REAL,
     location_lon     REAL,
-    match_method     TEXT CHECK (match_method IN ('structured', 'gazetteer', 'proximity')),
+    match_method     TEXT CHECK (match_method IN ('structured', 'gazetteer', 'proximity', 'xtract')),
     raw_text         TEXT NOT NULL,
     metadata         TEXT NOT NULL DEFAULT '{}',              -- JSON object, source-specific
     status           TEXT NOT NULL DEFAULT 'new'
@@ -156,17 +169,104 @@ CREATE TABLE IF NOT EXISTS decision_logs (
                            CHECK (human_decision IN ('pending', 'approved', 'overridden')),
     human_notes        TEXT,
     latency_ms         INTEGER,
-    created_at         TEXT NOT NULL
+    created_at         TEXT NOT NULL,
+    event_id           TEXT,                                   -- events.event_id the signal belonged to
+    estimated_cost_usd REAL,                                   -- model's cost estimate for its recommendation
+    force_majeure_applicable INTEGER CHECK (force_majeure_applicable IN (0, 1))
 );
 CREATE INDEX IF NOT EXISTS idx_decisions_signal   ON decision_logs (signal_id);
 CREATE INDEX IF NOT EXISTS idx_decisions_shipment ON decision_logs (shipment_id);
+
+-- Clustered events: many reports of one real-world event (src/cluster_events.py, rebuilt each run).
+CREATE TABLE IF NOT EXISTS events (
+    event_id         TEXT PRIMARY KEY,                         -- anchor signal_id, or a hash for news-only events
+    title            TEXT NOT NULL,
+    event_type       TEXT NOT NULL,
+    severity         TEXT,
+    location_id      TEXT NOT NULL,                            -- port_id or chokepoint:<slug>
+    location_name    TEXT,
+    location_kind    TEXT,
+    anchor_signal_id TEXT NOT NULL REFERENCES signals (signal_id), -- representative signal sent to Nemotron
+    is_structured    INTEGER NOT NULL CHECK (is_structured IN (0, 1)), -- anchored on PortWatch/GDACS
+    n_signals        INTEGER NOT NULL,
+    n_sources        INTEGER NOT NULL,
+    n_publishers     INTEGER NOT NULL,
+    confidence       REAL NOT NULL CHECK (confidence BETWEEN 0 AND 1),
+    first_seen       TEXT,
+    last_seen        TEXT,
+    updated_at       TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS event_signals (
+    event_id   TEXT NOT NULL REFERENCES events (event_id) ON DELETE CASCADE,
+    signal_id  TEXT NOT NULL REFERENCES signals (signal_id) ON DELETE CASCADE,
+    PRIMARY KEY (event_id, signal_id)
+);
+CREATE INDEX IF NOT EXISTS idx_event_signals_signal ON event_signals (signal_id);
+
+-- Daily traffic at chokepoints (transits) and ports (port calls), from PortWatch (src/fetch_traffic.py).
+CREATE TABLE IF NOT EXISTS traffic_daily (
+    location_id  TEXT NOT NULL,
+    date         TEXT NOT NULL,                                -- YYYY-MM-DD
+    metric       TEXT NOT NULL CHECK (metric IN ('transits', 'port_calls')),
+    value        REAL NOT NULL,
+    PRIMARY KEY (location_id, date)
+);
+CREATE TABLE IF NOT EXISTS traffic_stats (
+    location_id   TEXT PRIMARY KEY,
+    name          TEXT NOT NULL,
+    metric        TEXT NOT NULL CHECK (metric IN ('transits', 'port_calls')),
+    latest_date   TEXT NOT NULL,
+    avg_7d        REAL NOT NULL,                               -- mean of the latest 7 days
+    baseline_avg  REAL NOT NULL,                               -- mean of the 90 days before those
+    pct_change    REAL,                                        -- (avg_7d - baseline) / baseline * 100
+    updated_at    TEXT NOT NULL
+);
+
+-- Correspondence drafted for a decision (src/draft_actions.py).
+CREATE TABLE IF NOT EXISTS action_drafts (
+    draft_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    decision_id   INTEGER NOT NULL REFERENCES decision_logs (decision_id) ON DELETE CASCADE,
+    kind          TEXT NOT NULL CHECK (kind IN ('force_majeure_notice', 'customer_email')),
+    subject       TEXT NOT NULL,
+    body          TEXT NOT NULL,
+    deadline_at   TEXT,                                        -- e.g. force majeure notice due
+    generated_by  TEXT NOT NULL,                               -- 'template' or the model id
+    status        TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'approved', 'sent', 'discarded')),
+    created_at    TEXT NOT NULL,
+    UNIQUE (decision_id, kind)
+);
+
+-- Nemotron "Xtract" refinements of news signals (src/xtract.py); re-applied by init_db.py after every load.
+CREATE TABLE IF NOT EXISTS xtract_results (
+    signal_id               TEXT PRIMARY KEY REFERENCES signals (signal_id) ON DELETE CASCADE,
+    model                   TEXT NOT NULL,
+    is_disruption           INTEGER NOT NULL CHECK (is_disruption IN (0, 1)),
+    event_type              TEXT NOT NULL,
+    severity                TEXT,
+    location_text           TEXT,                              -- place as the model wrote it
+    location_port_id        TEXT,                              -- resolved port_id / chokepoint id, if any
+    expected_duration_days  REAL,
+    confidence              REAL,
+    raw_output              TEXT,
+    created_at              TEXT NOT NULL
+);
+
+-- Alerts already sent for a decision (src/alerts.py), so each is sent once.
+CREATE TABLE IF NOT EXISTS alerts_sent (
+    decision_id  INTEGER NOT NULL REFERENCES decision_logs (decision_id) ON DELETE CASCADE,
+    channel      TEXT NOT NULL,                                -- 'slack' or 'console'
+    sent_at      TEXT NOT NULL,
+    PRIMARY KEY (decision_id, channel)
+);
 ```
 
 **Finding at-risk shipments.** This is the query `src/run_nemotron.py` runs (`MATCH_SQL`,
 copied verbatim). It returns one row per (signal, shipment, matched port/chokepoint).
 `run_nemotron.py` then keeps one row per (signal, shipment), choosing the strongest
 `match_reason` in the order `port_of_discharge` > `port_of_loading` > `transshipment_port` >
-`route_chokepoint`. The recency filter matters because `signals` also holds PortWatch history
+`route_chokepoint`. Next it groups those rows into one item per **(event, shipment)** using
+`event_signals` (`group_by_event`). The event's anchor signal represents it when the anchor
+matched, otherwise its newest matching report represents it. The recency filter matters because `signals` also holds PortWatch history
 back to 2018. `:since` is now minus `--since-days` (default 14).
 
 ```sql
@@ -247,8 +347,8 @@ fields are `title`, `source_url`, `port_location`, `event_type` and `raw_text`.
         "country":      { "type": ["string", "null"] },
         "lat":          { "type": ["number", "null"], "minimum": -90,  "maximum": 90 },
         "lon":          { "type": ["number", "null"], "minimum": -180, "maximum": 180 },
-        "match_method": { "enum": ["structured", "gazetteer", "proximity"],
-                          "description": "structured = given by the source; gazetteer = name found in text; proximity = nearest port to a GDACS event." }
+        "match_method": { "enum": ["structured", "gazetteer", "proximity", "xtract"],
+                          "description": "structured = given by the source; gazetteer = name found in text; proximity = nearest port to a GDACS event; xtract = place named by Nemotron (xtract.py)." }
       }
     }
   }
@@ -335,7 +435,7 @@ Nemotron receives) always contain every field.
   "required": ["request_id", "created_at", "signal", "shipment", "match_context"],
   "additionalProperties": false,
   "properties": {
-    "payload_version": { "const": "1.0", "default": "1.0" },
+    "payload_version": { "const": "1.1", "default": "1.1" },
     "request_id":      { "type": "string", "format": "uuid" },
     "created_at":      { "type": "string", "format": "date-time" },
     "signal":          { "$ref": "xtract-signal (section 2)" },
@@ -350,6 +450,7 @@ Nemotron receives) always contain every field.
       }
     },
     "match_context": { "$ref": "#/$defs/MatchContext" },
+    "analysis":      { "$ref": "#/$defs/Analysis", "description": "Rule-based context computed before the model is called." },
     "task":          { "$ref": "#/$defs/Task", "description": "Defaults to all six allowed actions." }
   },
   "$defs": {
@@ -411,6 +512,55 @@ Nemotron receives) always contain every field.
         "days_until_eta":  { "type": ["number", "null"] }
       }
     },
+    "Analysis": {
+      "type": "object",
+      "properties": {
+        "exposure": {
+          "type": ["object", "null"],
+          "description": "src/exposure.py: cost of each option from the contract terms and stated assumptions.",
+          "required": ["options"],
+          "properties": {
+            "currency": { "const": "USD" },
+            "options": { "type": "array", "items": {
+              "type": "object", "required": ["action", "available", "expected_delay_days", "cost_usd"],
+              "properties": {
+                "action": { "enum": ["monitor", "notify_customer", "reroute", "expedite", "hold_cargo", "invoke_force_majeure"] },
+                "available": { "type": "boolean" }, "expected_delay_days": { "type": "number", "minimum": 0 },
+                "cost_usd": { "type": "number", "minimum": 0 },
+                "breakdown": { "type": "object", "additionalProperties": { "type": "number" } },
+                "note": { "type": "string" } } } },
+            "cheapest_action": { "type": ["string", "null"] },
+            "force_majeure_covered": { "type": ["boolean", "null"], "description": "null = clause too general to tell" },
+            "force_majeure_notice_due": { "type": ["string", "null"], "format": "date-time" },
+            "assumptions": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "traffic": {
+          "type": ["object", "null"],
+          "description": "PortWatch daily data at the matched location: latest 7-day mean vs the 90 days before.",
+          "required": ["location_id", "name", "metric", "latest_date", "avg_7d", "baseline_avg"],
+          "properties": {
+            "location_id": { "type": "string" }, "name": { "type": "string" },
+            "metric": { "enum": ["transits", "port_calls"] }, "latest_date": { "type": "string" },
+            "avg_7d": { "type": "number" }, "baseline_avg": { "type": "number" }, "pct_change": { "type": ["number", "null"] }
+          }
+        },
+        "corroboration": {
+          "type": ["object", "null"],
+          "description": "src/cluster_events.py: the event this signal belongs to.",
+          "required": ["event_id", "n_reports", "n_sources", "n_publishers", "confidence"],
+          "properties": {
+            "event_id": { "type": "string" }, "n_reports": { "type": "integer", "minimum": 1 },
+            "n_sources": { "type": "integer", "minimum": 1 }, "n_publishers": { "type": "integer", "minimum": 1 },
+            "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+            "first_seen": { "type": ["string", "null"], "format": "date-time" },
+            "last_seen": { "type": ["string", "null"], "format": "date-time" },
+            "headlines": { "type": "array", "items": { "type": "object", "required": ["title", "source", "url"],
+              "properties": { "title": { "type": "string" }, "source": { "type": "string" }, "url": { "type": "string" } } } }
+          }
+        }
+      }
+    },
     "Task": {
       "type": "object",
       "required": ["objective", "allowed_actions"],
@@ -432,7 +582,7 @@ Nemotron receives) always contain every field.
 
 ```json
 {
-  "payload_version": "1.0",
+  "payload_version": "1.1",
   "request_id": "0b6d7a3e-4c1f-4a55-9b1e-2f6f0d9c7a10",
   "created_at": "2026-09-19T16:05:00Z",
   "signal": { "...": "full XtractSignal object, e.g. the RED SEA TENSIONS example above" },
@@ -472,8 +622,32 @@ Nemotron receives) always contain every field.
   "match_context": {
     "match_reason": "route_chokepoint",
     "matched_port_id": "chokepoint:bab-el-mandeb-strait",
-    "distance_km": null,
-    "days_until_eta": 25
+    "distance_km": 0.0,
+    "days_until_eta": 30.2
+  },
+  "analysis": {
+    "exposure": {
+      "currency": "USD",
+      "options": [
+        { "action": "monitor", "available": true, "expected_delay_days": 10, "cost_usd": 10000,
+          "breakdown": { "late_delivery_penalty": 10000, "demurrage_detention": 0 }, "note": "Wait it out: ~10 days of delay." },
+        { "action": "reroute", "available": true, "expected_delay_days": 12, "cost_usd": 30000,
+          "breakdown": { "late_delivery_penalty": 12000, "carrier_surcharge": 18000 }, "note": "Reroute via the Cape of Good Hope (+12 days)." },
+        { "action": "invoke_force_majeure", "available": true, "expected_delay_days": 10, "cost_usd": 0,
+          "breakdown": { "demurrage_detention": 0, "late_delivery_penalty": 0 },
+          "note": "The clause covers this kind of event. Written notice is due by 2026-09-21 19:32 UTC." }
+      ],
+      "cheapest_action": "invoke_force_majeure",
+      "force_majeure_covered": true,
+      "force_majeure_notice_due": "2026-09-21T19:32:09Z",
+      "assumptions": ["... see src/exposure.py ASSUMPTIONS ..."]
+    },
+    "traffic": { "location_id": "chokepoint:bab-el-mandeb-strait", "name": "Bab el-Mandeb Strait", "metric": "transits",
+                 "latest_date": "2026-09-13", "avg_7d": 27.3, "baseline_avg": 31.7, "pct_change": -13.8 },
+    "corroboration": { "event_id": "c1c9ad29f8d8f3fc", "n_reports": 21, "n_sources": 5, "n_publishers": 15, "confidence": 0.99,
+                       "first_seen": "2023-12-16T00:00:00Z", "last_seen": "2026-09-19T18:11:00Z",
+                       "headlines": [{ "title": "Houthis Seize Bab al-Mandeb, Closing World's Second Oil Chokepoint",
+                                       "source": "ibtimes.com", "url": "https://jp.ibtimes.com/houthis-seize-bab-al-mandeb-104493" }] }
   },
   "task": {
     "objective": "assess_disruption_risk",
@@ -504,10 +678,18 @@ payload (`input_payload`) and the raw API response (`output_payload`).
                                      "hold_cargo", "invoke_force_majeure"],
                             "description": "Must also be in the payload's task.allowed_actions." },
     "rationale":          { "type": "string", "minLength": 1 },
-    "citations":          { "type": "array", "items": { "type": "string" }, "default": [] }
+    "citations":          { "type": "array", "items": { "type": "string" }, "default": [] },
+    "estimated_cost_usd": { "type": ["number", "null"], "minimum": 0, "default": null,
+                            "description": "Expected cost of the recommended action." },
+    "force_majeure_applicable": { "type": ["boolean", "null"], "default": null }
   }
 }
 ```
+
+`run_nemotron.py --engine rules` produces the same object without a model (`model =
+portguard-rules-v1`): the cheapest available option from `analysis.exposure` (upgraded from
+`monitor` to `notify_customer` at high risk), with a risk score built from severity, measured
+traffic, corroboration, and time to ETA. Use it as a baseline, or when no GPU is available.
 
 **Lenient parsing.** Local reasoning models are messy, so the parser (`extract_json`,
 `parse_decision`):
@@ -521,4 +703,5 @@ payload (`input_payload`) and the raw API response (`output_payload`).
 
 **When a reply can't be used,** the row is still written to `decision_logs`, with
 `recommended_action = NULL` and the raw reply in `output_payload`. The pair is retried on the
-next run. Pairs that already have a non-NULL decision are skipped unless `--redo` is passed.
+next run. (Event, shipment) pairs that already have a non-NULL decision are skipped unless
+`--redo` is passed.

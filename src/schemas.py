@@ -54,7 +54,7 @@ class PortLocation(_Strict):
     country: Optional[str] = None
     lat: Optional[float] = Field(default=None, ge=-90, le=90)
     lon: Optional[float] = Field(default=None, ge=-180, le=180)
-    match_method: Literal["structured", "gazetteer", "proximity"]
+    match_method: Literal["structured", "gazetteer", "proximity", "xtract"]
 
 
 class XtractSignal(_Strict):
@@ -139,13 +139,72 @@ class Task(_Strict):
     instructions: Optional[str] = None
 
 
+class ExposureOption(_Strict):
+    action: Action
+    available: bool
+    expected_delay_days: float = Field(ge=0)
+    cost_usd: float = Field(ge=0)
+    breakdown: dict[str, float] = Field(default_factory=dict)
+    note: str = ""
+
+
+class Exposure(_Strict):
+    """Rule-based cost of each option (src/exposure.py). Figures are estimates from stated assumptions."""
+    currency: Literal["USD"] = "USD"
+    options: list[ExposureOption]
+    cheapest_action: Optional[Action] = None
+    force_majeure_covered: Optional[bool] = None  # None = the clause is too vague to tell
+    force_majeure_notice_due: Optional[datetime] = None
+    assumptions: list[str] = Field(default_factory=list)
+
+    _utc = field_validator("force_majeure_notice_due")(_to_utc)
+
+
+class Traffic(_Strict):
+    """Measured traffic at the matched port/chokepoint (IMF PortWatch daily data)."""
+    location_id: str
+    name: str
+    metric: Literal["transits", "port_calls"]
+    latest_date: str
+    avg_7d: float
+    baseline_avg: float
+    pct_change: Optional[float] = None
+
+
+class Headline(_Strict):
+    title: str
+    source: str
+    url: str
+
+
+class Corroboration(_Strict):
+    """How many independent reports describe the same event (src/cluster_events.py)."""
+    event_id: str
+    n_reports: int = Field(ge=1)
+    n_sources: int = Field(ge=1)
+    n_publishers: int = Field(ge=1)
+    confidence: float = Field(ge=0, le=1)
+    first_seen: Optional[datetime] = None
+    last_seen: Optional[datetime] = None
+    headlines: list[Headline] = Field(default_factory=list)
+
+    _utc = field_validator("first_seen", "last_seen")(_to_utc)
+
+
+class Analysis(_Strict):
+    exposure: Optional[Exposure] = None
+    traffic: Optional[Traffic] = None
+    corroboration: Optional[Corroboration] = None
+
+
 class NemotronPayload(_Strict):
-    payload_version: Literal["1.0"] = "1.0"
+    payload_version: Literal["1.1"] = "1.1"
     request_id: str
     created_at: datetime
     signal: XtractSignal
     shipment: Shipment
     match_context: MatchContext
+    analysis: Analysis = Field(default_factory=Analysis)
     task: Task = Field(default_factory=Task)
 
     _utc = field_validator("created_at")(_to_utc)
@@ -164,6 +223,8 @@ class NemotronDecision(BaseModel):
     recommended_action: Action
     rationale: str = Field(min_length=1)
     citations: list[str] = Field(default_factory=list)
+    estimated_cost_usd: Optional[float] = Field(default=None, ge=0)
+    force_majeure_applicable: Optional[bool] = None
 
     @field_validator("risk_score", mode="before")
     @classmethod

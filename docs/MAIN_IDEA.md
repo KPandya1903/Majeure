@@ -40,7 +40,8 @@ PortGuard AI closes all three gaps in one automated loop:
 |---|---|---|
 | Detection | Continuously ingests **free, open sources** (IMF PortWatch, GDACS, five maritime trade-press feeds, GDELT, Google News) into one normalised signal format. | `fetch_*.py`, `parse_rss.py` → `init_db.py` |
 | Relevance | **Matches** each signal to shipments whose port of loading, port of discharge, transshipment port, or route chokepoint it touches, and drops stale signals. | `run_nemotron.py` (`MATCH_SQL`, `find_pairs`) |
-| Contract | Sends signal and contract terms to **Nemotron**, which weighs the disruption against the clauses and returns a risk score, a recommended action, and a cited rationale. | `run_nemotron.py` (`NemotronPayload` → `NemotronDecision`) |
+| Contract | Prices the options (wait, reroute, invoke force majeure) from the contract terms, checks whether the force majeure clause covers the event, starts the notice-deadline clock, then sends it all to **Nemotron**, which returns a risk score, a recommended action, a cost estimate, and a cited rationale. | `exposure.py`, `run_nemotron.py` |
+| Action | Drafts the force majeure notice and the customer email, and alerts the team before the deadline. | `draft_actions.py`, `alerts.py`, `dashboard.py` |
 
 Every decision is written to an **audit log** (`decision_logs`) along with the exact input
 the model saw, its raw output, and the evidence URLs. A human approves or overrides it. The
@@ -69,23 +70,23 @@ PortWatch and GDACS provide the authoritative anchor. They reinforce each other 
 agree. On 2026-09-19, for example, the PortWatch HORMUZ-26 event was joined by dozens of
 same-day tanker-attack reports from Google News, GDELT, and the trade press.
 
-### 3.2 Understand: the Xtract Signal
+### 3.2 Understand: the Xtract Signal, then events
 
 Every item from every source is converted into one **Xtract Signal**, which is the project's
-name for a normalised, citable disruption record:
+name for a normalised, citable disruption record: title, `source_url` (the citation),
+`port_location` (a port, chokepoint, or region, with IDs and coordinates), `event_type` (one
+of 10 categories), `severity`, `raw_text`, and source-specific `metadata`.
 
-* `title`, `source_url` (the citation), `published_at`
-* `port_location`: where it happens (a port, a chokepoint, or a region), with IDs and
-  coordinates
-* `event_type`: one of 10 categories (security threat, labour strike, chokepoint disruption,
-  port closure, severe weather, natural disaster, vessel incident, congestion, regulatory,
-  other)
-* `severity`, `raw_text`, and source-specific `metadata`
-
-PortWatch events are mapped from their structured fields. News is pre-tagged with rules: a
-keyword classifier, plus a **gazetteer** that recognises the 2,065 PortWatch port names and
-31 chokepoints and sea areas in text. GDACS hazards are linked to ports by distance. The rules deliberately favour recall; the
-planned "Xtract" LLM extraction step would confirm or correct them.
+* PortWatch events are mapped from their structured fields. GDACS hazards are linked by
+  distance to the ports around them.
+* News is pre-tagged by rules: a keyword classifier plus a **gazetteer** of the 2,065
+  PortWatch ports and 31 chokepoints and sea areas. The optional **Xtract step**
+  (`xtract.py`) then has Nemotron re-read the news in batches, correcting event type,
+  location, and severity, and flagging items that aren't disruptions at all.
+* Finally **`cluster_events.py`** groups reports into real-world **events**. On 2026-09-19,
+  121 matchable signals became 24 events: HORMUZ-26 was confirmed by 71 reports from 50
+  publishers, and the Red Sea crisis by 21 from 15. Each event gets a confidence score, and
+  the model sees how well-confirmed it is.
 
 ### 3.3 Match: only what touches *your* route
 
@@ -97,9 +98,16 @@ Stale signals are filtered out: a PortWatch event must be ongoing or recent, and
 fall inside the look-back window. Each pair keeps its strongest reason (a disruption at the
 discharge port outranks one at a chokepoint).
 
-### 3.4 Decide: Nemotron reads the contract
+### 3.4 Decide: numbers first, then Nemotron reads the contract
 
-For each (signal, shipment) pair, PortGuard builds a validated **Nemotron payload**:
+Before any model is called, `exposure.py` prices the options from the contract terms:
+*wait it out* (expected delay × late penalty, plus demurrage and detention for port-side
+problems), *reroute* (extra sailing days plus carrier surcharges, or diversion to the nearest
+alternate port plus haulage), and *invoke force majeure* (penalty excused, but only if the
+clause covers this kind of event, and only with notice inside the notice period). Measured
+traffic from PortWatch raises the expected delay when a chokepoint is visibly choked.
+
+For each (event, shipment) pair, PortGuard then builds a validated **Nemotron payload**:
 
 * the full signal (what, where, when, severity, and source);
 * the Bill of Lading (route, ETD/ETA, cargo, value);
@@ -107,12 +115,17 @@ For each (signal, shipment) pair, PortGuard builds a validated **Nemotron payloa
   period, demurrage, detention, free time, late-delivery penalty, governing law;
 * the **match context**: why the pair was selected, which port or chokepoint, and days until
   ETA;
+* the **analysis**: the priced options and assumptions, force majeure coverage and the notice
+  deadline, measured traffic at the matched location, and the event's corroboration with
+  sample headlines;
 * the task: the allowed actions `monitor`, `notify_customer`, `reroute`, `expedite`,
   `hold_cargo`, `invoke_force_majeure`.
 
 Nemotron is told to use only the facts in the payload, pick one allowed action, and cite the
-source. It returns a risk score (0–1), a risk level, the action, a 2–4 sentence rationale,
-and citations. The parser accepts the messy output typical of reasoning models (thinking
+source. It returns a risk score (0–1), a risk level, the action, the expected cost of that
+action, whether force majeure applies, a 2–4 sentence rationale, and citations. The same
+contract produces a model-free baseline (`--engine rules`: cheapest available option), so
+the demo works without a GPU and the model's added value can be compared. The parser accepts the messy output typical of reasoning models (thinking
 blocks, code fences, percentages) and rejects actions that weren't offered.
 
 **Why Nemotron:** NVIDIA's Nemotron models are open and can be self-hosted (NIM, vLLM,
@@ -120,54 +133,70 @@ Ollama). Commercially sensitive contract terms and cargo values therefore never 
 the operator's infrastructure. They're reached through the standard OpenAI-compatible API, so
 the same code also works with NVIDIA's hosted endpoint.
 
-### 3.5 Audit: evidence and human control
+### 3.5 Act and audit: drafts, alerts, approval
 
-`decision_logs` stores for each decision: the model, score, level, action, rationale,
-citations, the **complete input payload**, the **raw model output**, latency, and a
-`human_decision` field (`pending` → `approved` / `overridden`) with notes. Any recommendation
-can be traced back to the exact evidence and contract text the model saw. Human verdicts can
-later be used to evaluate or tune the model.
+* `draft_actions.py` writes the **force majeure notice**, quoting the clause verbatim, naming
+  the event, the expected delay, and the measured traffic, listing the evidence links, and
+  showing its deadline. It also writes the **customer update email** with the cost
+  comparison. Nemotron writes them when reachable; templates otherwise.
+* `alerts.py` posts high-risk decisions that await approval to Slack (or the console), with
+  the hours left before the notice deadline.
+* The **dashboard** shows everything: a risk map, a decision card per shipment (options
+  table, deadline countdown, sources), Approve / Override with notes, editable drafts, traffic
+  charts, the backtest, and an **Ask PortGuard** chat that answers from the database.
+* `decision_logs` keeps the model, score, action, cost, rationale, citations, the **complete
+  input payload**, the **raw model output**, latency, and the human verdict. Any
+  recommendation can be traced back to the exact evidence and contract text the model saw.
 
 ## 4. Worked example (real data, 2026-09-19)
 
-**Signal (PortWatch, structured):** *RED SEA TENSIONS*, "Trade disruptions in the Red Sea
-(near Bab el-Mandeb Strait) due to attacks on commercial ships." Alert level RED
-(→ severity `high`), started 2023-12-16, `to_date = null` (ongoing), and affects the
-chokepoints Bab el-Mandeb Strait, Suez Canal, and Cape of Good Hope. Citation:
-`https://portwatch.imf.org/pages/573013af3b6545deaeb50ed1cbaf9444`.
+**Event:** *RED SEA TENSIONS* (IMF PortWatch), "trade disruptions in the Red Sea (near
+Bab el-Mandeb Strait) due to attacks on commercial ships". Alert level RED, ongoing since
+2023-12-16. It affects Bab el-Mandeb, Suez, and the Cape of Good Hope, and is corroborated
+by 21 current reports from 15 publishers, including *"Houthis Seize Bab al-Mandeb, Closing
+World's Second Oil Chokepoint"*.
 
-**Shipment (demo):** SHP-DEMO-001, 12 × 40' HC of consumer electronics worth $480,000.
-Shanghai → Singapore → Rotterdam via `chokepoint:malacca-strait`,
-`chokepoint:bab-el-mandeb-strait`, `chokepoint:suez-canal`; ETA 2026-10-20. Terms: CIF, force
-majeure **covers war, blockade, hostilities, and canal closure** with 48 h written notice,
-deviation **permitted**, $1,000/day late penalty.
+**Shipment (demo):** SHP-DEMO-001, 12 × 40' HC of consumer electronics ($480,000), Shanghai
+→ Singapore → Rotterdam via Malacca, Bab el-Mandeb, and Suez, ETA 2026-10-20. CIF; force
+majeure **covers war, blockade, hostilities, and canal closure** with 48 h notice; deviation
+permitted; $1,000/day late penalty.
 
-**Match:** `route_chokepoint` via `chokepoint:bab-el-mandeb-strait`, about 30 days before ETA.
+**What PortGuard computes before asking the model:**
 
-**What the model is asked to weigh:** an ongoing, high-severity security event on the route.
-Force majeure applies to this kind of event but requires notice within 48 hours. Deviation
-(for example via the Cape of Good Hope, itself listed as affected) is contractually allowed.
-There is a month of lead time, and a daily penalty if the cargo is late. Candidate actions
-include `reroute`, `notify_customer`, or `invoke_force_majeure`.
+| Option | Cost | Why |
+|---|---|---|
+| Wait it out | ~$10,000 | ~10 days × $1,000 late penalty |
+| Reroute via the Cape of Good Hope | ~$30,000 | +12 days × $1,000 + $1,500 × 12 containers surcharge |
+| **Invoke force majeure** | **~$0** | Clause covers war and hostilities; penalty excused. **Notice due in 48 h** |
 
-**Contrast:** SHP-DEMO-002 (Jebel Ali → Nhava Sheva through Hormuz) meets HORMUZ-26 plus
-recent tanker-attack reports. Its FOB contract **excludes war and security incidents** from
-force majeure, **forbids deviation**, and carries a $2,500/day penalty. The same kind of
-disruption should therefore lead to different advice (for instance, don't count on force
-majeure; notify the customer or hold cargo). Showing this contrast is the core of the demo.
-What Nemotron actually recommends depends on the model and prompt, and is recorded in
-`decision_logs`.
+Nemotron receives this with the traffic at Bab el-Mandeb (27 transits/day in the latest week)
+and the corroborating headlines. The draft notice is ready for approval, and a Slack alert
+counts down the 48 hours.
+
+**Contrast, same day:** SHP-DEMO-002 (Jebel Ali → Nhava Sheva through Hormuz) meets
+HORMUZ-26, where transits are down more than 90% against pre-crisis levels. Its FOB contract
+**excludes war and security incidents** from force majeure, **forbids deviation**, and no sea
+route avoids Hormuz anyway. Force majeure and rerouting are both unavailable; waiting costs
+about $30,000 at $2,500/day, so the right move is to notify the customer now. Same kind of
+disruption, opposite advice, because the contracts differ. That contrast is the core of the
+demo.
+
+**Backtest (real history):** replaying five past disruptions with the traffic known on day
+one, PortGuard would have flagged the Red Sea crisis 26 days before the example shipment's
+arrival (Bab el-Mandeb transits then fell 41% in the following month). It would have caught
+the Baltimore bridge collapse (port calls −76%) and the Hormuz closure (−96%), with the
+cheapest contract-compliant option priced each time.
 
 ## 5. What is real and what is demo
 
 | Part | Status |
 |---|---|
-| PortWatch, GDACS, trade-press RSS, GDELT, and Google News ingestion | **Real, live data** from public endpoints; no keys |
-| Signal normalisation, dedupe, relevance filtering, event classification, location tagging, proximity linking | **Real**, rule-based, tested on live data |
-| Database, matching, payload building, Nemotron client, parsing, audit log | **Real**; tested end to end against a mock Nemotron server |
-| Shipments / Bills of Lading | **Demo**: 4 fictional shipments on real routes (`samples/shipments.sample.json`) |
-| "Xtract" LLM extraction of signals | **Not built yet**; rule-based pre-tagging stands in for it |
-| UI / notifications | **Not built**; results are in SQLite (`decision_logs`) |
+| PortWatch, GDACS, trade-press RSS, GDELT, Google News ingestion, PortWatch daily traffic | **Real, live data** from public endpoints; no keys |
+| Normalisation, dedupe, relevance filtering, classification, location tagging, proximity linking, event clustering | **Real**, rule-based, tested on live data |
+| Exposure pricing, force majeure coverage check, notice deadlines | **Real logic**; the rates and delay tables are **stated planning assumptions** (`exposure.py`), not quotes |
+| Database, matching, payloads, rules engine, drafts, alerts, dashboard, backtest | **Real**; tested end to end |
+| Nemotron calls (decisions, Xtract, drafts, contract reading, Q&A) | **Real client**, tested against a mock OpenAI-compatible server; **not yet run on a real Nemotron model** |
+| Shipments / Bills of Lading | **Demo**: 4 fictional shipments on real routes, plus a fictional sample contract (`samples/`) |
 
 ## 6. Design principles
 
@@ -184,24 +213,35 @@ What Nemotron actually recommends depends on the model and prompt, and is record
    LLM, and its output is schema-checked.
 6. **Auditability.** Every model call is stored with its full input and raw output.
 
-## 7. Roadmap
+## 7. Demo script (90 seconds)
 
-* **Xtract LLM extraction:** use Nemotron to confirm or correct `event_type`,
-  `port_location`, and `severity` for news signals, and to read full article text.
-* **Proximity for every source:** GDACS hazards are already linked to ports by distance.
-  Extend this to PortWatch `region` events and to news whose location is only a city or
-  country.
-* **Impact quantification:** add PortWatch *Daily_Chokepoints_Data* and *Daily_Ports_Data*
-  (transit and port-call counts) to measure how much traffic actually dropped.
-* **Real B/L ingestion:** parse B/L PDFs and EDI messages into the `Shipment` schema.
-* **Event clustering:** collapse the many reports of one event (on 2026-09-19 SHP-DEMO-002
-  matched ~70 Hormuz stories) into a single signal before calling the model. Today
-  `--max-per-shipment` (default 5) caps the calls per run instead.
-* **Delivery:** a dashboard over `decision_logs`, and alerts (email or Slack) when a
-  high-risk decision needs approval before a force majeure notice deadline.
-* **Learning loop:** use `human_decision` overrides to evaluate prompts and models.
+1. **Map:** "Here are our shipments. Two routes are red: the Red Sea and Hormuz events are
+   confirmed by dozens of publishers, and Hormuz traffic is down more than 90%."
+2. **SHP-DEMO-001:** "Nemotron read this contract: force majeure covers war, and deviation is
+   allowed. Waiting costs $10k, rerouting $30k, force majeure $0, and the notice is due in
+   48 hours." Open the drafted notice → **Approve**.
+3. **SHP-DEMO-002:** "Same kind of event, opposite advice: this contract excludes war and
+   forbids deviation, so no route or force majeure is available; tell the customer now."
+4. **Backtest:** "Would it have worked? Red Sea 2023: flagged 26 days ahead, and traffic
+   then fell 41%."
+5. **Ask PortGuard:** "Which shipments go through Hormuz, and what does it cost us?"
+6. **Upload** the sample contract: Nemotron turns it into a tracked shipment, which the Red
+   Sea event immediately matches.
 
-## 8. Glossary
+## 8. Roadmap
+
+* **Richer delay estimates:** learn the expected delay per event type from PortWatch history
+  (how long traffic stayed depressed after each past event) instead of a fixed table.
+* **Proximity for every source:** extend GDACS-style distance linking to PortWatch `region`
+  events and to news that names only a city or country.
+* **Real B/L feeds:** EDI (IFTMIN/IFTSTA) and carrier APIs alongside PDF upload; live vessel
+  positions (AIS) to know which chokepoint a ship will reach, and when.
+* **Learning loop:** use `human_decision` overrides to evaluate prompts and Nemotron model
+  sizes against the rules baseline.
+* **Multi-tenant product:** authentication, per-customer shipments, email delivery of
+  approved drafts.
+
+## 9. Glossary
 
 | Term | Meaning |
 |---|---|

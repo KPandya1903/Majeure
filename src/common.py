@@ -196,6 +196,13 @@ CHOKEPOINTS: tuple[Chokepoint, ...] = (
     Chokepoint("Black Sea", r"black sea", 43.4, 34.0),
 )
 CHOKEPOINTS_BY_PORTWATCH_ID = {c.portwatch_id: c for c in CHOKEPOINTS if c.portwatch_id}
+# News often names a sea instead of its strait: a Red Sea report concerns ships using Bab el-Mandeb/Suez.
+# init_db.py adds these as extra (non-primary) signal_ports so matching and clustering see the link.
+SEA_AREA_LINKS = {
+    "chokepoint:red-sea": ("chokepoint:bab-el-mandeb-strait", "chokepoint:suez-canal"),
+    "chokepoint:gulf-of-aden": ("chokepoint:bab-el-mandeb-strait",),
+    "chokepoint:black-sea": ("chokepoint:bosporus-strait", "chokepoint:kerch-strait"),
+}
 
 # --------------------------------------------------------------------------- GDACS codes (PortWatch + GDACS)
 

@@ -19,7 +19,7 @@ from typing import Optional
 import pandas as pd
 from pydantic import ValidationError
 
-from common import DATA_DIR, PORTS_CSV, ROOT, iso, setup_logging, utcnow
+from common import DATA_DIR, PORTS_CSV, ROOT, SEA_AREA_LINKS, iso, setup_logging, utcnow
 from schemas import XtractSignal
 
 DB_PATH = DATA_DIR / "portguard.db"
@@ -122,6 +122,8 @@ def load_signals(conn: sqlite3.Connection, path: Path) -> Counter:
             port_ids = dict.fromkeys(sig.related_port_ids)
             if sig.port_location and sig.port_location.port_id:
                 port_ids = {sig.port_location.port_id: None, **port_ids}
+            for area in [p for p in port_ids if p in SEA_AREA_LINKS]:  # a sea implies its straits
+                port_ids.update(dict.fromkeys(SEA_AREA_LINKS[area]))
             primary = sig.port_location.port_id if sig.port_location else None
             conn.execute("DELETE FROM signal_ports WHERE signal_id = ?", (sig.signal_id,))
             conn.executemany("INSERT INTO signal_ports (signal_id, port_id, is_primary) VALUES (?, ?, ?)",
@@ -130,8 +132,40 @@ def load_signals(conn: sqlite3.Connection, path: Path) -> Counter:
     return stats
 
 
+# Columns added after the first release: added in place so existing databases keep their data.
+MIGRATIONS = {
+    "decision_logs": {"event_id": "TEXT", "estimated_cost_usd": "REAL", "force_majeure_applicable": "INTEGER"},
+}
+TRAFFIC_FILES = {"traffic_daily": DATA_DIR / "traffic_daily.csv", "traffic_stats": DATA_DIR / "traffic_stats.csv"}
+
+
+def migrate(conn: sqlite3.Connection) -> None:
+    for table, columns in MIGRATIONS.items():
+        existing = set(table_columns(conn, table))
+        for column, sql_type in columns.items():
+            if column not in existing:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {sql_type}")
+                log.info("migrated: added %s.%s", table, column)
+
+
+def load_traffic(conn: sqlite3.Connection) -> None:
+    """Replace traffic tables with the CSVs written by fetch_traffic.py (if present)."""
+    for table, path in TRAFFIC_FILES.items():
+        if not path.exists():
+            log.info("%s not found (run fetch_traffic.py for measured traffic); skipping", path.name)
+            continue
+        df = pd.read_csv(path, dtype={"location_id": str, "date": str, "latest_date": str})
+        cols = [c for c in table_columns(conn, table) if c in df.columns]
+        rows = [tuple(_native(v) for v in rec.values()) for rec in df[cols].to_dict("records")]
+        with conn:
+            conn.execute(f"DELETE FROM {table}")
+            conn.executemany(f"INSERT INTO {table} ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})", rows)
+        log.info("%s: loaded %d rows", table, len(rows))
+
+
 def summarise(conn: sqlite3.Connection) -> None:
-    for table in ("ports", "signals", "signal_ports", "shipments", "decision_logs"):
+    for table in ("ports", "signals", "signal_ports", "events", "traffic_stats", "shipments", "decision_logs",
+                  "action_drafts"):
         log.info("  %-14s %6d rows", table, conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
     by_source = conn.execute("SELECT source, COUNT(*) FROM signals GROUP BY source ORDER BY 2 DESC").fetchall()
     by_type = conn.execute("SELECT event_type, COUNT(*) FROM signals GROUP BY event_type ORDER BY 2 DESC").fetchall()
@@ -154,9 +188,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     conn = connect(args.db)
     try:
         conn.executescript(load_ddl())
+        migrate(conn)
         log.info("schema ready: %s", args.db)
         load_ports(conn, PORTS_CSV)
         totals = sum((load_signals(conn, path) for path in SIGNAL_FILES), Counter())
+        from xtract import apply_xtract  # re-apply Nemotron refinements that the upsert just overwrote
+        apply_xtract(conn)
+        load_traffic(conn)
         summarise(conn)
     finally:
         conn.close()

@@ -1,0 +1,13 @@
+# PortGuard tuning for Nemotron on Ollama.
+#   ollama create portguard-nemotron -f ollama/Modelfile
+#   then in .env: NEMOTRON_MODEL=portguard-nemotron
+# Change FROM to use a bigger Nemotron (e.g. nemotron-3-nano:30b) with the same settings.
+FROM nemotron-3-nano:4b
+
+# Ollama loads models with a 4,096-token window by default. A PortGuard decision prompt is ~2,800 tokens
+# and the model thinks for up to ~1,500 more, so 4,096 truncates it. 16k leaves ample room.
+PARAMETER num_ctx 16384
+
+# Decisions should be steady run to run; PortGuard's client also sends temperature on each request.
+PARAMETER temperature 0.2
+PARAMETER top_p 0.95

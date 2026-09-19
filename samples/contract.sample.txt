@@ -1,0 +1,42 @@
+SALES CONTRACT AND SHIPPING PARTICULARS  (DEMO DOCUMENT - FICTIONAL PARTIES)
+
+Contract No. DEMO-SC-2026-117
+Seller / Shipper: Demo Home Appliances (Ningbo) Co., Ltd.
+Buyer / Consignee: Demo Retail Europe NV, Antwerp, Belgium
+Carrier: Demo Ocean Line
+Bill of Lading No.: DEMO-BL-0005
+Vessel / Voyage: DEMO NAVIGATOR / 118W
+
+1. GOODS
+Household appliances (refrigerators and washing machines), 18 x 40' high-cube containers.
+Invoice value: USD 1,250,000.
+
+2. SHIPMENT
+Port of loading: Ningbo, China.
+Transshipment: Colombo, Sri Lanka.
+Port of discharge: Antwerp, Belgium.
+Customary route: through the Strait of Malacca, the Bab el-Mandeb Strait and the Suez Canal.
+Estimated time of departure: 25 September 2026. Estimated time of arrival: 31 October 2026.
+
+3. DELIVERY TERMS
+CIF Antwerp (Incoterms 2020).
+
+4. LATE DELIVERY
+If the goods arrive after the agreed arrival date, the Seller shall pay the Buyer liquidated damages of USD 1,500
+per day of delay.
+
+5. PORT CHARGES
+Free time at the port of discharge: 7 days. Thereafter demurrage of USD 180 per container per day and detention
+of USD 95 per container per day apply.
+
+6. ROUTE AND DEVIATION
+The Carrier may deviate from the customary route, including by sailing via the Cape of Good Hope, where passage is
+unsafe or obstructed.
+
+7. FORCE MAJEURE
+Neither party shall be liable for failure or delay in performance caused by acts of God, war, hostilities,
+terrorism, piracy, blockade, or the closure or obstruction of canals, straits or ports, provided that the affected
+party notifies the other party in writing within 72 hours of becoming aware of the event.
+
+8. GOVERNING LAW
+This contract is governed by Belgian law.

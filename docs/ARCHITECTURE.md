@@ -8,66 +8,71 @@ For the product idea, see [MAIN_IDEA.md](MAIN_IDEA.md). For a file-by-file guide
 ## End-to-end flow
 
 ```
- TRACK A: STRUCTURED                           TRACK B: UNSTRUCTURED NEWS
+ SENSE ─────────────────────────────────────────────────────────────────────────────────────────
  IMF PortWatch          GDACS live alerts      Trade-press RSS (5)     GDELT raw GKG     Google News
- (ports + curated       (cyclones, quakes,     gCaptain, MarEx,        (15-min files)    (RSS search)
-  disruption events)     floods, …)            Seatrade, HSN, Splash
+ ports + curated events cyclones/quakes/floods gCaptain, MarEx, …      15-min files      RSS search
+ + daily traffic        (proximity → ports)                            (relevance filter)(relevance filter)
        │                     │                        │                      │                │
  fetch_portwatch.py    fetch_gdacs.py            parse_rss.py          fetch_gdelt.py   fetch_google_news.py
-       │                 proximity:                   │               relevance filter  relevance filter
-       │                 ports within radius          │                      │                │
-       ├── ports CSV ────────┴── gazetteer: port / chokepoint tagging ───────┴────────────────┘
-       ▼                                  ▼
- portwatch_ports.csv, *_signals.json  (one JSON array of Xtract Signals per source family)
-                                  │
-                                  ▼
-                             init_db.py ──► data/portguard.db
-                                             ports · signals · signal_ports
-                                  ▲          shipments · decision_logs
- samples/shipments.sample.json ──► load_shipments.py
-                                  │
-                                  ▼
-                           run_nemotron.py
-      1. match signals ⇄ shipments (port of loading/discharge, transshipment, route chokepoint)
-      2. build a validated NemotronPayload per (signal, shipment) pair (≤5 per shipment per run)
-      3. POST to Nemotron (OpenAI-compatible /chat/completions)
-      4. parse + validate NemotronDecision  ──►  decision_logs (with citations)
+ fetch_traffic.py            │                        │                      │                │
+       └────────── ports CSV = gazetteer + proximity table ─────────────────┴────────────────┘
+                                          ▼
+ STORE ────────────────────────────── init_db.py ──► data/portguard.db
+                                          │            (re-applies Xtract refinements after each load)
+ UNDERSTAND ─── xtract.py (optional, Nemotron re-reads news: type, place, severity)
+                                          │
+ CLUSTER ────── cluster_events.py: 120 reports → ~25 events, corroboration + confidence
+                                          │
+ SHIPMENTS ──── load_shipments.py (JSON) · extract_contract.py (PDF/TXT → Nemotron → Shipment)
+                                          │
+ DECIDE ─────── run_nemotron.py, per (event, shipment):
+                  match route ⇄ event → payload.analysis = exposure.py (priced options, FM coverage,
+                  notice deadline) + traffic + corroboration → Nemotron (or --engine rules) → decision_logs
+                                          │
+ ACT ────────── draft_actions.py (FM notice + customer email) · alerts.py (Slack/console)
+                                          │
+ REVIEW ─────── dashboard.py (Streamlit): map, decisions, approve/override, drafts, traffic, backtest,
+                ask.py Q&A · backtest.py (historical replay)
+
+ run_pipeline.py runs SENSE → ACT in order, once or every N minutes.
 ```
 
-* **Track A (structured):** IMF PortWatch gives the reference list of ports and a curated
-  database of disruption events, already tagged with affected port and chokepoint IDs. GDACS
-  adds live hazard alerts; each one is linked to the PortWatch ports within a per-type radius
-  (**proximity** matching).
-* **Track B (unstructured):** five maritime trade-press feeds, GDELT's raw news firehose, and
-  a Google News search. Firehose sources are filtered to headlines about shipping *and* a
-  disruption. Every article is pre-tagged with a rule-based `event_type` and a
-  `port_location` found by matching the text against PortWatch port names and 31 chokepoints
-  and sea areas (the "gazetteer").
-* Both tracks produce the same **Xtract Signal** shape
-  ([SCHEMAS.md §2](SCHEMAS.md#2-xtract-signal-output)) and land in one `signals` table.
-* **Decision stage:** `run_nemotron.py` pairs signals with shipments whose route touches the
-  same port or chokepoint. It sends each pair to Nemotron with the contract terms and stores
-  the answer (risk score, level, action, rationale, and citations) in `decision_logs`.
-
-Every signal keeps its `source_url`, and every decision cites it. That is how a decision can
-be traced back to its evidence.
+* **Two tracks of evidence.** *Structured:* PortWatch curated events (already tagged with
+  affected ports and chokepoints) and GDACS hazards (linked to ports within a per-type radius).
+  *Unstructured:* trade press, GDELT, and Google News, pre-tagged by rules and optionally
+  re-read by Nemotron (Xtract).
+* **Events, not headlines.** News attaches to the structured event at the same place
+  (HORMUZ-26 absorbs about 70 Hormuz reports), so one decision covers one real-world event,
+  with its corroboration counted.
+* **Numbers before the model.** `exposure.py` prices waiting, rerouting, and invoking force
+  majeure from the contract terms. `fetch_traffic.py` adds measured traffic. Nemotron then
+  reasons with those figures instead of guessing them, and `--engine rules` makes the same
+  decision without a model.
+* **Humans close the loop.** Drafts, alerts, and approve/override happen in the dashboard;
+  nothing is sent automatically.
 
 ## Stages and contracts
 
-| Stage | Script | Reads | Writes | Contract |
+| Stage | Script | Reads | Writes | Needs Nemotron |
 |---|---|---|---|---|
-| 1 | `fetch_portwatch.py` | PortWatch ArcGIS | `portwatch_ports.csv`, `portwatch_signals.json` | ports columns = `ports` table; signals = `XtractSignal` |
-| 2 | `fetch_gdacs.py` | GDACS RSS, ports CSV, PortWatch signals (to skip duplicates) | `gdacs_signals.json` | `XtractSignal` |
-| 3 | `parse_rss.py` | 5 trade-press feeds, ports CSV | `rss_signals.json` | `XtractSignal` |
-| 4 | `fetch_gdelt.py` | GDELT GKG files (or Doc API), ports CSV | `gdelt_signals.json` | `XtractSignal` |
-| 5 | `fetch_google_news.py` | Google News RSS, ports CSV | `google_news_signals.json` | `XtractSignal` |
-| 6 | `init_db.py` | `docs/SCHEMAS.md` (DDL), CSV, all JSON | `portguard.db` | SQL schema in SCHEMAS.md §1 |
-| 7 | `load_shipments.py` | shipments JSON | `shipments` table | `Shipment` (= `NemotronPayload.shipment`) |
-| 8 | `run_nemotron.py` | `portguard.db`, Nemotron API | `decision_logs`, optional `data/payloads/*.json` | `NemotronPayload` in, `NemotronDecision` out (SCHEMAS.md §3–4) |
+| Ingest | `fetch_portwatch.py` | PortWatch ArcGIS | `portwatch_ports.csv`, `portwatch_signals.json` | no |
+| Ingest | `fetch_gdacs.py` | GDACS RSS, ports CSV, PortWatch signals | `gdacs_signals.json` | no |
+| Ingest | `parse_rss.py` | 5 trade-press feeds, ports CSV | `rss_signals.json` | no |
+| Ingest | `fetch_gdelt.py` | GDELT GKG files (or Doc API), ports CSV | `gdelt_signals.json` | no |
+| Ingest | `fetch_google_news.py` | Google News RSS, ports CSV | `google_news_signals.json` | no |
+| Ingest | `fetch_traffic.py` | PortWatch daily layers, shipment ports | `traffic_daily.csv`, `traffic_stats.csv` | no |
+| Store | `init_db.py` | SCHEMAS.md DDL, all CSV/JSON | `portguard.db` | no |
+| Shipments | `load_shipments.py` / `extract_contract.py` | shipments JSON / contract PDF | `shipments` | only for contracts |
+| Understand | `xtract.py` | news signals | `xtract_results`, refined `signals` | yes |
+| Cluster | `cluster_events.py` | signals, `signal_ports` | `events`, `event_signals` | no |
+| Decide | `run_nemotron.py` | everything above | `decision_logs`, `data/payloads/` | yes, or `--engine rules` |
+| Act | `draft_actions.py` | decisions | `action_drafts` | optional (templates) |
+| Act | `alerts.py` | decisions | Slack/console, `alerts_sent` | no |
+| Review | `dashboard.py`, `ask.py` | the DB | approvals, draft edits | Q&A only |
+| Validate | `backtest.py` | PortWatch history | `data/backtest.json` | optional |
 
-Stage 1 must run first: stages 2–5 use its ports CSV (as gazetteer and for proximity), and
-stage 2 uses its signals to avoid duplicating GDACS events. Stages 2–5 are independent of
-each other, and any of them can fail without blocking the rest.
+`fetch_portwatch.py` must run first: every other ingester uses its ports CSV, and GDACS uses
+its signals to avoid duplicates. Every other ingester can fail without blocking the rest.
 
 ## Design decisions
 
@@ -92,6 +97,12 @@ each other, and any of them can fail without blocking the rest.
 * **Fail safe.** A failed fetch exits with code 1 and leaves the previous output file intact
   (writes are atomic). A model reply that can't be parsed is logged and retried on the next
   run.
+* **Decisions are per (event, shipment).** One real-world event produces one decision per
+  affected shipment, however many headlines report it. Already-decided pairs are skipped;
+  `--max-per-shipment` (default 5) caps model calls per run.
+* **Planning estimates, stated assumptions.** Delay tables, reroute days, surcharges, and
+  haulage rates live at the top of `exposure.py` and travel with every payload
+  (`analysis.exposure.assumptions`).
 * **Timestamps** are ISO-8601 UTC strings (`2026-09-19T15:28:46Z`) everywhere.
 
 ## Database
@@ -100,6 +111,10 @@ Full DDL is in [SCHEMAS.md §1](SCHEMAS.md#1-sqlite-database-schema).
 
 ```
 ports 1───* signal_ports *───1 signals 1───* decision_logs *───1 shipments
-  1                                                                 │
-  └──────────────── pol_port_id / pod_port_id ─────────────────────*┘
+  1                               │  1          │ 1                   │
+  │                 event_signals *  xtract_results  action_drafts *  │
+  │                       *                          alerts_sent *    │
+  │                    events                                         │
+  └──────────────── pol_port_id / pod_port_id ─────────────────────*──┘
+traffic_daily / traffic_stats keyed by location_id (port_id or chokepoint:<slug>)
 ```

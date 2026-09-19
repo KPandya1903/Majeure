@@ -30,9 +30,9 @@ port-disruption database as ArcGIS Online hosted feature layers.
 | ArcGIS REST services root (IMF org) | `https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services?f=json` |
 | **Ports database** (used) | `https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/PortWatch_ports_database/FeatureServer/0/query` |
 | **Disruptions database** (used) | `https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services/portwatch_disruptions_database/FeatureServer/0/query` |
-| Daily port calls / trade (not used yet) | `.../Daily_Ports_Data/FeatureServer/0/query` |
+| **Daily port calls** (used by `fetch_traffic.py`, 5.8 M rows: always filter by `portid`) | `.../Daily_Ports_Data/FeatureServer/0/query` |
 | Chokepoints DB (28 rows; IDs, names, and coordinates are mirrored in `CHOKEPOINTS`, `src/common.py`) | `.../PortWatch_chokepoints_database/FeatureServer/0/query` |
-| Daily chokepoint transits (not used yet) | `.../Daily_Chokepoints_Data/FeatureServer/0/query` |
+| **Daily chokepoint transits** (used by `fetch_traffic.py`, ~79 k rows) | `.../Daily_Chokepoints_Data/FeatureServer/0/query` |
 | Layer metadata (fields, `maxRecordCount`) | `<layer>/FeatureServer/0?f=json` |
 | Human citation page for a port or event | `https://portwatch.imf.org/pages/{pageid}` (`pageid` is an ArcGIS Hub Page item ID) |
 
@@ -103,6 +103,32 @@ body, so the script checks for that key.
    * `source_url`: `https://portwatch.imf.org/pages/{pageid}`. The GDACS report URL
      `https://www.gdacs.org/report.aspx?eventid={eventid}&eventtype={eventtype}` goes in
      `metadata.gdacs_url` for GDACS event types.
+
+### Daily traffic layers (`fetch_traffic.py`)
+
+| Layer | Key fields | Used |
+|---|---|---|
+| `Daily_Chokepoints_Data` | `date` (DateOnly), `portid` (`chokepoint1..28`), `portname`, `n_total` (+ `n_container`, `n_tanker`, …), `capacity` | `n_total` = ships transiting per day |
+| `Daily_Ports_Data` | `date`, `portid`, `portname`, `portcalls` (+ by vessel type), `import`, `export` | `portcalls` = ship calls per day |
+
+Date filters use ArcGIS SQL: `where=date >= DATE '2026-06-01' AND portid IN ('port1188', …)`.
+The data **lags about 5–7 days** (on 2026-09-19 the latest day was 2026-09-13 for chokepoints
+and 2026-09-11 for ports). `fetch_traffic.py` fetches the last 111 days for all 28 chokepoints
+and for the ports your shipments use. It stores the series (`traffic_daily`) and, per
+location, the latest 7-day mean against the 90 days before it (`traffic_stats`).
+
+Checked against history, the data clearly shows each crisis:
+
+| Chokepoint | Before (60 days) | After (60 days) | Change |
+|---|---|---|---|
+| Suez Canal, Red Sea crisis (from 2023-12-16) | 76.4 transits/day | 40.6 | −47% |
+| Bab el-Mandeb, same period | 78.0 | 33.7 | −57% |
+| Cape of Good Hope, same period (diversions) | 49.8 | 85.8 | +72% |
+| Panama Canal, drought (2023-06/07 vs 2023-12/2024-01) | 31.1 | 20.6 | −34% |
+| Strait of Hormuz, HORMUZ-26 (2026-01/02 vs 2026-08/09) | 67.9 | 4.6 | −93% |
+
+`backtest.py` replays these events. It uses only the traffic known the day after each event
+started, and reports the following month's change separately.
 
 ---
 
