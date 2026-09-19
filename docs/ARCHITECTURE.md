@@ -34,7 +34,8 @@ For the product idea, see [MAIN_IDEA.md](MAIN_IDEA.md). For a file-by-file guide
  REVIEW ─────── dashboard.py (Streamlit): map, decisions, approve/override, drafts, traffic, backtest,
                 ask.py Q&A · backtest.py (historical replay)
 
- run_pipeline.py runs SENSE → ACT in order, once or every N minutes.
+ run_pipeline.py runs SENSE → ACT in order, once or on a schedule (--loop 5: check every 5 minutes,
+ fetch each source only when due, run the downstream steps only when something was fetched).
 ```
 
 * **Two tracks of evidence.** *Structured:* PortWatch curated events (already tagged with
@@ -103,6 +104,10 @@ its signals to avoid duplicates. Every other ingester can fail without blocking 
 * **Planning estimates, stated assumptions.** Delay tables, reroute days, surcharges, and
   haulage rates live at the top of `exposure.py` and travel with every payload
   (`analysis.exposure.assumptions`).
+* **Polite, incremental polling.** A 5-minute loop fetches each source at the rate it can
+  change (GDACS and trade press 5 min, Google News 10, GDELT 15 with new files only, PortWatch
+  hourly, traffic 6-hourly). Decisions are only made for new pairs, so a quiet tick costs no
+  model calls. The dashboard watches the database and re-renders only when a run changed it.
 * **Timestamps** are ISO-8601 UTC strings (`2026-09-19T15:28:46Z`) everywhere.
 
 ## Database

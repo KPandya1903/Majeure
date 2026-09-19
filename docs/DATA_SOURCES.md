@@ -411,6 +411,9 @@ defence, aviation, and sports stories.
   categories, as citations, and never republishes full text.
 * **Google News:** an unofficial RSS endpoint. Titles and links are stored as citations; one
   request per run.
-* **Suggested refresh cadence:** PortWatch every 6–24 h; GDACS every 15–30 min; trade press
-  and Google News every 15–30 min; GDELT raw every 15–60 min (use `--hours` equal to the
-  interval plus a margin, since the DB keeps history).
+* **Refresh cadence (what `run_pipeline.py --loop 5` does, `SCHEDULE_MIN`):** GDACS and trade
+  press every 5 min; Google News every 10 min; GDELT every 15 min, downloading only GKG files
+  newer than the last run (`--incremental`, state in `data/gdelt_state.json`); PortWatch
+  curated events every 60 min; PortWatch traffic every 6 h. Faster polling gains nothing:
+  GDELT publishes every 15 minutes, and PortWatch traffic is daily and days behind. It also
+  risks throttling (GDELT API, Google News).

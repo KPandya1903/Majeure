@@ -33,6 +33,7 @@ DEFAULT_QUERY = "(port OR maritime OR shipping) (strike OR delay OR disruption)"
 RAW_LASTUPDATE = "http://data.gdeltproject.org/gdeltv2/lastupdate.txt"
 RAW_GKG_FILE = "http://data.gdeltproject.org/gdeltv2/{stamp}.gkg.csv.zip"
 SIGNALS_JSON = DATA_DIR / "gdelt_signals.json"
+STATE_JSON = DATA_DIR / "gdelt_state.json"  # --incremental: newest GKG file already processed
 GDELT_BACKOFF_S = 6.0  # GDELT allows one request every 5 seconds
 GDELT_RETRIES = 6  # waits 6+12+24+48+96 s at most: GDELT's throttle can take minutes to cool down
 # GKG 2.1 columns used (tab-separated, no header)
@@ -114,11 +115,17 @@ def latest_gkg_stamp() -> datetime:
     return datetime.strptime(match.group(1), "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
 
 
-def fetch_raw_articles(hours: float) -> list[dict]:
-    """Maritime-looking headlines from the GKG files of the last `hours`, newest first."""
+def fetch_raw_articles(hours: float, after: Optional[datetime] = None) -> tuple[list[dict], Optional[datetime]]:
+    """Maritime-looking headlines from the GKG files of the last `hours` (only files newer than `after`, if given).
+    Returns (articles, newest file stamp processed)."""
     csv.field_size_limit(2**31 - 1)
     latest = latest_gkg_stamp()
     n_files = max(1, int(hours * 4))
+    if after is not None:
+        n_files = min(n_files, max(0, int((latest - after).total_seconds() // 900)))
+        if n_files == 0:
+            log.info("no new GKG files since %s", after.strftime("%Y-%m-%d %H:%M UTC"))
+            return [], None
     articles, stats = [], Counter()
     for i in range(n_files):
         stamp = (latest - timedelta(minutes=15 * i)).strftime("%Y%m%d%H%M%S")
@@ -146,10 +153,11 @@ def fetch_raw_articles(hours: float) -> list[dict]:
             stats["files_failed"] += 1
     if not stats["files"]:
         raise RuntimeError("no GKG file could be downloaded")
+    newest = latest
     log.info("GKG %s..%s: %d files (%.0f MB), %d articles scanned, %d maritime headlines",
              (latest - timedelta(minutes=15 * (n_files - 1))).strftime("%Y-%m-%d %H:%M"), latest.strftime("%H:%M UTC"),
              stats["files"], stats["mb"], stats["rows"], len(articles))
-    return articles
+    return articles, newest
 
 
 # --------------------------------------------------------------------------- Doc API
@@ -185,6 +193,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--mode", choices=["raw", "api"], default="raw", help="raw GKG files (default) or the Doc API")
     parser.add_argument("--hours", type=float, default=6, help="raw mode: look-back window in hours (default: 6, ~75 MB)")
+    parser.add_argument("--incremental", action="store_true",
+                        help="raw mode: only download GKG files newer than the last run (for frequent loops)")
     parser.add_argument("--query", default=DEFAULT_QUERY, help=f"api mode: GDELT query (default: {DEFAULT_QUERY!r})")
     parser.add_argument("--timespan", default="7d", help="api mode: look-back window, e.g. 24h, 3d (default: 7d)")
     parser.add_argument("--max-records", type=int, default=50, choices=range(1, 251), metavar="1-250", help="api mode")
@@ -194,9 +204,15 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(argv)
     setup_logging(args.verbose)
 
+    after = None
+    if args.mode == "raw" and args.incremental and STATE_JSON.exists():
+        after = datetime.fromisoformat(json.loads(STATE_JSON.read_text())["last_file"])
+    newest = None
     try:
         if args.mode == "raw":
-            articles = fetch_raw_articles(args.hours)
+            articles, newest = fetch_raw_articles(args.hours, after)
+            if newest is None:  # nothing new: keep the previous output as it is
+                return 0
         else:
             query = args.query if args.all_languages else f"{args.query} sourcelang:english"
             log.info("query=%r timespan=%s maxrecords=%d", query, args.timespan, args.max_records)
@@ -211,6 +227,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     signals = build_signals(articles, PortGazetteer.from_csv(), utcnow(), relevance_filter=args.mode == "raw")
     signals.sort(key=lambda s: s.published_at or s.ingested_at, reverse=True)
     write_signals(args.out, signals)
+    if args.mode == "raw" and newest is not None:
+        STATE_JSON.write_text(json.dumps({"last_file": newest.isoformat()}))
     log.info("wrote %d signals -> %s; by type: %s; with port_location: %d",
              len(signals), args.out, dict(Counter(s.event_type for s in signals).most_common()),
              sum(1 for s in signals if s.port_location))

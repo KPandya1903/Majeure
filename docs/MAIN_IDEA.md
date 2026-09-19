@@ -141,6 +141,9 @@ the same code also works with NVIDIA's hosted endpoint.
   comparison. Nemotron writes them when reachable; templates otherwise.
 * `alerts.py` posts high-risk decisions that await approval to Slack (or the console), with
   the hours left before the notice deadline.
+* It runs **continuously**: every 5 minutes PortGuard checks its sources (each at the rate it
+  actually changes), and new events reach the decision board within minutes of being
+  reported.
 * The **dashboard** shows everything: a risk map, a decision card per shipment (options
   table, deadline countdown, sources), Approve / Override with notes, editable drafts, traffic
   charts, the backtest, and an **Ask PortGuard** chat that answers from the database.
@@ -195,6 +198,7 @@ cheapest contract-compliant option priced each time.
 | Normalisation, dedupe, relevance filtering, classification, location tagging, proximity linking, event clustering | **Real**, rule-based, tested on live data |
 | Exposure pricing, force majeure coverage check, notice deadlines | **Real logic**; the rates and delay tables are **stated planning assumptions** (`exposure.py`), not quotes |
 | Database, matching, payloads, rules engine, drafts, alerts, dashboard, backtest | **Real**; tested end to end |
+| Always-on operation | **Real**: `run_pipeline.py --loop 5` checks every 5 minutes and fetches each source when it can have changed; the dashboard refreshes itself when new data lands |
 | Nemotron calls (decisions, Xtract, drafts, contract reading, Q&A) | **Real client**, tested against a mock OpenAI-compatible server; **not yet run on a real Nemotron model** |
 | Shipments / Bills of Lading | **Demo**: 4 fictional shipments on real routes, plus a fictional sample contract (`samples/`) |
 

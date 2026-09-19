@@ -90,9 +90,34 @@ if not DB.exists():
     st.error("No database yet. Run the ingestion steps in README §1 (or `python src/run_pipeline.py`), then reload.")
     st.stop()
 
+def data_stamp() -> tuple[str, str]:
+    """(fingerprint of the data, last fetch time); uncached so the watcher sees new pipeline runs."""
+    with connect() as conn:
+        row = conn.execute("""SELECT (SELECT MAX(ingested_at) FROM signals), (SELECT COUNT(*) FROM signals),
+                                     (SELECT COUNT(*) FROM decision_logs), (SELECT COUNT(*) FROM action_drafts),
+                                     (SELECT MAX(updated_at) FROM events)""").fetchone()
+    return "|".join(map(str, row)), row[0] or ""
+
+
+@st.fragment(run_every="60s")
+def freshness_watcher() -> None:
+    """Shows data age; when a pipeline run changed the data, reruns the whole app once."""
+    stamp, last = data_stamp()
+    if last:
+        age = (datetime.now(timezone.utc) - datetime.fromisoformat(last.replace("Z", "+00:00"))).total_seconds() / 60
+        st.caption(f"🟢 Data fetched {age:.0f} min ago" if age < 15 else f"🟠 Data fetched {age:.0f} min ago "
+                   "(is `run_pipeline.py --loop 5` running?)")
+    previous = st.session_state.get("data_stamp")
+    st.session_state["data_stamp"] = stamp
+    if previous is not None and previous != stamp:
+        st.cache_data.clear()
+        st.rerun(scope="app")
+
+
 with st.sidebar:
     st.header("⚓ PortGuard AI")
     st.caption("Maritime disruptions → shipment-specific, contract-aware decisions by NVIDIA Nemotron.")
+    freshness_watcher()
     fresh = q("SELECT source, COUNT(*) AS signals, MAX(ingested_at) AS last_ingested FROM signals GROUP BY source ORDER BY signals DESC")
     st.subheader("Data")
     st.dataframe(fresh, hide_index=True, width="stretch")

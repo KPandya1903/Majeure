@@ -42,8 +42,35 @@ cp .env.example .env                               # set NEMOTRON_BASE_URL (see 
 .venv/bin/python src/run_pipeline.py --xtract      # also let Nemotron re-read the news (Xtract)
 .venv/bin/python src/extract_contract.py --file samples/contract.sample.txt --load   # contract → shipment
 .venv/bin/python src/ask.py "Which shipments go through Hormuz, and what does it cost us?"
-.venv/bin/python src/run_pipeline.py --loop 30     # keep running every 30 minutes
+.venv/bin/python src/run_pipeline.py --loop 5      # keep it live: check every 5 minutes (see below)
 ```
+
+**Keeping it live (every 5 minutes).** In a loop, each source is fetched only when it can have
+changed, so checking every 5 minutes doesn't re-download everything:
+
+| Source | Fetched at most every | Why |
+|---|---|---|
+| GDACS, trade-press RSS | 5 min | live alerts / new articles |
+| Google News | 10 min | unofficial feed: stay polite |
+| GDELT | 15 min, **new files only** | one new 15-minute file (~3 MB) instead of 6 h (~75 MB) |
+| PortWatch curated events | 60 min | added irregularly |
+| PortWatch traffic | 6 h | daily data, 5–7 days behind |
+
+When at least one source was fetched, the rest runs: database, events, decisions (only
+**new** event-shipment pairs call Nemotron), drafts, and alerts. Intervals are in
+`SCHEDULE_MIN` in `src/run_pipeline.py`. To keep both running in the background (they survive
+closing the terminal):
+
+```bash
+nohup .venv/bin/python src/run_pipeline.py --loop 5 >> data/pipeline.log 2>&1 &
+nohup .venv/bin/streamlit run src/dashboard.py > data/dashboard.log 2>&1 &
+tail -f data/pipeline.log                              # watch the ticks
+pkill -f "run_pipeline.py --loop"; pkill -f "streamlit run src/dashboard.py"   # stop both
+```
+
+The dashboard checks for new data every minute and re-renders only when a run changed
+something, so a draft you're editing isn't wiped. The sidebar shows 🟢 *Data fetched N min ago*
+(🟠 after 15 min means the loop isn't running).
 
 On Windows, use `.venv\Scripts\python` / `.venv\Scripts\streamlit`. Every script accepts
 `--help` and `-v`, and exits **0 on success and 1 on failure**. A failing data source is
@@ -238,7 +265,7 @@ portguard-ai/
 │   ├── dashboard.py             ← Streamlit dashboard (map, decisions, approvals, drafts, traffic, backtest, chat)
 │   ├── ask.py                   ← Q&A over PortGuard's data with Nemotron
 │   ├── backtest.py              ← replay 5 historical disruptions with real traffic
-│   └── run_pipeline.py          ← run all steps in order, once or on a loop
+│   └── run_pipeline.py          ← run all steps once, or on a schedule (--loop 5)
 ├── ollama/
 │   └── Modelfile                ← tuned Nemotron for Ollama (16k context, temperature 0.2)
 ├── samples/
@@ -308,7 +335,8 @@ import each other as plain modules (`src/` is on the path). There's no package.
 * **`fetch_gdelt.py`:** `--mode raw` (default) reads the last `--hours` (6) of GKG 15-minute
   files (~75 MB, ~10 s, current, no rate limit) and keeps shipping-and-disruption headlines.
   `--mode api` uses the Doc API (rate-limited; its index can lag days). Dedupes by URL and by
-  syndicated title.
+  syndicated title. `--incremental` (used by
+  the loop) downloads only files newer than the last run, tracked in `data/gdelt_state.json`.
 * **`fetch_google_news.py`:** one RSS search (`--query`, `--days` 3), relevance-filtered;
   links are Google redirects.
 * **`fetch_traffic.py`:** the last 111 days of transits (28 chokepoints) and port calls (the
@@ -382,7 +410,11 @@ import each other as plain modules (`src/` is on the path). There's no package.
   (§2.1).
 * **`run_pipeline.py`:** runs all steps as subprocesses in order. Flags: `--engine`,
   `--xtract`, `--shipments FILE`, `--skip-ingest`, `--dry-run`, `--loop MINUTES`. PortWatch
-  and the database are required; the other steps may fail.
+  (first run) and the database are required; the other steps may fail. With `--loop` it
+  ticks every N minutes and fetches each source only when due (`SCHEDULE_MIN`; last attempts
+  are kept in `data/pipeline_state.json`, so a failing source is retried at its interval, not
+  every tick). GDELT runs `--incremental`. Downstream steps run only when something was
+  fetched, and a crash in one run never stops the loop.
 
 ### 4.4 `samples/`
 
@@ -410,6 +442,8 @@ import each other as plain modules (`src/` is on the path). There's no package.
 | `traffic_daily.csv`, `traffic_stats.csv` | `fetch_traffic.py` |
 | `portguard.db` | `init_db.py` + every later step (tables: ports, signals, signal_ports, events, event_signals, traffic_daily, traffic_stats, shipments, decision_logs, action_drafts, xtract_results, alerts_sent) |
 | `payloads/*.json` | `run_nemotron.py --dry-run` |
+| `pipeline_state.json`, `gdelt_state.json` | `run_pipeline.py --loop` (last fetch per source), `fetch_gdelt.py --incremental` (newest GKG file processed) |
+| `pipeline.log`, `dashboard.log` | the background commands above |
 | `backtest.json` | `backtest.py` |
 | `shipments_extracted.json`, `upload_*` | `extract_contract.py` / dashboard upload |
 
@@ -542,6 +576,9 @@ Tested on 2026-09-19 against the live sources:
 | `0 (event, shipment) pairs to assess` | Already decided (`--redo`), no route touches an active event, or the news is older than `--since-days`. |
 | Dashboard says "No database yet" | Run `python src/run_pipeline.py --engine rules` first. |
 | Dashboard map has no background | The basemap comes from CARTO over the internet; the data layers still render. |
+| Sidebar shows 🟠 *Data fetched N min ago* | The loop isn't running: start it (§1), check `tail data/pipeline.log`. |
+| Loop log says "nothing due this tick" | Normal: every source was fetched recently. It lists when each is due next. |
+| Want everything refetched now | Stop the loop, delete `data/pipeline_state.json` (and `data/gdelt_state.json` for a full 6 h GDELT window), restart it. |
 | `403 Forbidden` from gdacs.org | Keep `USER_AGENT` free of "python-requests". |
 | `HTTP 429 from api.gdeltproject.org` | Only with `--mode api`: wait, or use the default raw mode. |
 | `GDELT raw fetch failed` / `skipping GKG file` | GDELT's file server blinked. Single files are skipped; re-run later. |

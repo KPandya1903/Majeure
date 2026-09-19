@@ -1,37 +1,55 @@
-"""Run the whole PortGuard pipeline in order: ingest -> traffic -> database -> (Xtract) -> events ->
-decisions -> drafts -> alerts. Once, or every N minutes with --loop.
+"""Run the whole PortGuard pipeline in order: ingest -> database -> (Xtract) -> events -> decisions ->
+drafts -> alerts. Once, or every N minutes with --loop.
 
-Each step runs as its own process (same scripts as the README); a failing ingestion source is
-reported but does not stop the run. The database step is required.
+In a loop, each source is fetched only when it can have changed (SCHEDULE_MIN below): checking every
+2 minutes does not re-download GDELT or hammer Google News every 2 minutes. The downstream steps run
+whenever at least one source was fetched. Each step runs as its own process (same scripts as the
+README); a failing source is reported but does not stop the run. The database step is required.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sqlite3
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 from common import DATA_DIR, setup_logging
 
 SRC = Path(__file__).resolve().parent
+STATE_JSON = DATA_DIR / "pipeline_state.json"
+# Minimum minutes between fetches of each source in --loop mode: how often it can actually change.
+SCHEDULE_MIN = {
+    "PortWatch": 60,           # curated events: added irregularly
+    "GDACS": 5,                # live hazard alerts
+    "Trade-press RSS": 5,      # new articles a few times a day per feed
+    "GDELT": 15,               # one new GKG file every 15 minutes (fetched incrementally)
+    "Google News": 10,         # unofficial feed: stay polite
+    "PortWatch traffic": 360,  # daily data, published ~5-7 days late
+}
 log = logging.getLogger("portguard.pipeline")
 
 
-def steps(args: argparse.Namespace) -> list[tuple[str, list[str], bool]]:
+def ingest_steps(loop: bool) -> list[tuple[str, list[str], bool]]:
     """(label, command, required)."""
-    ingest = [] if args.skip_ingest else [
+    return [
         ("PortWatch", ["fetch_portwatch.py"], True), ("GDACS", ["fetch_gdacs.py"], False),
-        ("Trade-press RSS", ["parse_rss.py"], False), ("GDELT", ["fetch_gdelt.py"], False),
+        ("Trade-press RSS", ["parse_rss.py"], False),
+        ("GDELT", ["fetch_gdelt.py"] + (["--incremental"] if loop else []), False),
         ("Google News", ["fetch_google_news.py"], False), ("PortWatch traffic", ["fetch_traffic.py"], False),
     ]
+
+
+def downstream_steps(args: argparse.Namespace) -> list[tuple[str, list[str], bool]]:
     db = DATA_DIR / "portguard.db"
     need_shipments = args.shipments or not db.exists() or not _has_shipments(db)
     decide = ["run_nemotron.py", "--engine", args.engine] + (["--dry-run"] if args.dry_run else [])
-    return ingest + [
+    return [
         ("Database", ["init_db.py"], True),
         *([("Shipments", ["load_shipments.py"] + (["--file", args.shipments] if args.shipments else []), True)] if need_shipments else []),
         *([("Xtract (Nemotron)", ["xtract.py"], False)] if args.xtract else []),
@@ -49,19 +67,50 @@ def _has_shipments(db: Path) -> bool:
         return False
 
 
-def run_once(args: argparse.Namespace) -> int:
-    results = []
-    for label, cmd, required in steps(args):
-        started = time.monotonic()
-        proc = subprocess.run([sys.executable, str(SRC / cmd[0]), *cmd[1:]], capture_output=True, text=True)
-        last = next((l.split(": ", 1)[-1] for l in reversed((proc.stdout + proc.stderr).strip().splitlines()) if l.strip()), "")
-        results.append((label, proc.returncode, time.monotonic() - started, last))
-        log.info("%-20s %s %5.1fs  %s", label, "ok  " if proc.returncode == 0 else "FAIL", results[-1][2], last[:110])
-        if proc.returncode != 0 and required:
-            log.error("%s is required; stopping this run", label)
-            return 1
-    failed = [r[0] for r in results if r[1] != 0]
-    log.info("run finished: %d steps, %s", len(results), f"failed: {', '.join(failed)}" if failed else "all ok")
+def _load_state() -> dict:
+    try:
+        return json.loads(STATE_JSON.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def _run(label: str, cmd: list[str]) -> int:
+    started = time.monotonic()
+    proc = subprocess.run([sys.executable, str(SRC / cmd[0]), *cmd[1:]], capture_output=True, text=True)
+    last = next((l.split(": ", 1)[-1] for l in reversed((proc.stdout + proc.stderr).strip().splitlines()) if l.strip()), "")
+    log.info("%-20s %s %5.1fs  %s", label, "ok  " if proc.returncode == 0 else "FAIL", time.monotonic() - started, last[:110])
+    return proc.returncode
+
+
+def run_once(args: argparse.Namespace, scheduled: bool) -> int:
+    """One pass. scheduled=True (loop mode): fetch only sources that are due; skip downstream if none were."""
+    state, now = _load_state(), time.time()
+    failed, fetched = [], 0
+    for label, cmd, required in ([] if args.skip_ingest else ingest_steps(scheduled)):
+        if scheduled and now - state.get(label, 0) < SCHEDULE_MIN[label] * 60:
+            continue
+        code = _run(label, cmd)
+        state[label] = now  # attempts count too, so a failing source is retried at its interval, not every tick
+        fetched += 1
+        if code:
+            failed.append(label)
+            if required and not (DATA_DIR / "portwatch_ports.csv").exists():
+                log.error("%s is required on the first run; stopping this run", label)
+                STATE_JSON.write_text(json.dumps(state))
+                return 1
+    STATE_JSON.parent.mkdir(parents=True, exist_ok=True)
+    STATE_JSON.write_text(json.dumps(state))
+    if scheduled and not fetched and not args.skip_ingest:
+        log.info("nothing due this tick (next: %s)", ", ".join(
+            f"{k} in {max(0, SCHEDULE_MIN[k] * 60 - (now - state.get(k, 0))) / 60:.0f}m" for k in SCHEDULE_MIN))
+        return 0
+    for label, cmd, required in downstream_steps(args):
+        if _run(label, cmd):
+            failed.append(label)
+            if required:
+                log.error("%s is required; stopping this run", label)
+                return 1
+    log.info("run finished: %s", f"failed: {', '.join(failed)}" if failed else "all ok")
     return 1 if failed else 0
 
 
@@ -72,16 +121,27 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--shipments", help="load this shipments JSON first (default: the demo sample, if the DB has none)")
     parser.add_argument("--skip-ingest", action="store_true", help="reuse the data already downloaded")
     parser.add_argument("--dry-run", action="store_true", help="write payloads only; no decisions, drafts or alerts")
-    parser.add_argument("--loop", type=float, metavar="MINUTES", help="repeat every N minutes (Ctrl+C to stop)")
+    parser.add_argument("--loop", type=float, metavar="MINUTES",
+                        help="check every N minutes (e.g. 2); each source is fetched only when due (SCHEDULE_MIN)")
+    parser.add_argument("--max-ticks", type=int, help=argparse.SUPPRESS)  # for tests
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
     setup_logging(args.verbose)
+    if not args.loop:
+        return run_once(args, scheduled=False)
+    log.info("looping every %g min; source intervals (min): %s", args.loop, SCHEDULE_MIN)
+    ticks = 0
     while True:
-        code = run_once(args)
-        if not args.loop:
-            return code
-        log.info("next run in %g minutes", args.loop)
-        time.sleep(args.loop * 60)
+        started = time.monotonic()
+        log.info("tick at %s", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))
+        try:
+            run_once(args, scheduled=True)
+        except Exception as exc:  # a loop must survive anything a single run throws
+            log.error("run crashed: %s", exc)
+        ticks += 1
+        if args.max_ticks and ticks >= args.max_ticks:
+            return 0
+        time.sleep(max(0.0, args.loop * 60 - (time.monotonic() - started)))
 
 
 if __name__ == "__main__":
