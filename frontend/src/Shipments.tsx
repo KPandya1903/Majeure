@@ -229,11 +229,19 @@ function DecisionPanel({ shipment, decision, onReviewed }: { shipment: Shipment;
           style={{ flexGrow: 1, border: "1px solid var(--pg-line)", borderRadius: 6, padding: "10px 12px", fontSize: 13.5 }} />
         <button className="pg-btn" disabled={busy} onClick={() => review("overridden")}>Override</button>
         {/* The old label was "Approve & send notice". Nothing is transmitted anywhere — there is no
-            mail or EDI integration — so the button now names what it actually does. */}
-        <button className="pg-btn primary" disabled={busy || decision.human_decision === "approved"}
-          onClick={() => review("approved")}>
-          {busy ? "Saving…" : decision.human_decision === "approved" ? "Approved" : "Approve"}
-        </button>
+            mail or EDI integration — so the button now names what it actually does.
+            Once approved this becomes a static confirmation rather than a disabled button: a
+            greyed-out control that still looks pressable is indistinguishable from a broken one,
+            and that is exactly how it was read. Override remains live, and reverts it. */}
+        {decision.human_decision === "approved" ? (
+          <span className="pg-approved-mark">
+            Approved
+          </span>
+        ) : (
+          <button className="pg-btn primary" disabled={busy} onClick={() => review("approved")}>
+            {busy ? "Saving…" : "Approve"}
+          </button>
+        )}
       </div>
 
       {/* Approval is otherwise invisible: one word in grey at the bottom of a long panel. */}
