@@ -28,6 +28,7 @@ SCHEDULE_MIN = {
     "PortWatch": 60,           # curated events: added irregularly
     "GDACS": 5,                # live hazard alerts
     "Trade-press RSS": 5,      # new articles a few times a day per feed
+    "Official warnings": 10,   # NOAA/JTWC advisories reissue ~6-hourly; NGA warnings change rarely
     "GDELT": 15,               # one new GKG file every 15 minutes (fetched incrementally)
     "Google News": 10,         # unofficial feed: stay polite
     "PortWatch traffic": 360,  # daily data, published ~5-7 days late
@@ -40,6 +41,7 @@ def ingest_steps(loop: bool) -> list[tuple[str, list[str], bool]]:
     return [
         ("PortWatch", ["fetch_portwatch.py"], True), ("GDACS", ["fetch_gdacs.py"], False),
         ("Trade-press RSS", ["parse_rss.py"], False),
+        ("Official warnings", ["fetch_official.py"], False),
         ("GDELT", ["fetch_gdelt.py"] + (["--incremental"] if loop else []), False),
         ("Google News", ["fetch_google_news.py"], False), ("PortWatch traffic", ["fetch_traffic.py"], False),
     ]
@@ -74,6 +76,32 @@ def _load_state() -> dict:
         return {}
 
 
+def _save_state(state: dict, failed: Optional[list[str]] = None) -> None:
+    """Persist fetch times to BOTH the JSON file and the database.
+
+    The JSON file is what the scheduler reads next tick. The database copy is what the API serves to
+    the sidebar, and it exists because the JSON file is gitignored and Render's free tier has no
+    persistent disk -- so on the deployed instance the file never existed and every source's
+    "Fetched" column rendered as a dash regardless of whether the pipeline had run.
+    """
+    STATE_JSON.parent.mkdir(parents=True, exist_ok=True)
+    STATE_JSON.write_text(json.dumps(state))
+    db = DATA_DIR / "portguard.db"
+    if not db.exists():
+        return  # first ever run: init_db.py creates the table a few steps later
+    bad = set(failed or ())
+    try:
+        with sqlite3.connect(db, timeout=15) as conn:
+            conn.executemany(
+                "INSERT INTO pipeline_state (source_group, last_fetched_at, ok) VALUES (?, ?, ?) "
+                "ON CONFLICT (source_group) DO UPDATE SET last_fetched_at = excluded.last_fetched_at, "
+                "ok = excluded.ok",
+                [(group, datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                  0 if group in bad else 1) for group, ts in state.items()])
+    except sqlite3.Error as exc:  # never fail a run over bookkeeping
+        log.warning("could not record pipeline state in the database: %s", exc)
+
+
 def _run(label: str, cmd: list[str]) -> int:
     started = time.monotonic()
     proc = subprocess.run([sys.executable, str(SRC / cmd[0]), *cmd[1:]], capture_output=True, text=True)
@@ -96,10 +124,9 @@ def run_once(args: argparse.Namespace, scheduled: bool) -> int:
             failed.append(label)
             if required and not (DATA_DIR / "portwatch_ports.csv").exists():
                 log.error("%s is required on the first run; stopping this run", label)
-                STATE_JSON.write_text(json.dumps(state))
+                _save_state(state, failed)
                 return 1
-    STATE_JSON.parent.mkdir(parents=True, exist_ok=True)
-    STATE_JSON.write_text(json.dumps(state))
+    _save_state(state, failed)
     if scheduled and not fetched and not args.skip_ingest:
         log.info("nothing due this tick (next: %s)", ", ".join(
             f"{k} in {max(0, SCHEDULE_MIN[k] * 60 - (now - state.get(k, 0))) / 60:.0f}m" for k in SCHEDULE_MIN))

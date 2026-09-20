@@ -92,9 +92,22 @@ Hitting this also keeps the free instance from idling out. **A code redeploy alw
    keep it that way.
 6. **Routes must use `src/routing.py`.** Straight port-to-port lines visibly cut across land.
    Both the Streamlit map and the API share that module deliberately.
-7. **Sidebar freshness has two different clocks**: `last_fetched_min` (did the pipeline run —
-   from `pipeline_state.json`) vs `last_ingested` (age of a source's newest article). A quiet
-   trade feed is polled every 5 min but may not have published for days. Don't conflate them.
+7. **Sidebar freshness has two different clocks**: `last_fetched_min` (did the pipeline run) vs
+   `last_ingested` (age of a source's newest article). A quiet trade feed is polled every 5 min but
+   may not have published for days. Don't conflate them. Fetch times now live in the **`pipeline_state`
+   table**, not just `data/pipeline_state.json` — that file is gitignored and Render's free tier has
+   no persistent disk, so the deployed API could never read it and every "Fetched" cell rendered as
+   a dash. `run_pipeline.py` writes both; the API reads the table and falls back to the file.
+8. **`backend/requirements.txt` must carry the INGEST deps, not just the API's.** Render builds with
+   `rootDir: backend` and never installs the repo-root `requirements.txt`, but
+   `POST /api/pipeline/run` shells out to `run_pipeline.py` in that same container. `feedparser` was
+   missing, so `parse_rss.py`, `fetch_google_news.py` and `fetch_official.py` died on import while
+   the run still logged "ok" — and the site served the committed DB snapshot indefinitely.
+9. **The FAQ router answers before the model does.** `src/faq.py` holds 194 hardcoded questions over
+   30 topics and answers them from SQL in ~1 ms. The *questions* are hardcoded; every *answer* is
+   computed from the live database, so a routed answer is never staler than a generated one. Run
+   `python src/faq.py --selftest` after touching it: entries silently steal each other's questions
+   otherwise. Anything it isn't confident about falls through to Nemotron/Gemini untouched.
 
 ## Current state
 
@@ -102,6 +115,39 @@ Working and deployed: risk map (real sea routes, vessel markers, event halos), s
 decisions (fleet table + priced options, approve/override, drafts), events and traffic with
 charts, backtest, all-signals article cards, floating Ask PortGuard chat, sidebar with source
 freshness, cost-avoided KPI, cron-driven refresh.
+
+### Added since the last handoff
+
+* **25 ingest sources, up from 9.** 17 trade-press RSS feeds (`parse_rss.py`) plus four first-party
+  government publishers in the new `src/fetch_official.py`: NOAA NHC, JTWC, USGS quakes and NGA
+  NAVAREA warnings. Three general-logistics feeds are `STRICT`-filtered through `is_maritime()`.
+* **Source credibility tiering.** `PUBLISHER_TIER` in `common.py` grades every source 1-4, and
+  `cluster_events.py` starts an event's confidence from its best source instead of a flat 0.35.
+  Single-publisher events now span 0.35-0.95 by who reported them rather than all scoring alike.
+* **A real fleet.** `src/fleet.py` builds the shipment book on 10 real container ships with
+  IMO-check-digit-validated numbers across 5 real carriers (Maersk, MSC, CMA CGM, COSCO, Evergreen),
+  sourced from Wikidata. Vessel identity and carrier are real; **contract terms remain synthetic**
+  and every row carries `vessel_source` / `carrier_source` / `terms_source` so the UI says which is
+  which. Positions are still schedule estimates — that invariant did not change.
+* **Ask PortGuard latency: ~39 s → ~1 ms** for common questions, via the `faq.py` router above.
+* **Citations actually work.** The system prompt no longer makes the model emit a literal `[n]`,
+  the context carries 6 sources per decision instead of 3, and `ChatWidget` renders markdown so
+  links are clickable rather than printed as raw `[1](https://…)`.
+
+## Known gaps
+
+* **No AIS.** Vessel positions remain estimated. `aisstream.io` (free key, WebSocket) is the path to
+  real positions; nothing here claims live tracking and nothing should until that exists.
+* **Carrier attribution is by vessel-name prefix**, not a registry lookup. Equasis and IMO GISIS both
+  need credentials and neither publishes an API; the registered owner of a chartered ship is often a
+  leasing company rather than the operating line anyway.
+* **UKMTO and MARAD MSCI are 403 from a server** — the two most authoritative sources for exactly the
+  Hormuz/Bab el-Mandeb events this product cares most about. Worth a headless fetch.
+* **The model path is still slow** for genuinely novel questions (~20-40 s). The documented "20 s
+  Nemotron budget then fall back to Gemini" does *not* bound it: `requests`' timeout is a per-read
+  gap, not a total deadline, so a model trickling tokens resets the clock indefinitely. Measured 39 s
+  responses that never triggered the fallback. Putting Gemini first for chat would fix it, but that
+  flips the primary model and is a product call, not a code cleanup.
 
 ## Not done
 

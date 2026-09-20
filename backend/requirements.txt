@@ -7,3 +7,10 @@ pydantic>=2.5,<3
 numpy>=1.26,<3
 requests>=2.31,<3
 searoute>=1.6,<2
+# POST /api/pipeline/run shells out to src/run_pipeline.py IN THIS CONTAINER, so the backend image
+# needs the ingest dependencies too -- Render builds with rootDir=backend and never installs the
+# repo-root requirements.txt. Without feedparser, parse_rss.py, fetch_google_news.py and
+# fetch_official.py all die on import while the run still reports "ok" for everything else, so the
+# deployed site quietly serves whatever was in the committed database snapshot.
+feedparser>=6.0,<7
+pypdf>=4.0,<7
