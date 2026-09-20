@@ -291,12 +291,16 @@ export default function RiskMap() {
           const f = e.features?.[0];
           const label = f ? (f.properties?.label as string) ?? null : null;
           setHover(label ? { label, x: e.point.x, y: e.point.y } : null);
+          const canvas = e.target.getCanvas();
+          canvas.style.cursor = label ? "pointer" : "";
         }}
         onMouseLeave={() => setHover(null)}
         // Ports and chokepoints are hoverable too, not just the route lines. Order matters: the
         // first match wins, so the small precise dots are listed ahead of the big event halos,
         // which would otherwise swallow every port sitting inside one.
-        interactiveLayerIds={["ports-dot", "chokepoints-dot", "events-dot", "routes-line"]}
+        // The invisible hit layers come first so a near miss still resolves to the place rather
+        // than to a route line passing under the cursor.
+        interactiveLayerIds={["ports-hit", "chokepoints-hit", "events-dot", "routes-line"]}
       >
         <NavigationControl position="top-right" />
 
@@ -319,11 +323,16 @@ export default function RiskMap() {
         </Source>
         <Source id="chokepoints" type="geojson"
                 data={toPointFeatures(data.chokepoints, (c) => chokepointLabel(c))}>
-          <Layer id="chokepoints-dot" type="circle" paint={{ "circle-radius": 3.5, "circle-color": "#6B7581", "circle-opacity": 0.65 }} />
+          <Layer id="chokepoints-dot" type="circle" paint={{ "circle-radius": 4, "circle-color": "#6B7581", "circle-opacity": 0.7 }} />
+          {/* Invisible hit target. A 4px dot is about the size of the cursor's own hotspot, so a
+              hover only registers if the pointer lands within a few pixels of the exact centre --
+              which an automated test can do and a person cannot. The visible dot stays small. */}
+          <Layer id="chokepoints-hit" type="circle" paint={{ "circle-radius": 14, "circle-opacity": 0 }} />
         </Source>
         <Source id="ports" type="geojson" data={toPointFeatures(data.ports, (p) => portLabel(p))}>
           <Layer id="ports-dot" type="circle"
-            paint={{ "circle-radius": 4, "circle-color": "#2B333C", "circle-stroke-width": 2, "circle-stroke-color": "#fff" }} />
+            paint={{ "circle-radius": 4.5, "circle-color": "#2B333C", "circle-stroke-width": 2, "circle-stroke-color": "#fff" }} />
+          <Layer id="ports-hit" type="circle" paint={{ "circle-radius": 14, "circle-opacity": 0 }} />
         </Source>
 
         {data.routes.map((r) => (
