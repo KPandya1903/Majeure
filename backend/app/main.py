@@ -28,6 +28,18 @@ sys.path.insert(0, str(SRC))
 from common import CHOKEPOINTS  # noqa: E402
 from routing import dot_count, dotted_points, route_path, route_progress, split_path, unwrap_lons  # noqa: E402
 
+# run_pipeline.py schedules fetches per source GROUP, not per publication, so its state file
+# keys are these group names — the five trade-press feeds are all fetched by one parse_rss.py
+# run. Mapping each signals.source back to its group is what lets the sidebar show when each
+# one was actually last polled. Keep in step with SCHEDULE_MIN in run_pipeline.py and FEEDS in
+# parse_rss.py.
+SOURCE_GROUP = {
+    "portwatch": "PortWatch", "gdacs": "GDACS", "gdelt": "GDELT", "google_news": "Google News",
+    "gcaptain": "Trade-press RSS", "maritime_executive": "Trade-press RSS",
+    "seatrade_maritime": "Trade-press RSS", "hellenic_shipping_news": "Trade-press RSS",
+    "splash247": "Trade-press RSS",
+}
+
 RISK_ORDER = {"low": 0, "medium": 1, "high": 2, "critical": 3}
 ACTIONS = {"monitor": "Monitor", "notify_customer": "Notify customer", "reroute": "Reroute",
            "expedite": "Expedite", "hold_cargo": "Hold cargo", "invoke_force_majeure": "Invoke force majeure"}
@@ -414,14 +426,19 @@ def sources():
                     FROM signals GROUP BY source ORDER BY signals DESC""")
     newest = max((r["last_ingested"] for r in rows if r["last_ingested"]), default=None)
 
-    last_checked_min = None
+    state = {}
     try:
         state = json.loads((ROOT / "data" / "pipeline_state.json").read_text())
-        if state:
-            last_checked_min = round((time.time() - max(state.values())) / 60, 1)
     except Exception:
         pass  # no state file (fresh deploy, or the pipeline has never run here)
 
+    now = time.time()
+    for r in rows:
+        group = SOURCE_GROUP.get(r["source"])
+        ts = state.get(group) if group else None
+        r["last_fetched_min"] = round((now - ts) / 60, 1) if ts else None
+
+    last_checked_min = round((now - max(state.values())) / 60, 1) if state else None
     return {"sources": rows, "last_ingested": newest, "last_checked_min": last_checked_min}
 
 

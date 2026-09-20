@@ -104,7 +104,12 @@ export interface BacktestScenario {
   traffic_series?: { date: string; daily: number; "7-day average": number }[];
   traffic_location?: string; traffic_metric?: string; event_start?: string;
 }
-export interface SourceRow { source: string; signals: number; last_ingested: string | null }
+export interface SourceRow {
+  source: string; signals: number; last_ingested: string | null;
+  /** Minutes since the pipeline last POLLED this source (vs last_ingested = age of its newest
+   * article). A quiet feed has a recent fetch and an old newest. */
+  last_fetched_min: number | null;
+}
 export interface SignalRow {
   published_at: string | null; source: string; event_type: string; severity: string | null;
   location_name: string | null; title: string; source_url: string;

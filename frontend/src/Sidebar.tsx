@@ -67,21 +67,25 @@ export default function Sidebar() {
 
       <div className="pg-eyebrow" style={{ marginTop: 20 }}>Sources</div>
       <div style={{ fontSize: 11, color: "var(--pg-faint)", marginTop: 3, lineHeight: 1.4 }}>
-        "Newest" = age of the latest article seen, not when we last checked. Quiet feeds show
-        old times even though every source is polled on schedule.
+        When each source was last polled. Hover a row for the age of its newest article — a
+        quiet feed is fetched on schedule but may have published nothing for days.
       </div>
       {!sources ? (
         <div className="pg-sub" style={{ marginTop: 8 }}>{unreachable ? "Unavailable" : "Loading…"}</div>
       ) : (
         <table className="pg-table" style={{ marginTop: 8, fontSize: "0.78rem" }}>
-          <thead><tr><th>Source</th><th style={{ textAlign: "right" }}>Signals</th><th>Newest</th></tr></thead>
+          <thead><tr><th>Source</th><th style={{ textAlign: "right" }}>Signals</th><th>Fetched</th></tr></thead>
           <tbody>
             {sources.map((s) => (
               <tr key={s.source} style={{ cursor: "default" }}>
                 <td style={{ padding: "7px 10px" }}>{s.source.replace(/_/g, " ")}</td>
                 <td className="pg-num" style={{ padding: "7px 10px", textAlign: "right" }}>{s.signals}</td>
-                <td style={{ padding: "7px 10px", color: "var(--pg-faint)", whiteSpace: "nowrap" }}>
-                  {fmtAgo(s.last_ingested)}
+                <td style={{ padding: "7px 10px", color: "var(--pg-faint)", whiteSpace: "nowrap" }}
+                    title={`Newest article ${fmtAgo(s.last_ingested)}`}>
+                  {s.last_fetched_min == null ? "\u2014"
+                    : s.last_fetched_min < 1 ? "just now"
+                    : s.last_fetched_min < 60 ? `${Math.round(s.last_fetched_min)} min ago`
+                    : `${Math.round(s.last_fetched_min / 60)} h ago`}
                 </td>
               </tr>
             ))}
