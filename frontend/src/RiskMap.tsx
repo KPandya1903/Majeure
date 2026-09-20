@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Map, { Source, Layer, NavigationControl, Marker } from "react-map-gl/maplibre";
+import type { MapRef } from "react-map-gl/maplibre";
 import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 // MapLibre's tile-parsing Web Worker is a prebuilt file inside the package, not something
@@ -176,6 +177,43 @@ export default function RiskMap() {
   const [center, setCenter] = useState({ lng: 45, lat: 22 });
   // Which carrier's fleet is picked out. null = show every vessel at full strength.
   const [carrier, setCarrier] = useState<string | null>(null);
+  // Smallest zoom at which ONE copy of the world still fills the container. Below it MapLibre
+  // tiles the globe horizontally and you see Africa twice, which reads as a rendering fault.
+  // Turning `renderWorldCopies` off is not the fix: routing.unwrap_lons deliberately pushes
+  // trans-Pacific routes (Busan -> Long Beach) past ±180 so they draw as one continuous line, and
+  // those segments only exist in the adjacent copy. Constrain the zoom instead of removing them.
+  const [minZoom, setMinZoom] = useState(1.2);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<MapRef | null>(null);
+  const fitted = useRef(false);
+
+  useEffect(() => {
+    const el = frameRef.current;
+    if (!el) return;
+    const fit = () => {
+      // MapLibre draws the world 512 CSS px wide at zoom 0 and doubles per level, so this is the
+      // zoom at which exactly one world spans the container. At it the globe fills the viewport
+      // edge to edge and the neighbouring copies fall just outside it -- whole world visible, no
+      // duplicate continents. The epsilon covers sub-pixel rounding that would otherwise leak a
+      // one-pixel sliver of the next copy.
+      const z = Math.max(0, Math.log2(Math.max(1, el.clientWidth) / 512) + 0.01);
+      setMinZoom(z);
+      const map = mapRef.current;
+      if (!map) return;
+      // Snap to the fitted zoom on first measure; afterwards only push back if a resize has made
+      // the current zoom too low, so a user who has zoomed in is not yanked back out.
+      if (!fitted.current) {
+        fitted.current = true;
+        map.jumpTo({ zoom: z, center: [20, 25] });
+      } else if (map.getZoom() < z) {
+        map.jumpTo({ zoom: z });
+      }
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Crossing the gap between the vessel icon and its card briefly leaves both elements, which
@@ -218,9 +256,11 @@ export default function RiskMap() {
 
   return (
     <div className="pg-card" style={{ padding: 0, overflow: "hidden" }}>
-      <div style={{ position: "relative" }}>
+      <div style={{ position: "relative" }} ref={frameRef}>
       <Map
-        initialViewState={{ longitude: 45, latitude: 22, zoom: 1.6 }}
+        ref={mapRef}
+        initialViewState={{ longitude: 20, latitude: 25, zoom: 1.2 }}
+        minZoom={minZoom}
         style={{ width: "100%", height: 560 }}
         mapStyle={MAP_STYLE}
         // Trackpad two-finger vertical scroll otherwise zooms the map instead of scrolling the
