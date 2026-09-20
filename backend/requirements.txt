@@ -2,3 +2,8 @@ fastapi>=0.115,<1
 uvicorn[standard]>=0.32,<1
 pandas>=2.0,<4
 pydantic>=2.5,<3
+# Transitive: main.py imports src/common.py (numpy, requests) and src/schemas.py, and
+# src/routing.py (searoute) for real sea-route geometry on the map.
+numpy>=1.26,<3
+requests>=2.31,<3
+searoute>=1.6,<2
