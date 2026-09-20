@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import "./theme.css";
 import { api } from "./api";
-import { AlertStrip, Header, KpiRow, Tabs } from "./components";
+import { AlertStrip, KpiRow, Tabs } from "./components";
 import RiskMap from "./RiskMap";
 import Shipments from "./Shipments";
 import Backtest from "./Backtest";
 import Signals from "./Signals";
+import Sidebar from "./Sidebar";
 import type { EventRow, Kpis, TrafficStat } from "./api";
 
 const TABS = ["Risk map", "Shipments & decisions", "Events", "Traffic", "Backtest", "Ask PortGuard", "All signals"];
@@ -110,14 +111,16 @@ export default function App() {
   }, []);
 
   return (
-    <div className="pg-shell">
+    <div className="pg-layout">
+      <Sidebar />
+      <div className="pg-shell">
       {topEvent && !dismissed && (
         <AlertStrip
           text={`<strong>${topEvent.title}</strong> · ${topEvent.n_signals} reports from ${topEvent.n_publishers} publishers`}
           onDismiss={() => setDismissed(true)}
         />
       )}
-      <Header updatedAgo={null} />
+      {/* Brand/tagline/freshness live in the sidebar now — repeating them here was noise. */}
       {kpis && <KpiRow kpis={kpis} />}
       <Tabs tabs={TABS} active={tab} onChange={setTab} />
       <div style={{ marginTop: 16 }}>
@@ -128,6 +131,7 @@ export default function App() {
         {tab === "Backtest" && <Backtest />}
         {tab === "Ask PortGuard" && <AskTab />}
         {tab === "All signals" && <Signals />}
+      </div>
       </div>
     </div>
   );

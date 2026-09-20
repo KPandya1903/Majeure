@@ -103,6 +103,7 @@ export interface BacktestScenario {
   traffic_series?: { date: string; daily: number; "7-day average": number }[];
   traffic_location?: string; traffic_metric?: string; event_start?: string;
 }
+export interface SourceRow { source: string; signals: number; last_ingested: string | null }
 export interface SignalRow {
   published_at: string | null; source: string; event_type: string; severity: string | null;
   location_name: string | null; title: string; source_url: string;
@@ -113,6 +114,7 @@ export const api = {
   map: () => get<MapData>("/api/map"),
   shipments: () => get<Shipment[]>("/api/shipments"),
   events: () => get<EventRow[]>("/api/events"),
+  sources: () => get<{ sources: SourceRow[]; last_ingested: string | null }>("/api/sources"),
   eventSignals: (id: string) => get<Record<string, unknown>[]>(`/api/events/${id}/signals`),
   traffic: () => get<TrafficStat[]>("/api/traffic"),
   trafficDaily: (locationId: string) => get<{ date: string; value: number }[]>(`/api/traffic/${locationId}/daily`),
@@ -143,6 +145,17 @@ export function fmtDate(iso: string, withYear = true): string {
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   return withYear ? `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`
                   : `${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
+}
+
+/** "just now" / "7 min ago" / "3 h ago" / "2 d ago" — deliberately coarse, since the point is
+ * spotting staleness (is the pipeline still running?), not precise timing. */
+export function fmtAgo(iso: string | null): string {
+  if (!iso) return "never";
+  const mins = (Date.now() - new Date(iso).getTime()) / 60_000;
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${Math.floor(mins)} min ago`;
+  if (mins < 60 * 24) return `${Math.floor(mins / 60)} h ago`;
+  return `${Math.floor(mins / (60 * 24))} d ago`;
 }
 
 export function fmtMoney(n: number): string {

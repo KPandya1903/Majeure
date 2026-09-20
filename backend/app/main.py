@@ -381,6 +381,17 @@ def ask(body: ChatRequest):
                               f"and GEMINI_API_KEY."}
 
 
+@app.get("/api/sources")
+def sources():
+    """Per-source ingest counts and recency, for the sidebar's data-freshness panel (the
+    Streamlit build's "Data" table). `last_ingested` is ISO-8601 UTC; the frontend renders it
+    as a relative "N min ago" so staleness is obvious at a glance."""
+    rows = _rows("""SELECT source, COUNT(*) AS signals, MAX(ingested_at) AS last_ingested
+                    FROM signals GROUP BY source ORDER BY signals DESC""")
+    newest = max((r["last_ingested"] for r in rows if r["last_ingested"]), default=None)
+    return {"sources": rows, "last_ingested": newest}
+
+
 @app.get("/api/health")
 def health():
     return {"ok": True, "db_exists": DB_PATH.exists(), "pipeline_running": _pipeline_running()}

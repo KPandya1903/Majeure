@@ -103,7 +103,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .pg-legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
 .pg-empty { text-align: center; color: var(--pg-muted); font-size: 0.9rem; padding: 26px 12px; }
 
-.pg-shell { max-width: 1560px; margin: 0 auto; padding: var(--pg-s3) var(--pg-s5) var(--pg-s5); }
+.pg-layout { display: flex; align-items: flex-start; min-height: 100%; }
+.pg-sidebar {
+  width: 260px; flex-shrink: 0; align-self: stretch; background: var(--pg-card);
+  border-right: 1px solid var(--pg-line); padding: var(--pg-s5) 18px; min-height: 100vh;
+}
+.pg-shell { flex-grow: 1; min-width: 0; max-width: 1560px; margin: 0 auto; padding: var(--pg-s3) var(--pg-s5) var(--pg-s5); }
+/* Below tablet width the rail costs more than it gives — stack it above the content instead. */
+@media (max-width: 860px) {
+  .pg-layout { flex-direction: column; }
+  .pg-sidebar { width: 100%; min-height: 0; border-right: 0; border-bottom: 1px solid var(--pg-line); padding: var(--pg-s4) 18px; }
+}
 .pg-header-row { display: flex; align-items: center; gap: 14px; padding: 6px 0 10px; }
 .pg-panel-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 16px; }
 @media (max-width: 900px) { .pg-panel-grid { grid-template-columns: 1fr; } .pg-facts { grid-template-columns: 1fr; } }
