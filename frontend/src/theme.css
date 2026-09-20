@@ -346,3 +346,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .pg-carrier-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .pg-carrier-name { flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pg-carrier-count { color: var(--pg-faint); font-variant-numeric: tabular-nums; font-size: 0.72rem; }
+
+/* Expanded detail row in the fleet table. The cell resets the table's own padding and hover tint
+   so the panel inside it reads as a nested surface rather than another data row. */
+.pg-table tr.pg-expand td { padding: 0 0 14px; background: #FAFBFC; border-bottom: 1px solid var(--pg-line); }
+.pg-table tr.pg-expand:hover td { background: #FAFBFC; }
+.pg-table tr.pg-expand { cursor: default; }
+.pg-table tr.pg-expand > td > * { margin-left: 14px; margin-right: 14px; }
+/* Selected row reads as the head of its expanded block, not a separate row. */
+.pg-table tr.selected td { background: #F2F6FD; }

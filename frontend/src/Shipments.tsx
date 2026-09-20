@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Decision, Shipment } from "./api";
 import { ACTIONS, RISK_TONE, api, fmtCountdown, fmtDate, fmtMoney, hoursUntil } from "./api";
 import { Chip } from "./components";
@@ -9,7 +9,8 @@ function topDecision(s: Shipment): Decision | undefined {
   return [...s.decisions].sort((a, b) => RISK_ORDER[b.risk_level] - RISK_ORDER[a.risk_level])[0];
 }
 
-function FleetRow({ s, selected, onSelect }: { s: Shipment; selected: boolean; onSelect: () => void }) {
+function FleetRow({ s, selected, onSelect, rowRef }:
+  { s: Shipment; selected: boolean; onSelect: () => void; rowRef?: React.Ref<HTMLTableRowElement> }) {
   const top = topDecision(s);
   const contractEta = new Date(s.eta);
   let pgEta = contractEta;
@@ -21,7 +22,8 @@ function FleetRow({ s, selected, onSelect }: { s: Shipment; selected: boolean; o
   }
   const dueHours = top?.exposure?.force_majeure_notice_due ? hoursUntil(top.exposure.force_majeure_notice_due) : null;
   return (
-    <tr className={selected ? "selected" : ""} onClick={onSelect}>
+    <tr ref={rowRef} className={selected ? "selected" : ""} onClick={onSelect}
+        aria-expanded={selected}>
       <td>
         <div style={{ fontWeight: 600 }}>{s.vessel_name ?? s.shipment_id}</div>
         <div className="pg-mono">{s.bl_number}</div>
@@ -85,7 +87,7 @@ function DecisionPanel({ shipment, decision, onReviewed }: { shipment: Shipment;
   }
 
   return (
-    <div className="pg-card" style={{ marginTop: 18 }}>
+    <div className="pg-card" style={{ marginTop: 14 }}>
       <div className="pg-eyebrow">{shipment.pol} → {shipment.pod} · {shipment.bl_number}</div>
       <div className="pg-h">{decision.recommended_action_label}</div>
       {/* The costs below are priced from contract terms that are generated, on a vessel that is
@@ -213,14 +215,47 @@ function DecisionPanel({ shipment, decision, onReviewed }: { shipment: Shipment;
 export default function Shipments() {
   const [ships, setShips] = useState<Shipment[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const selectedRow = useRef<HTMLTableRowElement>(null);
+  // Only the FIRST load picks a row. Without this, collapsing the open row and letting the 60s
+  // refresh land would silently re-open the top shipment.
+  const autoPicked = useRef(false);
 
   function reload() {
     api.shipments().then((data) => {
       setShips(data);
-      if (!selected && data.length) setSelected(data[0].shipment_id);
+      if (!autoPicked.current && data.length) {
+        autoPicked.current = true;
+        setSelected(data[0].shipment_id);
+      }
     });
   }
   useEffect(reload, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Bring the opened row and its details into view together. Runs in a layout effect after the
+  // expanded row exists, so the measurement is of the final height rather than the collapsed one.
+  useLayoutEffect(() => {
+    const row = selectedRow.current;
+    if (!row || !selected) return;
+    const panel = row.closest(".pg-tabpanel") as HTMLElement | null;
+    const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!panel) {
+      row.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "center" });
+      return;
+    }
+    // rAF so the scroll is queued after this frame's layout, otherwise Safari animates towards a
+    // position measured before the expanded row was painted and lands short.
+    const id = requestAnimationFrame(() => {
+      const rowTop = row.getBoundingClientRect().top;
+      const panelTop = panel.getBoundingClientRect().top;
+      // Sit the row a fifth of the way down rather than flush at the top: that clears the sticky
+      // table header and leaves the detail block filling the space below it, which is what
+      // "centred" means once the row itself is the thing you are reading from.
+      const offset = panel.clientHeight * 0.2;
+      panel.scrollTo({ top: panel.scrollTop + (rowTop - panelTop) - offset,
+                       behavior: smooth ? "smooth" : "auto" });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [selected]);
 
   if (!ships) return <div className="pg-card pg-empty">Loading shipments…</div>;
   if (!ships.length) return <div className="pg-card pg-empty">No shipments yet — run <code>python src/load_shipments.py</code>.</div>;
@@ -238,18 +273,33 @@ export default function Shipments() {
           </tr>
         </thead>
         <tbody>
-          {sorted.map((s) => (
-            <FleetRow key={s.shipment_id} s={s} selected={s.shipment_id === selected} onSelect={() => setSelected(s.shipment_id)} />
-          ))}
+          {sorted.map((s) => {
+            const isOpen = s.shipment_id === selected;
+            return (
+              <Fragment key={s.shipment_id}>
+                <FleetRow s={s} selected={isOpen} rowRef={isOpen ? selectedRow : undefined}
+                  onSelect={() => setSelected(isOpen ? null : s.shipment_id)} />
+                {/* Details belong under the row they describe. Rendered after the whole table they
+                    sat below thirty-two other shipments, so on a long fleet you clicked a row and
+                    the thing you asked for was off-screen. */}
+                {isOpen && (
+                  <tr className="pg-expand">
+                    <td colSpan={5}>
+                      {activeDecisions.length === 0 ? (
+                        <div className="pg-card pg-empty">
+                          No matching events for {s.shipment_id} right now.
+                        </div>
+                      ) : activeDecisions.map((d) => (
+                        <DecisionPanel key={d.decision_id} shipment={s} decision={d} onReviewed={reload} />
+                      ))}
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
-
-      {activeShip && activeDecisions.length === 0 && (
-        <div className="pg-card pg-empty" style={{ marginTop: 18 }}>No matching events for {activeShip.shipment_id} right now.</div>
-      )}
-      {activeShip && activeDecisions.map((d) => (
-        <DecisionPanel key={d.decision_id} shipment={activeShip} decision={d} onReviewed={reload} />
-      ))}
     </div>
   );
 }
