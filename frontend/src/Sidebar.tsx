@@ -35,6 +35,13 @@ export default function Sidebar() {
   return (
     <aside className="pg-sidebar">
       <div className="pg-brand">
+        <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true" style={{ alignSelf: "center" }}>
+          <path d="M16 2 4 6.5v9.8c0 7.3 5 13 12 14.2 7-1.2 12-6.9 12-14.2V6.5L16 2z" fill="var(--pg-blue)"/>
+          <g stroke="#fff" strokeWidth="2" strokeLinecap="round" fill="none">
+            <path d="M16 9v13"/><path d="M11 14h10"/><path d="M9.5 18a6.5 6.5 0 0 0 13 0"/>
+          </g>
+          <circle cx="16" cy="8" r="2.1" fill="#fff"/>
+        </svg>
         <span className="pg-brand-name">PortGuard</span>
         <span className="pg-brand-tag">AI</span>
       </div>

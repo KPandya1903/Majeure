@@ -38,7 +38,7 @@ export default function ChatWidget() {
   if (!open) {
     return (
       <button className="pg-chat-launcher" onClick={() => setOpen(true)} aria-label="Ask PortGuard">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"
              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z" />
         </svg>
@@ -50,14 +50,17 @@ export default function ChatWidget() {
   return (
     <div className="pg-chat-panel" role="dialog" aria-label="Ask PortGuard">
       <div className="pg-chat-head">
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 14 }}>Ask PortGuard</div>
-          <div style={{ fontSize: 11.5, opacity: 0.75 }}>Answers only from your data, with sources</div>
+        <div className="pg-chat-avatar">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"
+               strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 2 4 5.2v5.9c0 4.6 3.2 8.4 8 9.4 4.8-1 8-4.8 8-9.4V5.2L12 2z" />
+          </svg>
         </div>
-        <button onClick={() => setOpen(false)} aria-label="Close"
-                style={{ background: "none", border: 0, color: "#fff", fontSize: 20, lineHeight: 1, cursor: "pointer" }}>
-          ×
-        </button>
+        <div style={{ flexGrow: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>Ask PortGuard</div>
+          <div style={{ fontSize: 11.5, opacity: 0.8 }}>Answers from your data, with sources</div>
+        </div>
+        <button className="pg-chat-close" onClick={() => setOpen(false)} aria-label="Close">×</button>
       </div>
 
       <div className="pg-chat-body">
@@ -65,24 +68,34 @@ export default function ChatWidget() {
           <div>
             <div className="pg-sub" style={{ marginBottom: 10 }}>Try one of these:</div>
             {EXAMPLES.map((e) => (
-              <button key={e} className="pg-btn" style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 6 }}
-                      onClick={() => send(e)}>
-                {e}
-              </button>
+              <button key={e} className="pg-chat-suggest" onClick={() => send(e)}>{e}</button>
             ))}
           </div>
         )}
         {chat.map((m, i) => (
-          <div key={i} className={`pg-chat-msg ${m.role}`}>{m.text}</div>
+          <div key={i} className={`pg-chat-row ${m.role}`}>
+            <div className="pg-chat-bubble">{m.text}</div>
+          </div>
         ))}
-        {busy && <div className="pg-chat-msg assistant" style={{ color: "var(--pg-muted)" }}>Thinking…</div>}
+        {busy && (
+          <div className="pg-chat-row assistant">
+            <div className="pg-chat-bubble">
+              <span className="pg-chat-dots"><span /><span /><span /></span>
+            </div>
+          </div>
+        )}
         <div ref={endRef} />
       </div>
 
       <div className="pg-chat-input">
         <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()}
-               placeholder="Ask a question…" disabled={busy} aria-label="Your question" />
-        <button className="pg-btn primary" onClick={() => send()} disabled={busy || !q.trim()}>Send</button>
+               placeholder="Ask about shipments, events, decisions…" disabled={busy} aria-label="Your question" />
+        <button className="pg-chat-send" onClick={() => send()} disabled={busy || !q.trim()} aria-label="Send">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+               strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" />
+          </svg>
+        </button>
       </div>
     </div>
   );

@@ -113,6 +113,9 @@ export interface SourceRow {
 export interface SignalRow {
   published_at: string | null; source: string; event_type: string; severity: string | null;
   location_name: string | null; title: string; source_url: string;
+  /** Cleaned summary the signal was derived from (75-350 chars depending on feed), not a full
+   * article body — the card shows this and links out to the publisher for the rest. */
+  raw_text: string | null;
 }
 
 export const api = {

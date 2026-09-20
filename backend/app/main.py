@@ -343,7 +343,8 @@ def backtest():
 
 @app.get("/api/signals")
 def signals(source: Optional[str] = None, event_type: Optional[str] = None, q: Optional[str] = None, limit: int = 500):
-    sql = "SELECT published_at, source, event_type, severity, location_name, title, source_url FROM signals WHERE 1=1"
+    sql = ("SELECT published_at, source, event_type, severity, location_name, title, source_url, "
+           "raw_text FROM signals WHERE 1=1")
     params: list = []
     if source:
         sql += " AND source = ?"; params.append(source)

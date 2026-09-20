@@ -118,35 +118,116 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .pg-panel-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 16px; }
 @media (max-width: 900px) { .pg-panel-grid { grid-template-columns: 1fr; } .pg-facts { grid-template-columns: 1fr; } }
 
+/* News-style report cards (All signals). Masonry-ish grid that reflows by available width. */
+.pg-article-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: var(--pg-s4); }
+.pg-article {
+  background: var(--pg-card); border: 1px solid var(--pg-line); border-radius: var(--pg-radius);
+  padding: var(--pg-s4) 18px; display: flex; flex-direction: column;
+  box-shadow: 0 1px 2px rgba(43,51,60,0.05); transition: box-shadow 160ms ease-out, border-color 160ms ease-out;
+}
+.pg-article:hover { box-shadow: 0 4px 14px rgba(43,51,60,0.09); border-color: #D3D8DE; }
+.pg-article-meta {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-size: 11.5px; color: var(--pg-faint); margin-bottom: 8px;
+}
+.pg-article-source { font-weight: 600; color: var(--pg-blue); }
+.pg-article-title {
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1rem; font-weight: 700; line-height: 1.35;
+  letter-spacing: -0.2px; margin: 0 0 8px;
+}
+.pg-article-body { font-size: 13.2px; line-height: 1.6; color: #4A545F; margin: 0; }
+/* Four lines, then fade — the stored text is a summary, so this is usually the whole thing. */
+.pg-article-body.clamped {
+  display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pg-article-foot { display: flex; gap: 14px; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--pg-line-soft); }
+.pg-link-btn {
+  background: none; border: 0; padding: 0; font-size: 12.5px; font-weight: 600; color: var(--pg-blue);
+  cursor: pointer; font-family: inherit;
+}
+.pg-link-btn:hover { color: var(--pg-blue-dark); text-decoration: underline; }
+.pg-select {
+  border: 1px solid var(--pg-line); border-radius: 8px; padding: 9px 11px; min-height: 42px;
+  font-size: 13.2px; font-family: inherit; background: var(--pg-card); color: var(--pg-text);
+}
+
 /* Ask PortGuard launcher + panel, pinned bottom-right above page content. */
 .pg-chat-launcher {
-  position: fixed; right: 20px; bottom: 20px; z-index: 900;
-  display: flex; align-items: center; gap: 9px; min-height: 48px; padding: 0 18px;
+  position: fixed; right: 22px; bottom: 22px; z-index: 900;
+  display: flex; align-items: center; gap: 9px; height: 52px; padding: 0 20px;
   background: var(--pg-blue); color: #fff; border: 0; border-radius: 26px; font-weight: 600; font-size: 0.9rem;
-  box-shadow: 0 6px 20px rgba(11,92,213,0.32); transition: background 160ms ease-out, transform 160ms ease-out;
+  box-shadow: 0 8px 24px rgba(11,92,213,0.34);
+  transition: background 160ms ease-out, transform 160ms ease-out, box-shadow 160ms ease-out;
 }
-.pg-chat-launcher:hover { background: var(--pg-blue-dark); transform: translateY(-1px); }
+.pg-chat-launcher:hover { background: var(--pg-blue-dark); transform: translateY(-2px); box-shadow: 0 12px 30px rgba(11,92,213,0.4); }
+.pg-chat-launcher:active { transform: translateY(0); }
+
 .pg-chat-panel {
-  position: fixed; right: 20px; bottom: 20px; z-index: 900; width: 380px; max-width: calc(100vw - 32px);
-  height: 540px; max-height: calc(100vh - 40px); display: flex; flex-direction: column;
-  background: var(--pg-card); border: 1px solid var(--pg-line); border-radius: 14px; overflow: hidden;
-  box-shadow: 0 16px 48px rgba(43,51,60,0.22);
+  position: fixed; right: 22px; bottom: 22px; z-index: 900; width: 400px; max-width: calc(100vw - 32px);
+  height: 580px; max-height: calc(100vh - 44px); display: flex; flex-direction: column;
+  background: var(--pg-card); border: 1px solid var(--pg-line); border-radius: 16px; overflow: hidden;
+  box-shadow: 0 20px 56px rgba(43,51,60,0.26);
+  animation: pg-chat-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
+@keyframes pg-chat-in { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: none; } }
+
 .pg-chat-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  background: var(--pg-blue); color: #fff; padding: 12px 14px;
+  display: flex; align-items: center; gap: 11px;
+  background: linear-gradient(135deg, var(--pg-blue), #0847A8); color: #fff; padding: 14px 16px;
 }
-.pg-chat-body { flex-grow: 1; overflow-y: auto; padding: var(--pg-s3) var(--pg-s4); }
-.pg-chat-msg {
-  border-radius: 10px; padding: 9px 12px; margin-bottom: 8px; font-size: 13.2px; line-height: 1.5;
+.pg-chat-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center;
+}
+.pg-chat-close {
+  background: rgba(255,255,255,0.14); border: 0; color: #fff; width: 28px; height: 28px; border-radius: 50%;
+  font-size: 17px; line-height: 1; cursor: pointer; transition: background 160ms ease-out;
+}
+.pg-chat-close:hover { background: rgba(255,255,255,0.28); }
+
+.pg-chat-body { flex-grow: 1; overflow-y: auto; padding: var(--pg-s4); background: #FAFBFC; }
+.pg-chat-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: flex-end; }
+.pg-chat-row.user { flex-direction: row-reverse; }
+.pg-chat-bubble {
+  max-width: 82%; border-radius: 14px; padding: 10px 13px; font-size: 13.2px; line-height: 1.55;
   white-space: pre-wrap; word-break: break-word;
 }
-.pg-chat-msg.user { background: var(--pg-blue-soft); color: var(--pg-text); margin-left: 28px; }
-.pg-chat-msg.assistant { background: #F4F5F7; color: var(--pg-text); margin-right: 12px; }
-.pg-chat-input { display: flex; gap: 8px; padding: var(--pg-s3); border-top: 1px solid var(--pg-line); }
-.pg-chat-input input {
-  flex-grow: 1; min-width: 0; border: 1px solid var(--pg-line); border-radius: 8px; padding: 10px 12px; font-size: 13.2px;
+.pg-chat-row.user .pg-chat-bubble { background: var(--pg-blue); color: #fff; border-bottom-right-radius: 4px; }
+.pg-chat-row.assistant .pg-chat-bubble {
+  background: var(--pg-card); color: var(--pg-text); border: 1px solid var(--pg-line); border-bottom-left-radius: 4px;
 }
+.pg-chat-bubble a { color: inherit; text-decoration: underline; }
+.pg-chat-row.assistant .pg-chat-bubble a { color: var(--pg-blue); }
+
+.pg-chat-dots { display: inline-flex; gap: 4px; align-items: center; }
+.pg-chat-dots span {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--pg-faint);
+  animation: pg-blink 1.3s infinite ease-in-out;
+}
+.pg-chat-dots span:nth-child(2) { animation-delay: 0.18s; }
+.pg-chat-dots span:nth-child(3) { animation-delay: 0.36s; }
+@keyframes pg-blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+
+.pg-chat-suggest {
+  display: block; width: 100%; text-align: left; margin-bottom: 7px; padding: 10px 12px;
+  background: var(--pg-card); border: 1px solid var(--pg-line); border-radius: 10px;
+  font-size: 12.8px; font-family: inherit; color: var(--pg-text); cursor: pointer;
+  transition: border-color 160ms ease-out, background 160ms ease-out;
+}
+.pg-chat-suggest:hover { border-color: var(--pg-blue); background: var(--pg-blue-soft); }
+
+.pg-chat-input { display: flex; gap: 8px; padding: var(--pg-s3); border-top: 1px solid var(--pg-line); background: var(--pg-card); }
+.pg-chat-input input {
+  flex-grow: 1; min-width: 0; border: 1px solid var(--pg-line); border-radius: 22px; padding: 11px 15px; font-size: 13.2px;
+  font-family: inherit; transition: border-color 160ms ease-out;
+}
+.pg-chat-input input:focus { border-color: var(--pg-blue); }
+.pg-chat-send {
+  width: 42px; height: 42px; flex-shrink: 0; border-radius: 50%; border: 0; background: var(--pg-blue); color: #fff;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 160ms ease-out;
+}
+.pg-chat-send:hover:not(:disabled) { background: var(--pg-blue-dark); }
+.pg-chat-send:disabled { background: #C9D2DC; cursor: not-allowed; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
