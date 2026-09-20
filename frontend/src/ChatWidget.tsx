@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { api } from "./api";
 
 const EXAMPLES = [
@@ -6,6 +7,47 @@ const EXAMPLES = [
   "What's our total open exposure?",
   "Which decisions need approval?",
 ];
+
+// Answers arrive as markdown — **bold** figures, [1](url) citations, and "- " bullets. Rendering
+// them as plain text meant every citation the model produced showed up as literal "[1](https://…)"
+// in the bubble and nothing was clickable, which quietly defeated the point of citing at all.
+// Three constructs is the whole grammar the answers use, so this stays inline rather than pulling
+// in a markdown library for 2 KB of output.
+const INLINE_RE = /\*\*(.+?)\*\*|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+
+function renderInline(text: string, keyPrefix: string) {
+  const out: ReactNode[] = [];
+  let last = 0;
+  for (const m of text.matchAll(INLINE_RE)) {
+    if (m.index! > last) out.push(text.slice(last, m.index));
+    if (m[1] !== undefined) {
+      out.push(<strong key={`${keyPrefix}-b${m.index}`}>{m[1]}</strong>);
+    } else {
+      out.push(
+        <a key={`${keyPrefix}-a${m.index}`} href={m[3]} target="_blank" rel="noopener noreferrer">
+          {m[2]}
+        </a>,
+      );
+    }
+    last = m.index! + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
+function renderMarkdown(text: string) {
+  return text.split("\n").map((line, i) => {
+    const bullet = line.match(/^\s*[-*]\s+(.*)$/);
+    return bullet ? (
+      <div key={i} style={{ display: "flex", gap: 7, marginTop: 3 }}>
+        <span aria-hidden="true" style={{ opacity: 0.55 }}>•</span>
+        <span>{renderInline(bullet[1], String(i))}</span>
+      </div>
+    ) : (
+      <div key={i} style={{ marginTop: i ? 5 : 0 }}>{renderInline(line, String(i))}</div>
+    );
+  });
+}
 
 /** Ask PortGuard as a persistent launcher rather than a tab, so a question can be asked from
  * whatever screen prompted it without losing that screen. Answers come from the same grounded
@@ -74,7 +116,9 @@ export default function ChatWidget() {
         )}
         {chat.map((m, i) => (
           <div key={i} className={`pg-chat-row ${m.role}`}>
-            <div className="pg-chat-bubble">{m.text}</div>
+            <div className="pg-chat-bubble">
+              {m.role === "assistant" ? renderMarkdown(m.text) : m.text}
+            </div>
           </div>
         ))}
         {busy && (

@@ -18,7 +18,9 @@ SYSTEM_PROMPT = """You are PortGuard AI's analyst assistant for a logistics team
 Answer the user's question using ONLY the JSON context (their shipments with contract terms, current disruption events,
 PortGuard's decisions with cost estimates, and measured traffic). If the context does not contain the answer, say so.
 Be concise: short paragraphs or bullet points, dollar figures where relevant, shipment ids in bold.
-Cite sources as markdown links [n](url) using URLs from the context. Never invent facts."""
+Cite sources as numbered markdown links using URLs from the context, numbering them from 1 in the order you
+use them: write [1](https://example.com/article), then [2](...), and so on. Never write a literal "[n]" -- n is a
+placeholder for the number, not text to copy. Never invent facts or URLs."""
 
 
 def build_context(conn: sqlite3.Connection) -> dict:
@@ -44,7 +46,7 @@ def build_context(conn: sqlite3.Connection) -> dict:
             "force_majeure_notice_due": exp.get("force_majeure_notice_due"),
             "options": [{k: o[k] for k in ("action", "available", "cost_usd", "note")} for o in exp.get("options", [])],
             "rationale": r["rationale"], "human_decision": r["human_decision"],
-            "sources": json.loads(r["citations"])[:3],
+            "sources": json.loads(r["citations"])[:6],
         })
     events = [{
         "title": r["title"], "event_type": r["event_type"], "severity": r["severity"], "location": r["location_name"],
