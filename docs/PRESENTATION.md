@@ -19,7 +19,7 @@ system. Nothing is estimated for effect.
 
 ### Maritime disruption → shipment-specific, contract-aware decisions
 
-25 live sources · 926 signals · 60 clustered events · 33 vessels
+29 live sources · 993 signals · 66 clustered events · 33 vessels
 
 ---
 
@@ -46,13 +46,24 @@ container. **The notice window often expires before the answer arrives.**
 
 **The counter-intuitive part: carriers profited. Cargo owners paid.**
 
-| Measure | Figure |
-|---|---|
-| Maersk 2024 EBIT | **$6.5B, +65% year on year** (rates rose with the crisis) |
-| Maersk 2025 guidance | **$0 EBIT if the Red Sea reopens**, **$3.0B if rerouting continues** |
-| Demurrage and detention, 2024 | **more than $10B** added to global ocean freight costs (Drewry) |
-| US FMC finding, 9 carriers, Apr 2020 – Mar 2023 | **$12.9B** collected in D&D |
-| Cape of Good Hope reroute | **+$200–400 per TEU** |
+| Measure | Figure | Period |
+|---|---|---|
+| Maersk EBIT | **$6.5B, +65% year on year** (rates rose with the crisis) | 2024 |
+| Maersk guidance | **$0 EBIT if the Red Sea reopens**, **$3.0B if rerouting continues** | 2025 |
+| **Demurrage and detention added to global freight costs** (Drewry) | **more than $10B** | **per year** |
+| D&D *collected* by nine carriers (US FMC finding) | $12.9B | Apr 2020 – Mar 2023, ~3 years |
+| Cape of Good Hope reroute | **+$200–400 per TEU** | per container |
+
+> **Do not conflate these two.** Demurrage and detention are daily charges for holding a
+> container or terminal slot too long, and **force majeure does not waive them** — it waives the
+> late-delivery penalty. The $12.9B figure is money that *was* billed and paid over three years,
+> most of it legitimately owed. It is **not** a pile of unfiled force majeure claims.
+>
+> **There is no published figure for force majeure that goes unclaimed**, and there structurally
+> cannot be: a claim never filed leaves no record. Do not assert one. If asked how big the prize
+> is, cite the >$10B/yr D&D figure as the *ceiling* of what better timing could touch, then give
+> the number this system actually computes: **$183,600 avoided across 33 shipments**, which is
+> our own model and can be shown working.
 
 The loss sits with the **beneficial cargo owner** — the manufacturer, retailer or
 importer. They pay demurrage, detention and late-delivery penalties on contracts
@@ -90,9 +101,9 @@ they did not get to reprice.
 
 ## Slide 5 — Databases we searched
 
-**Visual:** the sidebar source list — 25 sources with their fetch times.
+**Visual:** the sidebar source list — 29 sources with their fetch times.
 
-**25 sources wired. We also documented what does not work.**
+**29 sources wired. We also documented what does not work.**
 
 **Working, and live in the product:**
 
@@ -106,6 +117,10 @@ they did not get to reprice.
   Executive, Seatrade, Splash247, Container News, World Cargo News, Marine Link,
   Maritime Logistics, Marine Insight, Bunkerspot, Hellenic Shipping News, SeaNews,
   FreightWaves, Supply Chain Dive, Offshore Energy
+- **Trade policy** — US Federal Register (JSON API), White House presidential actions,
+  USTR press releases, WTO news. This is what feeds `regulatory_sanctions`: a tariff change
+  or export control can strand a container as surely as a closed strait, and it usually
+  arrives with more warning.
 - GDELT and Google News
 
 **Rejected, with reasons:**
@@ -151,7 +166,7 @@ where nobody is looking.**
 
 **Real and verifiable:**
 
-- 926 signals across 25 sources, every one with a live source URL
+- 993 signals across 29 sources, every one with a live source URL
 - 2,065 ports and 4,897 daily traffic rows from IMF PortWatch
 - **33 real container vessels across 11 real carriers** — Maersk, MSC, CMA CGM,
   COSCO, Evergreen, OOCL, HMM, NYK, ONE, ZIM, APL
@@ -177,7 +192,7 @@ where nobody is looking.**
 
 **Six stages, from a headline to a signed notice.**
 
-1. **Ingest** — 25 sources, each on its own schedule
+1. **Ingest** — 29 sources, each on its own schedule
 2. **Cluster** — reports become events; confidence weighted by *who* reported it,
    not only how many did
 3. **Match** — events to shipments by port and chokepoint
@@ -262,18 +277,17 @@ type and notice falls inside the contractual window.
 **Against the four criteria, directly.**
 
 **"Support for different sources without rebuilding everything."**
-Fetchers are pluggable. **We added 16 sources in a single session**, taking it from
-9 to 25. A `STRICT` flag filters low-purity feeds — FreightWaves measured 23 of 56
+Fetchers are pluggable. **We added 20 sources**, taking it from 9 to 29. A `STRICT` flag filters low-purity feeds — FreightWaves measured 23 of 56
 items as maritime.
 
 **"A model that can find useful signals in incoming documents."**
-Nemotron Xtract over news text, alongside a deterministic classifier. 926 signals
-resolve into 60 events.
+Nemotron Xtract over news text, alongside a deterministic classifier. 993 signals
+resolve into 66 events.
 
 **"Insights that link back to where they came from."**
 Every signal carries its `source_url`. Every event carries report and publisher
 counts. Every decision carries a citation list, rendered as clickable links.
-*HORMUZ-26: 108 reports from 83 publishers, confidence 0.99. Click through to any
+*HORMUZ-26: 125 reports from 94 publishers, confidence 0.99. Click through to any
 one of them.*
 
 **"A clean way to actually see and use the output."**
@@ -290,7 +304,7 @@ ourselves — yes. **No LANXESS data** — correct, none is used.
 
 **Ninety seconds, in this order:**
 
-1. **Sidebar** — 25 sources, all fetched minutes ago. It is live right now.
+1. **Sidebar** — 29 sources, all fetched minutes ago. It is live right now.
 2. **Risk map** — 33 real vessels. Click **COSCO Shipping Lines** in the carrier
    index; its three ships light up and the other thirty fade. Hover one for a real
    IMO number, a real carrier, and an honest "estimated, not AIS".
@@ -303,7 +317,7 @@ ourselves — yes. **No LANXESS data** — correct, none is used.
 6. **Ask PortGuard** — *"How many ships does Cosco Africa have in transit?"* Answers
    instantly, and corrects the premise: COSCO AFRICA is a ship, not a company.
 
-**Close on:** *"Everything you have just seen runs on 25 live public sources. The
+**Close on:** *"Everything you have just seen runs on 29 live public sources. The
 only synthetic part is the contract terms — and the database labels every one of
 them."*
 
