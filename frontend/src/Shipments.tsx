@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Decision, Shipment } from "./api";
-import { ACTIONS, RISK_TONE, api, fmtCountdown, fmtDate, hoursUntil } from "./api";
+import { ACTIONS, RISK_TONE, api, fmtCountdown, fmtDate, fmtMoney, hoursUntil } from "./api";
 import { Chip } from "./components";
 
 const RISK_ORDER: Record<string, number> = { low: 0, medium: 1, high: 2, critical: 3 };
@@ -41,11 +41,11 @@ function FleetRow({ s, selected, onSelect }: { s: Shipment; selected: boolean; o
         {top ? (
           <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
             <Chip text={top.risk_level.toUpperCase()} tone={RISK_TONE[top.risk_level]} />
-            <span>{top.recommended_action_label} — ${(top.estimated_cost_usd ?? 0).toLocaleString()}</span>
+            <span>{top.recommended_action_label} — ${fmtMoney(top.estimated_cost_usd ?? 0)}</span>
             {top.recommended_action === "invoke_force_majeure" && dueHours !== null ? (
               <Chip text={`Notice ${fmtCountdown(dueHours)}`} tone={dueHours > 0 ? "warn" : "risk"} />
             ) : top.estimated_cost_usd ? (
-              <Chip text={`$${top.estimated_cost_usd.toLocaleString()}`} tone={top.risk_level === "critical" ? "risk" : "warn"} />
+              <Chip text={`$${fmtMoney(top.estimated_cost_usd)}`} tone={top.risk_level === "critical" ? "risk" : "warn"} />
             ) : null}
           </span>
         ) : (
@@ -108,7 +108,7 @@ function DecisionPanel({ shipment, decision, onReviewed }: { shipment: Shipment;
                     {ACTIONS[o.action] ?? o.action}{isBest ? " · recommended" : ""}
                   </span>
                   <span className="pg-num" style={{ fontWeight: 600, color: isBest ? "var(--pg-blue)" : isWorst ? "var(--pg-red)" : "var(--pg-text)" }}>
-                    ${o.cost_usd.toLocaleString()}
+                    ${fmtMoney(o.cost_usd)}
                   </span>
                 </div>
                 <div className={`pg-bar${isBest ? " is-best" : isWorst ? " is-risk" : ""}`}>

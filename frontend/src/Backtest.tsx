@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { BacktestScenario } from "./api";
-import { api } from "./api";
+import { api, fmtMoney } from "./api";
 import { Chip } from "./components";
 
 export default function Backtest() {
@@ -44,8 +44,8 @@ export default function Backtest() {
               <td>{s.matched ? <Chip text="Matched" tone="ok" /> : <Chip text="Not matched" tone="mute" />}</td>
               <td className="pg-num">{s.traffic_change_pct != null ? `${s.traffic_change_pct > 0 ? "+" : ""}${s.traffic_change_pct.toFixed(0)}%` : "—"}</td>
               <td>{s.cheapest_action}</td>
-              <td className="pg-num">${s.exposure_wait_usd.toLocaleString()}</td>
-              <td className="pg-num">${s.exposure_best_usd.toLocaleString()}</td>
+              <td className="pg-num">${fmtMoney(s.exposure_wait_usd)}</td>
+              <td className="pg-num">${fmtMoney(s.exposure_best_usd)}</td>
               <td>{s.recommended_action}</td>
             </tr>
           ))}

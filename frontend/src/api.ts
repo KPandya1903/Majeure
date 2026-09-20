@@ -137,6 +137,14 @@ export function fmtDate(iso: string, withYear = true): string {
                   : `${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
 }
 
+export function fmtMoney(n: number): string {
+  // toLocaleString() with no locale arg uses the BROWSER's locale — e.g. French formats
+  // 32500 as "32 500" (space-separated) instead of "32,500". Pinning "en-US" here keeps
+  // dollar figures consistent regardless of the viewer's browser/OS locale (same class of
+  // bug as the earlier Streamlit strftime("%b") issue that produced French month names).
+  return Math.round(n).toLocaleString("en-US");
+}
+
 export function hoursUntil(iso: string | null): number | null {
   if (!iso) return null;
   return (new Date(iso).getTime() - Date.now()) / 3_600_000;

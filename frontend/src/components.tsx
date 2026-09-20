@@ -1,5 +1,5 @@
 import type { Kpis } from "./api";
-import { fmtCountdown } from "./api";
+import { fmtCountdown, fmtMoney } from "./api";
 
 export function Chip({ text, tone = "mute" }: { text: string; tone?: string }) {
   return <span className={`pg-chip ${tone}`}>{text}</span>;
@@ -29,7 +29,7 @@ export function KpiRow({ kpis }: { kpis: Kpis }) {
         noteTone={kpis.shipments_at_risk ? "risk" : undefined} />
       <KpiCard label="Decisions awaiting approval" value={String(kpis.pending_decisions)}
         note="reviewed in Shipments & decisions" />
-      <KpiCard label="Open exposure" value={`$${kpis.open_exposure_usd.toLocaleString()}`}
+      <KpiCard label="Open exposure" value={`$${fmtMoney(kpis.open_exposure_usd)}`}
         note="if every recommendation is taken" />
       <KpiCard label="Force majeure notice due" value={hasDeadline ? fmtCountdown(kpis.next_deadline_hours) : "—"}
         note={hasDeadline ? "earliest of any drafted notice" : "No notices pending"} due={hasDeadline} />

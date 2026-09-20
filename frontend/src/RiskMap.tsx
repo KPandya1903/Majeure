@@ -70,6 +70,11 @@ export default function RiskMap() {
         initialViewState={{ longitude: 45, latitude: 22, zoom: 1.6 }}
         style={{ width: "100%", height: 560 }}
         mapStyle={MAP_STYLE}
+        // Trackpad two-finger vertical scroll otherwise zooms the map instead of scrolling the
+        // page underneath it — disable that specifically. Pinch (two fingers apart/together,
+        // touchZoomRotate) and the +/- NavigationControl buttons stay on as the only zoom paths.
+        scrollZoom={false}
+        touchZoomRotate={true}
         onMouseMove={(e) => {
           const f = e.features?.[0];
           setHover(f ? (f.properties?.label as string) ?? null : null);
