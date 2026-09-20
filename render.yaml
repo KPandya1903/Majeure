@@ -17,7 +17,6 @@ services:
       # from data/portguard.db and needs no LLM call at request time.
       - key: NEMOTRON_BASE_URL
         value: https://integrate.api.nvidia.com/v1
-        sync: false
       - key: NEMOTRON_API_KEY
         sync: false
       - key: NEMOTRON_MODEL
