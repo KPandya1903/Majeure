@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { Decision, Shipment } from "./api";
+import type { Decision, Draft, Shipment } from "./api";
 import { ACTIONS, RISK_TONE, api, fmtCountdown, fmtDate, fmtMoney, hoursUntil } from "./api";
 import { Chip } from "./components";
 
@@ -72,6 +72,20 @@ function FleetRow({ s, selected, onSelect, rowRef }:
 function DecisionPanel({ shipment, decision, onReviewed }: { shipment: Shipment; decision: Decision; onReviewed: () => void }) {
   const [note, setNote] = useState(decision.human_notes ?? "");
   const [busy, setBusy] = useState(false);
+  // The drafted notice is the most concrete thing this product makes, and it was invisible: the
+  // endpoint existed and nothing ever called it, so "Approve & send notice" referred to a document
+  // the operator could not read.
+  const [drafts, setDrafts] = useState<Draft[] | null>(null);
+  const [openDraft, setOpenDraft] = useState<number | null>(null);
+  const [copied, setCopied] = useState<number | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    api.drafts(decision.decision_id)
+      .then((d) => { if (live) setDrafts(d); })
+      .catch(() => { if (live) setDrafts([]); });
+    return () => { live = false; };
+  }, [decision.decision_id, decision.human_decision]);
   const dueHours = decision.exposure?.force_majeure_notice_due ? hoursUntil(decision.exposure.force_majeure_notice_due) : null;
   const options = (decision.exposure?.options ?? []).filter((o) => o.available);
   const maxCost = Math.max(0, ...options.map((o) => o.cost_usd));
@@ -80,9 +94,21 @@ function DecisionPanel({ shipment, decision, onReviewed }: { shipment: Shipment;
     setBusy(true);
     try {
       await api.reviewDecision(decision.decision_id, human_decision, note);
+      const fresh = await api.drafts(decision.decision_id).catch(() => []);
+      setDrafts(fresh);
       onReviewed();
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function copyDraft(d: Draft) {
+    try {
+      await navigator.clipboard.writeText(`${d.subject}\n\n${d.body}`);
+      setCopied(d.draft_id);
+      setTimeout(() => setCopied(null), 1800);
+    } catch {
+      setCopied(null);  // clipboard blocked (insecure context); the text is on screen regardless
     }
   }
 
@@ -202,12 +228,62 @@ function DecisionPanel({ shipment, decision, onReviewed }: { shipment: Shipment;
         <input id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional — visible in the audit log"
           style={{ flexGrow: 1, border: "1px solid var(--pg-line)", borderRadius: 6, padding: "10px 12px", fontSize: 13.5 }} />
         <button className="pg-btn" disabled={busy} onClick={() => review("overridden")}>Override</button>
-        <button className="pg-btn primary" disabled={busy}
+        {/* The old label was "Approve & send notice". Nothing is transmitted anywhere — there is no
+            mail or EDI integration — so the button now names what it actually does. */}
+        <button className="pg-btn primary" disabled={busy || decision.human_decision === "approved"}
           onClick={() => review("approved")}>
-          {decision.recommended_action === "invoke_force_majeure" ? "Approve & send notice" : "Approve"}
+          {busy ? "Saving…" : decision.human_decision === "approved" ? "Approved" : "Approve"}
         </button>
       </div>
-      <div style={{ fontSize: 12.5, color: "var(--pg-muted)", marginTop: 6 }}>Human decision: <strong>{decision.human_decision}</strong></div>
+
+      {/* Approval is otherwise invisible: one word in grey at the bottom of a long panel. */}
+      <div style={{ marginTop: 10, fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+        {decision.human_decision === "approved" ? (
+          <Chip text="APPROVED" tone="ok" />
+        ) : decision.human_decision === "overridden" ? (
+          <Chip text="OVERRIDDEN" tone="mute" />
+        ) : (
+          <Chip text="AWAITING REVIEW" tone="warn" />
+        )}
+        <span style={{ color: "var(--pg-muted)" }}>
+          {decision.human_decision === "approved"
+            ? "Notice signed off and ready to send. PortGuard does not transmit it."
+            : decision.human_decision === "overridden"
+            ? "Recommendation rejected; the drafted notice was discarded."
+            : "No document is sent until a human approves it."}
+        </span>
+      </div>
+
+      {drafts && drafts.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <div className="pg-eyebrow">Drafted documents</div>
+          {drafts.map((d) => (
+            <div key={d.draft_id} className="pg-draft">
+              <button className="pg-draft-head"
+                      onClick={() => setOpenDraft(openDraft === d.draft_id ? null : d.draft_id)}>
+                <span style={{ flexGrow: 1, textAlign: "left" }}>
+                  <strong>{d.kind.replace(/_/g, " ")}</strong>
+                  <span style={{ color: "var(--pg-muted)" }}> — {d.subject}</span>
+                </span>
+                <Chip text={d.status.toUpperCase()}
+                      tone={d.status === "approved" ? "ok" : d.status === "discarded" ? "mute" : "warn"} />
+                <span style={{ color: "var(--pg-faint)", marginLeft: 8 }}>
+                  {openDraft === d.draft_id ? "Hide" : "Read"}
+                </span>
+              </button>
+              {openDraft === d.draft_id && (
+                <div>
+                  <pre className="pg-draft-body">{d.body}</pre>
+                  <button className="pg-btn" style={{ minHeight: 34, fontSize: 12.5 }}
+                          onClick={() => copyDraft(d)}>
+                    {copied === d.draft_id ? "Copied" : "Copy to clipboard"}
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

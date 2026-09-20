@@ -297,10 +297,21 @@ class DecisionUpdate(BaseModel):
 def review_decision(decision_id: int, body: DecisionUpdate):
     if body.human_decision not in ("approved", "overridden"):
         raise HTTPException(400, "human_decision must be 'approved' or 'overridden'")
+    # Approving a decision has to carry its drafts with it. Before this, "Approve & send notice"
+    # wrote human_decision and left every draft sitting at status='draft' -- the button named an
+    # action it did not take, and the operator had no way to tell an approved notice from an
+    # unreviewed one. Approve marks them ready to send; overriding the recommendation discards
+    # the notice that was written for it.
+    draft_status = "approved" if body.human_decision == "approved" else "discarded"
     with _session() as conn:
         conn.execute("UPDATE decision_logs SET human_decision=?, human_notes=? WHERE decision_id=?",
                     (body.human_decision, body.human_notes, decision_id))
-    return {"ok": True}
+        conn.execute("UPDATE action_drafts SET status=? WHERE decision_id=? AND status IN ('draft', 'approved', 'discarded')",
+                    (draft_status, decision_id))
+    drafts = _rows("SELECT draft_id, kind, status FROM action_drafts WHERE decision_id = ?", (decision_id,))
+    # Nothing is transmitted anywhere: there is no mail or EDI integration, by design. "approved"
+    # means a human has signed it off and it is ready to send, and the UI must not imply more.
+    return {"ok": True, "drafts": drafts, "sent": False}
 
 
 # --------------------------------------------------------------------------- drafts

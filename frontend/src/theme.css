@@ -355,3 +355,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .pg-table tr.pg-expand > td > * { margin-left: 14px; margin-right: 14px; }
 /* Selected row reads as the head of its expanded block, not a separate row. */
 .pg-table tr.selected td { background: #F2F6FD; }
+
+/* Drafted force majeure notice / customer email, inside a decision panel. Collapsed to a header
+   row because the body is a full letter; expanded it is the strongest artifact the product makes. */
+.pg-draft { border: 1px solid var(--pg-line); border-radius: 8px; margin-top: 8px; background: #FCFDFE; }
+.pg-draft-head { display: flex; align-items: center; gap: 8px; width: 100%; border: 0;
+  background: none; padding: 10px 12px; font-size: 13px; color: var(--pg-text); text-align: left; }
+.pg-draft-head:hover { background: #F4F7FB; border-radius: 8px; }
+.pg-draft-body { margin: 0; padding: 12px 14px; border-top: 1px solid var(--pg-line-soft);
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.55;
+  white-space: pre-wrap; word-break: break-word; color: var(--pg-text);
+  max-height: 260px; overflow-y: auto; }
