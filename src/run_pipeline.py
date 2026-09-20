@@ -64,7 +64,7 @@ def downstream_steps(args: argparse.Namespace) -> list[tuple[str, list[str], boo
 
 def _has_shipments(db: Path) -> bool:
     try:
-        with store.connect(db) as conn:
+        with store.session(db) as conn:
             return conn.execute("SELECT COUNT(*) FROM shipments").fetchone()[0] > 0
     except Exception:  # missing file, missing table, unreachable Postgres -- all mean "no"
         return False
@@ -92,7 +92,7 @@ def _save_state(state: dict, failed: Optional[list[str]] = None) -> None:
         return  # first ever run: init_db.py creates the table a few steps later
     bad = set(failed or ())
     try:
-        with store.connect(db) as conn:
+        with store.session(db) as conn:
             conn.executemany(
                 "INSERT INTO pipeline_state (source_group, last_fetched_at, ok) VALUES (?, ?, ?) "
                 "ON CONFLICT (source_group) DO UPDATE SET last_fetched_at = excluded.last_fetched_at, "

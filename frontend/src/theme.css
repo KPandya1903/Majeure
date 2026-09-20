@@ -9,6 +9,14 @@
   --pg-blue: #0B5CD5; --pg-blue-soft: #E8F1FF; --pg-blue-dark: #08409A;
   --pg-amber: #B4661B; --pg-amber-soft: #FFF3E2;
   --pg-red: #D62828; --pg-red-soft: #FDECEC;
+  /* Risk needs four distinguishable steps, and red/amber/green only gives three. `high` and
+     `medium` both resolved to amber, so a HIGH chip and a MEDIUM chip were the same colour and the
+     ramp had no middle. Orange for high, gold for medium; critical becomes a solid fill so it is
+     unmistakable rather than a fourth tint competing with its neighbours.
+     Text colours are darkened past their obvious values to clear WCAG AA (4.5:1) on their own
+     backgrounds -- #C2410C on its tint measured 4.47, and the pre-existing critical chip was 4.38. */
+  --pg-orange: #B03A09; --pg-orange-soft: #FDEBE0;
+  --pg-gold: #8A6A0C; --pg-gold-soft: #FBF3D9;
   --pg-green: #237A45; --pg-green-soft: #E9F7EF;
   --pg-radius: 10px; --pg-s2: 8px; --pg-s3: 12px; --pg-s4: 16px; --pg-s5: 24px;
 }
@@ -72,7 +80,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 .pg-chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 6px; font-size: 0.72rem;
   font-weight: 600; padding: 3px 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* critical */ .pg-chip.critical { background: var(--pg-red); color: #FFFFFF; }
+/* high     */ .pg-chip.high { background: var(--pg-orange-soft); color: var(--pg-orange); }
+/* medium   */ .pg-chip.medium { background: var(--pg-gold-soft); color: var(--pg-gold); }
 .pg-chip.risk { background: var(--pg-red-soft); color: var(--pg-red); }
+/* `warn` stays amber and keeps its other job: deadlines, delays and traffic drops. Risk levels no
+   longer borrow it, so amber means "time pressure" again rather than two different severities. */
 .pg-chip.warn { background: var(--pg-amber-soft); color: var(--pg-amber); }
 .pg-chip.ok { background: var(--pg-green-soft); color: var(--pg-green); }
 .pg-chip.info { background: var(--pg-blue-soft); color: var(--pg-blue); }
@@ -299,3 +312,37 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 @keyframes pg-pop { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .pg-ship-pop { animation: none; } }
+
+/* Carrier index on the risk map: which line operates which vessel, and a filter for picking one
+   fleet out of thirty-three. Overlaid bottom-right INSIDE the map, as a sibling of the canvas
+   rather than a MapLibre control, so it keeps normal DOM events and is not re-rendered on pan. */
+.pg-carrier-index {
+  /* 52px clears the MapLibre attribution container, measured at 44px tall. CARTO and OSM both
+     require their attribution to stay visible, so this offset is a licence condition, not taste. */
+  position: absolute; right: 12px; bottom: 52px; width: 214px; z-index: 3;
+  background: rgba(255,255,255,0.96); border: 1px solid var(--pg-line); border-radius: 9px;
+  box-shadow: 0 6px 18px rgba(43,51,60,0.14); overflow: hidden;
+  backdrop-filter: blur(3px);
+}
+.pg-carrier-index-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 10px; border-bottom: 1px solid var(--pg-line-soft);
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.7px; text-transform: uppercase;
+  color: var(--pg-muted); background: #F7F8FA;
+}
+.pg-carrier-clear {
+  border: 0; background: none; color: var(--pg-blue); font-size: 0.68rem; font-weight: 600;
+  text-transform: none; letter-spacing: 0; padding: 0;
+}
+/* Eleven carriers do not fit over a 560px map without covering it, so the list scrolls. */
+.pg-carrier-list { max-height: 190px; overflow-y: auto; overscroll-behavior: contain; padding: 4px; }
+.pg-carrier-row {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  border: 0; background: none; border-radius: 6px; padding: 5px 6px; font-size: 0.76rem;
+  color: var(--pg-text);
+}
+.pg-carrier-row:hover { background: #F1F4F8; }
+.pg-carrier-row.on { background: var(--pg-blue-soft); font-weight: 600; }
+.pg-carrier-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.pg-carrier-name { flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pg-carrier-count { color: var(--pg-faint); font-variant-numeric: tabular-nums; font-size: 0.72rem; }

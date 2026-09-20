@@ -99,26 +99,17 @@ class Vessel(NamedTuple):
 # (wdt:P31/P279* wd:Q17210 with wdt:P458), then filtered to vessels whose name identifies an
 # operating line. Regenerate with the SPARQL query in docs/DATA_SOURCES.md.
 VESSELS: tuple[Vessel, ...] = tuple(Vessel(n, i, carrier_for(n) or "") for n, i in (
-    ("Maersk Tukang", "9334686"),
-    ("Maersk Salalah", "9352016"),
-    ("MSC Valencia", "9301471"),
-    ("MSC Bremen", "9226205"),
-    ("CMA CGM Nabucco", "9299630"),
-    ("CMA CGM White Shark", "9317975"),
-    ("Cosco America", "9345427"),
-    ("Cosco Africa", "9345439"),
-    ("Ever Shine", "9300386"),
-    ("Ever Smart", "9300403"),
-    ("OOCL San Francisco", "9199268"),
-    ("OOCL Chicago", "9199270"),
-    ("Hyundai Bangkok", "9323510"),
-    ("APL Minnesota", "9350018"),
-    ("NYK Meteor", "9337638"),
-    ("NYK Diana", "9337688"),
-    ("MOL Charisma", "9321249"),
-    ("MOL Courage", "9321263"),
-    ("ZIM Virginia", "9231808"),
-    ("Maersk Sheerness", "9299939"),
+    ("Maersk Tukang", "9334686"), ("Maersk Salalah", "9352016"), ("Maersk Stockholm", "9352042"),
+    ("MSC Valencia", "9301471"), ("MSC Tomoko", "9309461"), ("MSC Lorena", "9320403"),
+    ("CMA CGM Nabucco", "9299630"), ("CMA CGM White Shark", "9317975"), ("CMA CGM Baudelaire", "9222285"),
+    ("Cosco America", "9345427"), ("Cosco Africa", "9345439"), ("Cosco Ningbo", "9305582"),
+    ("Ever Shine", "9300386"), ("Ever Sigma", "9300398"), ("Ever Smart", "9300403"),
+    ("OOCL San Francisco", "9199268"), ("OOCL Chicago", "9199270"), ("OOCL Washington", "9417256"),
+    ("Hyundai Bangkok", "9323510"), ("Hyundai Together", "9473731"), ("Hyundai Tenacity", "9475674"),
+    ("NYK Meteor", "9337638"), ("NYK Diana", "9337688"), ("NYK Orpheus", "9313008"),
+    ("MOL Charisma", "9321249"), ("MOL Courage", "9321263"), ("MOL Precision", "9236470"),
+    ("ZIM Virginia", "9231808"), ("Zim Rio Grande", "9363376"), ("ZIM Atlantic", "9440801"),
+    ("APL Minnesota", "9350018"), ("APL Raffles", "9631979"), ("APL Changi", "9631981"),
 ))
 
 
@@ -188,7 +179,7 @@ def _port_index(ports) -> dict[str, dict]:
     return index
 
 
-def build(seed: int = 20260920, count: int = 10) -> list[dict]:
+def build(seed: int = 20260920, count: int = 33) -> list[dict]:
     """One shipment per lane, each crewed by a real vessel. Deterministic for a given seed so the
     book does not reshuffle itself between pipeline runs and invalidate every stored decision."""
     rng = random.Random(seed)
@@ -198,12 +189,15 @@ def build(seed: int = 20260920, count: int = 10) -> list[dict]:
 
     now = utcnow()
     shipments, skipped = [], []
-    for i, lane in enumerate(LANES[:count]):
+    # One shipment per VESSEL, cycling through the lanes -- rather than one per lane. Real carriers
+    # compete on the same trade lanes, so several ships sharing one is accurate, and adding a
+    # carrier no longer requires inventing a new route for it.
+    for i, vessel in enumerate(VESSELS[:count]):
+        lane = LANES[i % len(LANES)]
         pol, pod = index.get(lane.pol.lower()), index.get(lane.pod.lower())
         if not pol or not pod:
             skipped.append(f"{lane.pol}->{lane.pod}")
             continue
-        vessel = VESSELS[i % len(VESSELS)]
         # Spread departures around today so some shipments are at sea, some not yet sailed: the map
         # needs vessels at different points along their route for the fleet view to mean anything.
         etd = now + timedelta(days=rng.randint(-18, 6))
@@ -264,7 +258,7 @@ def check() -> int:
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--out", type=Path, default=SAMPLE_OUT)
-    parser.add_argument("--count", type=int, default=len(LANES))
+    parser.add_argument("--count", type=int, default=len(VESSELS))
     parser.add_argument("--seed", type=int, default=20260920)
     parser.add_argument("--check", action="store_true", help="validate IMO check digits and exit")
     parser.add_argument("-v", "--verbose", action="store_true")

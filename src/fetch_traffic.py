@@ -54,7 +54,7 @@ def query_daily(layer: str, where: str, value_field: str) -> pd.DataFrame:
 def shipment_port_ids(db: Path) -> set[str]:
     """Ports used by shipments: from the DB if it has shipments, else from the demo sample file."""
     if store.database_ready(db):
-        with store.connect(db) as conn:
+        with store.session(db) as conn:
             try:
                 rows = conn.execute("SELECT pol_port_id, pod_port_id, transshipment_port_ids FROM shipments").fetchall()
             except sqlite3.OperationalError:

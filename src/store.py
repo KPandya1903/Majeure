@@ -32,6 +32,7 @@ import os
 import re
 import sqlite3
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Optional, Sequence
 
@@ -254,10 +255,14 @@ class PgConnection:
 
     `with conn:` commits on success and rolls back on exception, matching sqlite3 rather than
     psycopg (whose own context manager closes the connection).
+
+    `close()` returns the connection to the pool rather than dropping it, which is what makes
+    pooling transparent to every existing call site.
     """
 
-    def __init__(self, conn):
+    def __init__(self, conn, pool=None):
         self._conn = conn
+        self._pool = pool
         self.row_factory = None  # accepted and ignored: rows are always Row
 
     def execute(self, sql: str, params: Sequence[Any] = ()) -> _Cursor:
@@ -289,7 +294,17 @@ class PgConnection:
         self._conn.rollback()
 
     def close(self) -> None:
-        self._conn.close()
+        if self._pool is None:
+            self._conn.close()
+            return
+        try:
+            # A connection handed back mid-transaction would leak that state to the next caller,
+            # which is how one endpoint's failed query becomes another's "current transaction is
+            # aborted". Reset it before returning it to the pool.
+            self._conn.rollback()
+        except Exception:
+            pass
+        self._pool.putconn(self._conn)
 
     def __enter__(self) -> "PgConnection":
         return self
@@ -345,6 +360,48 @@ def split_statements(script: str) -> list[str]:
 # --------------------------------------------------------------------------- connecting
 
 
+_POOL = None
+_POOL_FAILED = False
+
+
+def _require_url() -> str:
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        raise RuntimeError("DB_BACKEND=postgres but DATABASE_URL is not set (see .env.example)")
+    return url
+
+
+def _get_pool():
+    """A small shared connection pool, created on first use.
+
+    Opening a Postgres connection to Supabase measured **169 ms** -- TCP, TLS and auth -- against
+    25 ms for an actual query. Every request opening its own connection therefore spent roughly
+    two thirds of its time on handshakes, which no amount of response caching would recover.
+
+    A pool and not a single shared connection: FastAPI runs sync endpoints in a threadpool, so two
+    requests genuinely do overlap, and interleaving their transactions on one connection corrupts
+    both. `max_size` stays small because Supabase's pooler has its own client limit and this
+    service runs one web worker.
+    """
+    global _POOL, _POOL_FAILED
+    if _POOL is not None or _POOL_FAILED:
+        return _POOL
+    try:
+        from psycopg_pool import ConnectionPool
+        _POOL = ConnectionPool(
+            _require_url(), min_size=1, max_size=4, timeout=20,
+            # Checked when a connection is handed out, so a socket Supabase dropped while idle is
+            # replaced instead of surfacing as a random failure on an unrelated request.
+            check=ConnectionPool.check_connection,
+            kwargs={"autocommit": False, "prepare_threshold": None},
+            open=True, name="portguard",
+        )
+    except Exception as exc:  # pool unavailable: keep working, one connection per call
+        _POOL_FAILED = True
+        log.warning("connection pool unavailable (%s); falling back to per-request connections", exc)
+    return _POOL
+
+
 def connect(db_path: Path = DB_PATH):
     """A connection to whichever backend DB_BACKEND selects."""
     if not is_postgres():
@@ -353,14 +410,11 @@ def connect(db_path: Path = DB_PATH):
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
-    import psycopg
-
-    url = os.environ.get("DATABASE_URL")
-    if not url:
-        raise RuntimeError("DB_BACKEND=postgres but DATABASE_URL is not set (see .env.example)")
-    # prepare_threshold=None: Supabase's transaction pooler (:6543) cannot hold prepared
-    # statements, and fails intermittently rather than cleanly if psycopg prepares them.
-    return PgConnection(psycopg.connect(url, autocommit=False, prepare_threshold=None))
+    pool = _get_pool()
+    if pool is None:  # pooling unavailable: fall back to a connection per call
+        import psycopg
+        return PgConnection(psycopg.connect(_require_url(), autocommit=False, prepare_threshold=None))
+    return PgConnection(pool.getconn(), pool)
 
 
 def database_ready(db_path: Path = DB_PATH) -> bool:
@@ -372,6 +426,28 @@ def database_ready(db_path: Path = DB_PATH) -> bool:
     Supabase instance, and the API would answer 503 to everything.
     """
     return True if is_postgres() else db_path.exists()
+
+
+@contextmanager
+def session(db_path: Path = DB_PATH):
+    """Open a connection, commit on success, and ALWAYS dispose of it afterwards.
+
+    `with connect(...) as conn:` cannot do this. In sqlite3 `with conn:` is a *transaction*, not a
+    close -- scripts rely on reopening one repeatedly on a single long-lived connection -- so
+    PgConnection.__exit__ deliberately does not release. Pooled connections still have to be given
+    back though, and short-lived users that do not are what exhausted the pool in four requests.
+    Use this wherever a connection is opened for one unit of work; use connect() when a script
+    holds one for its whole run.
+    """
+    conn = connect(db_path)
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def table_columns(conn, table: str) -> list[str]:

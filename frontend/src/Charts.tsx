@@ -2,7 +2,10 @@
  * and a baseline — a dependency for that would cost more (bundle, theming fights) than it saves,
  * and these inherit the design tokens directly. */
 
-const BLUE = "#0B5CD5", GREY = "#C4C9CF", RED = "#D62828", AMBER = "#B4661B", GREEN = "#237A45";
+const BLUE = "#0B5CD5", GREY = "#C4C9CF", RED = "#D62828", GREEN = "#237A45";
+// Severity ramp, matching RiskMap.SEVERITY_COLOR and the chip tones in theme.css. Keep the three
+// in step: a bar, a map dot and a chip for the same event should never disagree on colour.
+const ORANGE = "#E2711D", GOLD = "#C9A227";
 
 export function LineChart({ series, baseline, height = 150, label }:
   { series: { x: string; y: number }[]; baseline?: number; height?: number; label?: string }) {
@@ -65,4 +68,4 @@ export function BarList({ items, tone }:
 }
 
 export const severityColor = (s: string) =>
-  ({ critical: RED, high: AMBER, medium: AMBER, low: GREEN } as Record<string, string>)[s] ?? GREY;
+  ({ critical: RED, high: ORANGE, medium: GOLD, low: GREEN } as Record<string, string>)[s] ?? GREY;

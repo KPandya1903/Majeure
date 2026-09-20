@@ -18,16 +18,37 @@ setWorkerUrl(maplibreWorkerUrl);
 // not greyscale, and no place-name labels (which otherwise render in the browser's language).
 const MAP_STYLE = "https://basemaps.cartocdn.com/gl/voyager-nolabels-gl-style/style.json";
 
-const SEVERITY_COLOR: Record<string, string> = { critical: "#D62828", high: "#B4661B", medium: "#B4661B", low: "#237A45" };
+// Four distinct dot colours, matching the chip ramp. Measured perceptual distance between adjacent
+// steps is >30 deltaE, so they stay separable as small dots on a pale basemap.
+// Categorical palette for carriers. Deliberately not the severity ramp: a vessel now encodes two
+// independent things at once -- WHO operates it (the arrow's colour) and HOW exposed it is (the
+// ring). Reusing red/amber/green for carriers would make a blue-ringed Maersk ship look "safe".
+// Eleven hues, each dark enough to read against the pale land and sea of the basemap.
+const CARRIER_PALETTE = [
+  "#1F77B4", "#D9541E", "#2CA02C", "#9467BD", "#8C564B", "#17A2B8",
+  "#C5283D", "#BC8B00", "#E377C2", "#4B6584", "#7F7F7F",
+];
+
+/** Stable colour per carrier: index by position in the sorted carrier list, so a carrier keeps its
+ *  colour between refreshes instead of shuffling whenever the fleet changes size. */
+function carrierColors(carriers: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  [...carriers].sort().forEach((c, i) => { out[c] = CARRIER_PALETTE[i % CARRIER_PALETTE.length]; });
+  return out;
+}
+
+const SEVERITY_COLOR: Record<string, string> =
+  { critical: "#D62828", high: "#E2711D", medium: "#C9A227", low: "#237A45" };
 
 /** One vessel at its estimated position. The position itself comes from the backend (elapsed
  * ETD->ETA fraction along the real sea route — a scheduling estimate, not AIS), but a new
  * value only arrives when the map data is refetched, which would make the icon jump. This
  * tweens between the last two known positions the way a ride-hailing app smooths between GPS
  * pings: nothing is invented, the motion just interpolates values we already have. */
-function ShipMarker({ route, active, onOpen, onClose, center }:
+function ShipMarker({ route, active, onOpen, onClose, center, color, dimmed, highlighted }:
   { route: Route; active: boolean; onOpen: () => void; onClose: () => void;
-    center: { lng: number; lat: number } }) {
+    center: { lng: number; lat: number }; color: string; dimmed: boolean; highlighted: boolean }) {
+  const size = active ? 28 : highlighted ? 25 : 20;
   const [pos, setPos] = useState<[number, number] | null>(route.position);
   const fromRef = useRef<[number, number] | null>(route.position);
   const rafRef = useRef<number | undefined>(undefined);
@@ -53,7 +74,9 @@ function ShipMarker({ route, active, onOpen, onClose, center }:
   }, [route.position]);
 
   if (!pos) return null;
-  const tone = route.risk_level ? SEVERITY_COLOR[route.risk_level] ?? "#0B5CD5" : "#0B5CD5";
+  // Arrow = carrier, ring = risk. A ship with no event on its route gets a ring in its own
+  // carrier colour rather than a misleading green.
+  const ring = route.risk_level ? SEVERITY_COLOR[route.risk_level] ?? color : color;
   // Flip the card towards the middle of the map so a vessel near an edge does not get its details
   // clipped by the map frame. Cheap approximation from the viewport centre, which is accurate
   // enough at these zoom levels and avoids projecting on every render.
@@ -64,7 +87,9 @@ function ShipMarker({ route, active, onOpen, onClose, center }:
       {/* The card is a DOM child of this hover container, so moving the pointer onto the card does
           not fire mouseleave here -- only leaving both does. The close delay in the parent covers
           the few pixels of gap between the icon and the card. */}
-      <div style={{ position: "relative", lineHeight: 0 }} onMouseEnter={onOpen} onMouseLeave={onClose}>
+      <div style={{ position: "relative", lineHeight: 0, opacity: dimmed ? 0.28 : 1,
+                    transition: "opacity 180ms ease-out" }}
+           onMouseEnter={onOpen} onMouseLeave={onClose}>
         {/* No `title` attribute: the OS tooltip fires on the same hover as the card, drawing a
             second, uglier label in the corner of the screen that says less than the card does. */}
         <div
@@ -73,9 +98,9 @@ function ShipMarker({ route, active, onOpen, onClose, center }:
                    transition: "transform 400ms ease-out" }}
         >
           {/* Simple hull outline pointing "up" (north) at 0deg, rotated to the route bearing. */}
-          <svg width={active ? 26 : 20} height={active ? 26 : 20} viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="11" fill="#fff" stroke={tone} strokeWidth="2" />
-            <path d="M12 4 L16.5 17 L12 14.5 L7.5 17 Z" fill={tone} />
+          <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="11" fill="#fff" stroke={ring} strokeWidth={dimmed ? 1.5 : 2.5} />
+            <path d="M12 4 L16.5 17 L12 14.5 L7.5 17 Z" fill={color} />
           </svg>
         </div>
         {active && (
@@ -149,6 +174,8 @@ export default function RiskMap() {
   // moveEnd rather than move: the flip is re-evaluated when the card next opens, so updating it on
   // every animation frame of a pan would re-render every marker for no visible benefit.
   const [center, setCenter] = useState({ lng: 45, lat: 22 });
+  // Which carrier's fleet is picked out. null = show every vessel at full strength.
+  const [carrier, setCarrier] = useState<string | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Crossing the gap between the vessel icon and its card briefly leaves both elements, which
@@ -178,8 +205,20 @@ export default function RiskMap() {
 
   const remainingDots = data.routes.flatMap((r) => r.remaining_dots);
 
+  // Carrier -> vessel count, biggest fleet first, and a stable colour for each.
+  // A plain record rather than a `Map`: react-map-gl's default export is named Map and shadows
+  // the global here, so `new Map()` resolves to the React component.
+  const counts: Record<string, number> = {};
+  data.routes.forEach((r) => {
+    const c = r.carrier ?? "Unknown";
+    counts[c] = (counts[c] ?? 0) + 1;
+  });
+  const fleets = Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const colors = carrierColors(Object.keys(counts));
+
   return (
     <div className="pg-card" style={{ padding: 0, overflow: "hidden" }}>
+      <div style={{ position: "relative" }}>
       <Map
         initialViewState={{ longitude: 45, latitude: 22, zoom: 1.6 }}
         style={{ width: "100%", height: 560 }}
@@ -227,6 +266,9 @@ export default function RiskMap() {
         {data.routes.map((r) => (
           <ShipMarker key={r.shipment_id} route={r} center={center}
             active={r.shipment_id === hoveredShip}
+            color={colors[r.carrier ?? ""] ?? "#0B5CD5"}
+            dimmed={carrier !== null && r.carrier !== carrier}
+            highlighted={carrier !== null && r.carrier === carrier}
             onOpen={() => openShip(r.shipment_id)} onClose={closeShip} />
         ))}
       </Map>
@@ -238,10 +280,37 @@ export default function RiskMap() {
         </div>
       )}
 
+        {/* Carrier index, inside the map at the bottom-right. Clicking a line picks out its
+            vessels and fades the rest; clicking it again clears the filter. */}
+        <div className="pg-carrier-index">
+          <div className="pg-carrier-index-head">
+            <span>Carriers</span>
+            {carrier && (
+              <button className="pg-carrier-clear" onClick={() => setCarrier(null)}>clear</button>
+            )}
+          </div>
+          <div className="pg-carrier-list">
+            {fleets.map(([name, count]) => {
+              const on = carrier === name;
+              return (
+                <button key={name} className={`pg-carrier-row${on ? " on" : ""}`}
+                        aria-pressed={on}
+                        onClick={() => setCarrier(on ? null : name)}>
+                  <span className="pg-carrier-dot" style={{ background: colors[name] }} />
+                  <span className="pg-carrier-name">{name}</span>
+                  <span className="pg-carrier-count">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       <div className="pg-legend" style={{ padding: "10px 14px" }}>
         <span><span className="dot" style={{ background: "var(--pg-blue)" }} />Sailed / remaining route</span>
         <span><span className="dot" style={{ background: "#D62828" }} />Critical</span>
-        <span><span className="dot" style={{ background: "#B4661B" }} />High / medium</span>
+        <span><span className="dot" style={{ background: "#E2711D" }} />High</span>
+        <span><span className="dot" style={{ background: "#C9A227" }} />Medium</span>
         <span><span className="dot" style={{ background: "#237A45" }} />Low</span>
         <span><span className="dot" style={{ background: "#2B333C" }} />Port</span>
       </div>

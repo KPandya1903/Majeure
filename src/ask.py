@@ -30,6 +30,12 @@ def build_context(conn: sqlite3.Connection) -> dict:
     names = dict(conn.execute("SELECT port_id, port_name FROM ports").fetchall())
     shipments = [{
         "shipment_id": r["shipment_id"], "bl_number": r["bl_number"],
+        # Vessel identity. Without these the model cannot answer "where is MAERSK TUKANG" or
+        # "how many ships does COSCO have" at all -- it was being asked about a fleet whose
+        # names were never in its context, and answered, correctly but uselessly, that it had
+        # no information about them.
+        "vessel_name": r["vessel_name"], "imo": r["imo"], "carrier": r["carrier"],
+        "status": r["status"],
         "route": " -> ".join(names.get(p, p) for p in [r["pol_port_id"], *json.loads(r["transshipment_port_ids"]), r["pod_port_id"]]),
         "route_chokepoints": json.loads(r["route_chokepoints"]), "etd": r["etd"], "eta": r["eta"],
         "cargo": r["cargo_description"], "containers": r["container_count"], "cargo_value_usd": r["cargo_value_usd"],
@@ -62,7 +68,7 @@ def build_context(conn: sqlite3.Connection) -> dict:
 
 
 def answer(question: str, client: Optional[NemotronClient] = None, db: Path = DB_PATH) -> str:
-    with store.connect(db) as conn:
+    with store.session(db) as conn:
         context = build_context(conn)
     client = client or client_from_env()
     content, _ = client.chat(SYSTEM_PROMPT, json.dumps({"question": question, "context": context}, ensure_ascii=False),

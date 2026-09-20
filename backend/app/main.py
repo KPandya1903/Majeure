@@ -63,14 +63,19 @@ app = FastAPI(title="PortGuard AI API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
-def _connect() -> sqlite3.Connection:
+def _session():
+    """One connection for one unit of work, always returned to the pool afterwards."""
     if not store.database_ready(DB_PATH):
         raise HTTPException(503, "No database yet — run the pipeline first (see README §1).")
-    return store.connect(DB_PATH)
+    return store.session(DB_PATH)
 
 
 def _rows(sql: str, params: tuple = ()) -> list[dict]:
-    with _connect() as conn:
+    # session(), not connect(): every one of these is a single unit of work, and a pooled
+    # connection that is never handed back exhausts the pool after four requests.
+    if not store.database_ready(DB_PATH):
+        raise HTTPException(503, "No database yet — run the pipeline first (see README §1).")
+    with store.session(DB_PATH) as conn:
         return [dict(r) for r in conn.execute(sql, params).fetchall()]
 
 
@@ -292,7 +297,7 @@ class DecisionUpdate(BaseModel):
 def review_decision(decision_id: int, body: DecisionUpdate):
     if body.human_decision not in ("approved", "overridden"):
         raise HTTPException(400, "human_decision must be 'approved' or 'overridden'")
-    with _connect() as conn:
+    with _session() as conn:
         conn.execute("UPDATE decision_logs SET human_decision=?, human_notes=? WHERE decision_id=?",
                     (body.human_decision, body.human_notes, decision_id))
     return {"ok": True}
@@ -320,7 +325,7 @@ def update_draft(draft_id: int, body: DraftUpdate):
     subj = body.subject if body.subject is not None else existing["subject"]
     bod = body.body if body.body is not None else existing["body"]
     status = body.status if body.status is not None else existing["status"]
-    with _connect() as conn:
+    with _session() as conn:
         conn.execute("UPDATE action_drafts SET subject=?, body=?, status=? WHERE draft_id=?",
                     (subj, bod, status, draft_id))
     return {"ok": True}
@@ -390,7 +395,7 @@ def _ask_gemini(question: str) -> str:
     key = os.environ.get("GEMINI_API_KEY")
     if not key:
         raise RuntimeError("GEMINI_API_KEY not set")
-    with store.connect(DB_PATH) as conn:
+    with store.session(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         context = build_context(conn)
     resp = requests.post(

@@ -153,7 +153,10 @@ export const ACTIONS: Record<string, string> = {
   expedite: "Expedite", hold_cargo: "Hold cargo", invoke_force_majeure: "Invoke force majeure",
 };
 
-export const RISK_TONE: Record<string, string> = { critical: "risk", high: "warn", medium: "warn", low: "ok" };
+// One tone per risk level. `high` and `medium` both used to be "warn", which rendered them in the
+// same amber and made the two most common levels indistinguishable at a glance.
+export const RISK_TONE: Record<string, string> =
+  { critical: "critical", high: "high", medium: "medium", low: "ok" };
 
 export function fmtDate(iso: string, withYear = true): string {
   const d = new Date(iso);

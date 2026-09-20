@@ -701,13 +701,104 @@ def match(question: str) -> Optional[Match]:
     return full if full and full.score >= FULL_THRESHOLD else None
 
 
+# --------------------------------------------------------------------------- entity lookup
+
+
+def _carrier_aliases(rows: list) -> dict[str, str]:
+    """Short name -> carrier. Derived from the data rather than hardcoded: the first word of a
+    carrier's vessel names IS its trading shorthand ("COSCO AFRICA" -> cosco, "MSC VALENCIA" ->
+    msc), which is what someone asking about a fleet actually types."""
+    out: dict[str, str] = {}
+    for r in rows:
+        carrier = r["carrier"]
+        if not carrier:
+            continue
+        out[carrier.lower()] = carrier
+        head = (r["vessel_name"] or "").split()
+        if head and len(head[0]) > 2:
+            out[head[0].lower()] = carrier
+    return out
+
+
+def entity_answer(question: str, conn: sqlite3.Connection) -> Optional[str]:
+    """Answer a question that names a specific vessel, IMO, BL or carrier, straight from the book.
+
+    These are among the most natural things to ask a fleet dashboard, and none of them can be a
+    stored phrasing because the subject is data rather than wording. Without this they fall through
+    to the model, which took 27 seconds to answer "how many ships does Cosco Africa have in
+    transit" -- and answered it wrongly, because vessel names were not in its context either.
+    """
+    rows = _rows(conn, """SELECT shipment_id, bl_number, vessel_name, imo, carrier, status, eta, etd,
+                                 cargo_description, container_count, cargo_value_usd
+                          FROM shipments""")
+    if not rows:
+        return None
+    q = question.lower()
+
+    # A named vessel beats its carrier: "COSCO AFRICA" is one ship, not the whole line.
+    for r in rows:
+        for token in (r["vessel_name"], r["shipment_id"], r["bl_number"], r["imo"]):
+            if token and str(token).lower() in q:
+                return _vessel_answer(conn, r, rows)
+
+    # Longest alias first, so "cma cgm" is tried before "cma".
+    for alias, carrier in sorted(_carrier_aliases(rows).items(), key=lambda kv: -len(kv[0])):
+        if re.search(rf"\b{re.escape(alias)}\b", q):
+            return _carrier_answer(conn, carrier, rows)
+    return None
+
+
+def _vessel_answer(conn: sqlite3.Connection, r, rows: list) -> str:
+    fleet = [x for x in rows if x["carrier"] == r["carrier"]]
+    risk = _one(conn, """SELECT risk_level, risk_score, recommended_action, estimated_cost_usd
+                         FROM decision_logs WHERE shipment_id = ?
+                         ORDER BY risk_score DESC LIMIT 1""", (r["shipment_id"],))
+    lines = [
+        f"**{r['vessel_name']}** (IMO {r['imo']}) is a single vessel operated by "
+        f"**{r['carrier']}** — it is a ship, not a company. {r['carrier']} has "
+        f"**{len(fleet)}** shipment(s) in this book.",
+        f"- Shipment **{r['shipment_id']}** ({r['bl_number']}), status "
+        f"{(r['status'] or 'unknown').replace('_', ' ')}",
+        f"- {r['cargo_description']} — {r['container_count']} containers, "
+        f"{_money(r['cargo_value_usd'])}",
+        f"- ETD {(r['etd'] or '')[:10]} → ETA {r['eta'][:10]}",
+    ]
+    if risk and risk["risk_level"]:
+        lines.append(f"- Risk **{risk['risk_level']}** ({risk['risk_score']:.2f}); recommended "
+                     f"**{(risk['recommended_action'] or 'monitor').replace('_', ' ')}**, "
+                     f"estimated {_money(risk['estimated_cost_usd'])}")
+    else:
+        lines.append("- No current event touches this route.")
+    if len(fleet) > 1:
+        others = ", ".join(x["vessel_name"] for x in fleet if x["shipment_id"] != r["shipment_id"])
+        lines.append(f"- Other {r['carrier']} vessels tracked here: {others}")
+    return "\n".join(lines)
+
+
+def _carrier_answer(conn: sqlite3.Connection, carrier: str, rows: list) -> str:
+    fleet = [r for r in rows if r["carrier"] == carrier]
+    in_transit = [r for r in fleet if (r["status"] or "") == "in_transit"]
+    value = sum(r["cargo_value_usd"] or 0 for r in fleet)
+    lines = [f"**{carrier}** has **{len(fleet)}** shipment(s) in the book "
+             f"({len(in_transit)} in transit), {_money(value)} of cargo value:"]
+    for r in fleet:
+        risk = _one(conn, """SELECT risk_level FROM decision_logs WHERE shipment_id = ?
+                             ORDER BY risk_score DESC LIMIT 1""", (r["shipment_id"],))
+        level = (f" — risk **{risk['risk_level']}**" if risk and risk["risk_level"]
+                 else " — no event on route")
+        lines.append(f"- **{r['vessel_name']}** (IMO {r['imo']}), ETA {r['eta'][:10]}{level}")
+    return "\n".join(lines)
+
+
 def answer(question: str, db: Path = DB_PATH) -> Optional[tuple[str, str]]:
     """(answer_markdown, matched_entry_key), or None if no bank entry is confident enough."""
-    hit = match(question)
-    if not hit:
-        return None
-    with store.connect(db) as conn:
-        return hit.entry.answer(conn), hit.entry.key
+    with store.session(db) as conn:
+        # A named vessel or carrier is checked first: it is more specific than any stored phrasing,
+        # and "which shipments are affected" should not swallow "is MAERSK TUKANG affected".
+        if (text := entity_answer(question, conn)):
+            return text, "entity"
+        hit = match(question)
+        return (hit.entry.answer(conn), hit.entry.key) if hit else None
 
 
 def selftest() -> int:
@@ -745,13 +836,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 0
     if not args.question:
         parser.error("give a question, --list or --selftest")
-    hit = match(" ".join(args.question))
-    if not hit:
+    result = answer(" ".join(args.question), db=args.db)
+    if not result:
         print("no bank entry matched; this question would go to the model")
         return 1
-    with store.connect(args.db) as conn:
-        print(hit.entry.answer(conn))
-    print(f"\n[matched {hit.entry.key} via {hit.question!r}, score {hit.score:.2f}]", file=sys.stderr)
+    text, key = result
+    print(text)
+    print(f"\n[answered by {key}]", file=sys.stderr)
     return 0
 
 
