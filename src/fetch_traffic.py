@@ -18,6 +18,7 @@ from typing import Optional
 
 import pandas as pd
 
+import store
 from common import CHOKEPOINTS_BY_PORTWATCH_ID, DATA_DIR, ROOT, http_get, iso, setup_logging, utcnow, write_csv
 
 ARCGIS_ROOT = "https://services9.arcgis.com/weJ1QsnbMYJlCHdG/arcgis/rest/services"
@@ -53,7 +54,7 @@ def query_daily(layer: str, where: str, value_field: str) -> pd.DataFrame:
 def shipment_port_ids(db: Path) -> set[str]:
     """Ports used by shipments: from the DB if it has shipments, else from the demo sample file."""
     if db.exists():
-        with sqlite3.connect(db) as conn:
+        with store.connect(db) as conn:
             try:
                 rows = conn.execute("SELECT pol_port_id, pod_port_id, transshipment_port_ids FROM shipments").fetchall()
             except sqlite3.OperationalError:

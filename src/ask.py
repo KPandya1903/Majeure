@@ -5,6 +5,8 @@ PortGuard's own data (sent as a compact JSON context) and citing sources.
 """
 from __future__ import annotations
 
+import store
+
 import json
 import sqlite3
 import sys
@@ -60,7 +62,7 @@ def build_context(conn: sqlite3.Connection) -> dict:
 
 
 def answer(question: str, client: Optional[NemotronClient] = None, db: Path = DB_PATH) -> str:
-    with sqlite3.connect(db) as conn:
+    with store.connect(db) as conn:
         context = build_context(conn)
     client = client or client_from_env()
     content, _ = client.chat(SYSTEM_PROMPT, json.dumps({"question": question, "context": context}, ensure_ascii=False),

@@ -14,3 +14,7 @@ searoute>=1.6,<2
 # deployed site quietly serves whatever was in the committed database snapshot.
 feedparser>=6.0,<7
 pypdf>=4.0,<7
+# Postgres (Supabase) backend, selected with DB_BACKEND=postgres. src/store.py falls back to
+# SQLite without it, so this is only strictly needed for the deployed service -- which is exactly
+# where it matters, since Render's free tier has no persistent disk.
+psycopg[binary]>=3.1,<4

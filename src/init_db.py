@@ -19,6 +19,7 @@ from typing import Optional
 import pandas as pd
 from pydantic import ValidationError
 
+import store
 from common import DATA_DIR, PORTS_CSV, ROOT, SEA_AREA_LINKS, iso, setup_logging, utcnow
 from schemas import XtractSignal
 
@@ -56,13 +57,11 @@ def load_ddl(path: Path = SCHEMAS_MD) -> str:
 
 def connect(db_path: Path) -> sqlite3.Connection:
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_path)
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+    return store.connect(db_path)  # store.connect sets PRAGMA foreign_keys for SQLite
 
 
-def table_columns(conn: sqlite3.Connection, table: str) -> list[str]:
-    return [row[1] for row in conn.execute(f"PRAGMA table_info({table})")]
+def table_columns(conn, table: str) -> list[str]:
+    return store.table_columns(conn, table)
 
 
 def migrate_source_check(conn: sqlite3.Connection, ddl: str) -> bool:
@@ -74,6 +73,8 @@ def migrate_source_check(conn: sqlite3.Connection, ddl: str) -> bool:
     ALTER a CHECK, so the table is copied into a new one; signals are reloaded from the JSON files on
     every run, but decision_logs references them, hence the FK-off copy rather than a DROP.
     """
+    if store.is_postgres():
+        return False  # Postgres CHECK constraints are alterable in place; this dance is SQLite-only
     current = conn.execute(
         "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'signals'").fetchone()
     if not current:
@@ -234,7 +235,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     conn = connect(args.db)
     try:
-        ddl = load_ddl()
+        ddl = store.translate_ddl(load_ddl())
         migrate_source_check(conn, ddl)  # must run before the CREATEs: they are IF NOT EXISTS no-ops
         conn.executescript(ddl)
         migrate(conn)

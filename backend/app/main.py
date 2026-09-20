@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 SRC = ROOT / "src"
 DB_PATH = ROOT / "data" / "portguard.db"
 sys.path.insert(0, str(SRC))
+import store  # noqa: E402
 from common import CHOKEPOINTS  # noqa: E402
 from routing import dot_count, dotted_points, route_path, route_progress, split_path, unwrap_lons  # noqa: E402
 
@@ -65,9 +66,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 def _connect() -> sqlite3.Connection:
     if not DB_PATH.exists():
         raise HTTPException(503, "No database yet — run the pipeline first (see README §1).")
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return store.connect(DB_PATH)
 
 
 def _rows(sql: str, params: tuple = ()) -> list[dict]:
@@ -391,7 +390,7 @@ def _ask_gemini(question: str) -> str:
     key = os.environ.get("GEMINI_API_KEY")
     if not key:
         raise RuntimeError("GEMINI_API_KEY not set")
-    with sqlite3.connect(DB_PATH) as conn:
+    with store.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         context = build_context(conn)
     resp = requests.post(

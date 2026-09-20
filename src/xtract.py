@@ -18,6 +18,7 @@ from typing import Optional
 
 import requests
 
+import store
 from common import CHOKEPOINTS, PortGazetteer, iso, setup_logging, utcnow
 from schemas import EventType
 
@@ -132,7 +133,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     if not args.db.exists():
         log.error("%s not found: run init_db.py first", args.db)
         return 1
-    conn = sqlite3.connect(args.db)
+    conn = store.connect(args.db)
     conn.row_factory = sqlite3.Row
     rows = candidates(conn, iso(utcnow() - timedelta(days=args.since_days)), args.limit, args.redo)
     log.info("%d news signals to read", len(rows))

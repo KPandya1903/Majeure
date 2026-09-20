@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+import store
 from common import DATA_DIR, setup_logging
 
 SRC = Path(__file__).resolve().parent
@@ -63,9 +64,9 @@ def downstream_steps(args: argparse.Namespace) -> list[tuple[str, list[str], boo
 
 def _has_shipments(db: Path) -> bool:
     try:
-        with sqlite3.connect(db) as conn:
+        with store.connect(db) as conn:
             return conn.execute("SELECT COUNT(*) FROM shipments").fetchone()[0] > 0
-    except sqlite3.Error:
+    except Exception:  # missing file, missing table, unreachable Postgres -- all mean "no"
         return False
 
 
@@ -87,18 +88,18 @@ def _save_state(state: dict, failed: Optional[list[str]] = None) -> None:
     STATE_JSON.parent.mkdir(parents=True, exist_ok=True)
     STATE_JSON.write_text(json.dumps(state))
     db = DATA_DIR / "portguard.db"
-    if not db.exists():
+    if not store.is_postgres() and not db.exists():
         return  # first ever run: init_db.py creates the table a few steps later
     bad = set(failed or ())
     try:
-        with sqlite3.connect(db, timeout=15) as conn:
+        with store.connect(db) as conn:
             conn.executemany(
                 "INSERT INTO pipeline_state (source_group, last_fetched_at, ok) VALUES (?, ?, ?) "
                 "ON CONFLICT (source_group) DO UPDATE SET last_fetched_at = excluded.last_fetched_at, "
                 "ok = excluded.ok",
                 [(group, datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                   0 if group in bad else 1) for group, ts in state.items()])
-    except sqlite3.Error as exc:  # never fail a run over bookkeeping
+    except Exception as exc:  # never fail a run over bookkeeping, on either backend
         log.warning("could not record pipeline state in the database: %s", exc)
 
 

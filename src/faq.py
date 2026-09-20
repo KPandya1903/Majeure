@@ -16,6 +16,8 @@ reason this is a router over SQL rather than a dictionary of canned text.
 """
 from __future__ import annotations
 
+import store
+
 import argparse
 import json
 import re
@@ -163,10 +165,13 @@ def a_shipments_overview(conn: sqlite3.Connection) -> str:
 
 
 def a_shipments_at_risk(conn: sqlite3.Connection) -> str:
-    rows = _rows(conn, """SELECT d.shipment_id, MAX(d.risk_score) score, d.risk_level, e.title
-                          FROM decision_logs d LEFT JOIN events e USING (event_id)
-                          WHERE d.risk_level IN ('high','critical') GROUP BY d.shipment_id
-                          ORDER BY score DESC""")
+    rows = _rows(conn, """SELECT shipment_id, score, risk_level, title FROM (
+                              SELECT d.shipment_id, d.risk_score AS score, d.risk_level, e.title,
+                                     ROW_NUMBER() OVER (PARTITION BY d.shipment_id
+                                                        ORDER BY d.risk_score DESC) AS rn
+                              FROM decision_logs d LEFT JOIN events e USING (event_id)
+                              WHERE d.risk_level IN ('high','critical')) ranked
+                          WHERE rn = 1 ORDER BY score DESC""")
     if not rows:
         return "No shipment is currently at high or critical risk."
     lines = [f"- **{r['shipment_id']}** — {r['risk_level']} ({r['score']:.2f}) from *{r['title']}*" for r in rows]
@@ -186,9 +191,15 @@ def a_value_at_risk(conn: sqlite3.Connection) -> str:
 
 
 def a_force_majeure(conn: sqlite3.Connection) -> str:
-    rows = _rows(conn, """SELECT d.shipment_id, d.recommended_action, d.estimated_cost_usd, e.title, d.citations
-                          FROM decision_logs d LEFT JOIN events e USING (event_id)
-                          WHERE d.force_majeure_applicable = 1 GROUP BY d.shipment_id""")
+    rows = _rows(conn, """SELECT shipment_id, recommended_action, estimated_cost_usd, title, citations
+                          FROM (
+                              SELECT d.shipment_id, d.recommended_action, d.estimated_cost_usd,
+                                     e.title, d.citations,
+                                     ROW_NUMBER() OVER (PARTITION BY d.shipment_id
+                                                        ORDER BY d.risk_score DESC) AS rn
+                              FROM decision_logs d LEFT JOIN events e USING (event_id)
+                              WHERE d.force_majeure_applicable = 1) ranked
+                          WHERE rn = 1""")
     if not rows:
         return ("No shipment currently qualifies for force majeure. PortGuard marks a clause as "
                 "applicable only when the event type is named in the Bill of Lading's clause text.")
@@ -370,11 +381,12 @@ def a_freshness(conn: sqlite3.Connection) -> str:
 
 
 def a_confidence(conn: sqlite3.Connection) -> str:
-    row = _one(conn, """SELECT COUNT(*) n, ROUND(AVG(confidence), 2) c,
+    row = _one(conn, """SELECT COUNT(*) n, AVG(confidence) c,
                         SUM(CASE WHEN n_publishers = 1 THEN 1 ELSE 0 END) solo FROM events""")
     if not row or not row["n"]:
         return _no_data("event")
-    return (f"Across **{row['n']} events**, mean confidence is **{row['c']}**. "
+    mean = round(float(row["c"] or 0), 2)
+    return (f"Across **{row['n']} events**, mean confidence is **{mean}**. "
             f"**{row['solo']}** rest on a single publisher. Confidence starts from the most "
             f"authoritative source in the cluster and rises with each independent publisher that "
             f"corroborates it, so one official advisory can outrank several aggregators.")
@@ -397,8 +409,8 @@ def a_how_costs(conn: sqlite3.Connection) -> str:
 
 
 def a_limitations(conn: sqlite3.Connection) -> str:
-    row = _one(conn, """SELECT SUM(vessel_source = 'public_registry') real_ships, COUNT(*) n
-                        FROM shipments""")
+    row = _one(conn, """SELECT COUNT(CASE WHEN vessel_source = 'public_registry' THEN 1 END) real_ships,
+                               COUNT(*) n FROM shipments""")
     fleet = ""
     if row and row["n"]:
         fleet = (f" **{row['real_ships']} of {row['n']}** vessels in the book are real ships with "
@@ -694,7 +706,7 @@ def answer(question: str, db: Path = DB_PATH) -> Optional[tuple[str, str]]:
     hit = match(question)
     if not hit:
         return None
-    with sqlite3.connect(db) as conn:
+    with store.connect(db) as conn:
         return hit.entry.answer(conn), hit.entry.key
 
 
@@ -737,7 +749,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     if not hit:
         print("no bank entry matched; this question would go to the model")
         return 1
-    with sqlite3.connect(args.db) as conn:
+    with store.connect(args.db) as conn:
         print(hit.entry.answer(conn))
     print(f"\n[matched {hit.entry.key} via {hit.question!r}, score {hit.score:.2f}]", file=sys.stderr)
     return 0

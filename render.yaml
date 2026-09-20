@@ -34,3 +34,11 @@ services:
       # is configured and you want cited, model-reasoned decisions instead.
       - key: PIPELINE_ENGINE
         value: rules
+      # Postgres (Supabase) instead of the committed SQLite snapshot. Without this the service
+      # still runs, but a redeploy silently discards every ingested signal and every human
+      # approval since the last commit -- see src/store.py.
+      - key: DB_BACKEND
+        value: postgres
+      # Supabase Session pooler URL, set in the dashboard (never committed). See .env.example.
+      - key: DATABASE_URL
+        sync: false
