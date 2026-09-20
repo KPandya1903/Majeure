@@ -4,18 +4,11 @@ import { api } from "./api";
 import { AlertStrip, Header, KpiRow, Tabs } from "./components";
 import RiskMap from "./RiskMap";
 import Shipments from "./Shipments";
+import Backtest from "./Backtest";
+import Signals from "./Signals";
 import type { EventRow, Kpis, TrafficStat } from "./api";
 
 const TABS = ["Risk map", "Shipments & decisions", "Events", "Traffic", "Backtest", "Ask PortGuard", "All signals"];
-
-function Placeholder({ label }: { label: string }) {
-  return (
-    <div className="pg-card pg-empty">
-      {label} — ported from the Streamlit build next. The backend endpoint already exists
-      (see backend/app/main.py); this tab just needs its React view wired up.
-    </div>
-  );
-}
 
 function EventsTab() {
   const [events, setEvents] = useState<EventRow[] | null>(null);
@@ -132,9 +125,9 @@ export default function App() {
         {tab === "Shipments & decisions" && <Shipments />}
         {tab === "Events" && <EventsTab />}
         {tab === "Traffic" && <TrafficTab />}
-        {tab === "Backtest" && <Placeholder label="Backtest" />}
+        {tab === "Backtest" && <Backtest />}
         {tab === "Ask PortGuard" && <AskTab />}
-        {tab === "All signals" && <Placeholder label="All signals" />}
+        {tab === "All signals" && <Signals />}
       </div>
     </div>
   );

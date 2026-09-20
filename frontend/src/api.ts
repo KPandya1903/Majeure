@@ -87,6 +87,18 @@ export interface Draft {
   draft_id: number; decision_id: number; kind: string; subject: string; body: string;
   deadline_at: string | null; generated_by: string; status: string;
 }
+export interface BacktestScenario {
+  scenario: string; event: string; matched: boolean; match_reason: string | null;
+  warning_days_before_eta: number | null; traffic_change_pct: number | null;
+  cheapest_action: string; exposure_wait_usd: number; exposure_best_usd: number;
+  recommended_action: string; summary?: string;
+  traffic_series?: { date: string; daily: number; "7-day average": number }[];
+  traffic_location?: string; traffic_metric?: string; event_start?: string;
+}
+export interface SignalRow {
+  published_at: string | null; source: string; event_type: string; severity: string | null;
+  location_name: string | null; title: string; source_url: string;
+}
 
 export const api = {
   kpis: () => get<Kpis>("/api/kpis"),
@@ -96,10 +108,12 @@ export const api = {
   eventSignals: (id: string) => get<Record<string, unknown>[]>(`/api/events/${id}/signals`),
   traffic: () => get<TrafficStat[]>("/api/traffic"),
   trafficDaily: (locationId: string) => get<{ date: string; value: number }[]>(`/api/traffic/${locationId}/daily`),
-  backtest: () => get<{ scenarios: Record<string, unknown>[]; note?: string }>("/api/backtest"),
-  signals: (params: { source?: string; event_type?: string; q?: string } = {}) => {
-    const qs = new URLSearchParams(params as Record<string, string>).toString();
-    return get<Record<string, unknown>[]>(`/api/signals${qs ? `?${qs}` : ""}`);
+  backtest: () => get<{ scenarios: BacktestScenario[]; note?: string }>("/api/backtest"),
+  signals: (params: { source?: string; event_type?: string; q?: string; limit?: number } = {}) => {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))
+    ).toString();
+    return get<SignalRow[]>(`/api/signals${qs ? `?${qs}` : ""}`);
   },
   reviewDecision: (id: number, human_decision: "approved" | "overridden", human_notes?: string) =>
     send<{ ok: true }>("POST", `/api/decisions/${id}/review`, { human_decision, human_notes }),
