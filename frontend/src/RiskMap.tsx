@@ -1,8 +1,17 @@
 import { useEffect, useState } from "react";
 import Map, { Source, Layer, NavigationControl } from "react-map-gl/maplibre";
+import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+// MapLibre's tile-parsing Web Worker is a prebuilt file inside the package, not something
+// Vite's static `new Worker(new URL(...))` bundling can discover by scanning our own source —
+// without pointing it at this explicitly, the map canvas renders but stays blank (no tiles),
+// which only shows up in a production build (Vite's dev server serves node_modules directly,
+// so this masks the problem locally).
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import type { MapData } from "./api";
 import { api, ACTIONS } from "./api";
+
+setWorkerUrl(maplibreWorkerUrl);
 
 // Same no-labels Carto Voyager style used by the (legacy) Streamlit map — light-blue ocean,
 // not greyscale, and no place-name labels (which otherwise render in the browser's language).
