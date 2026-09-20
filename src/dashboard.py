@@ -280,98 +280,17 @@ def location_coords() -> dict[str, tuple[float, float, str, str]]:
     return coords
 
 
+from routing import (dot_count, dotted_points, route_path as _route_path,  # noqa: E402
+                    route_progress as _route_progress, split_path, unwrap_lons)
+
+
 def route_path(row, coords) -> list[list[float]]:
-    """POL -> intermediate stops (nearest-first) -> POD, as [lon, lat] points."""
-    stops = [p for p in json.loads(row.transshipment_port_ids) + json.loads(row.route_chokepoints) if p in coords]
-    here, path = coords[row.pol_port_id], [coords[row.pol_port_id]]
-    while stops:
-        nxt = min(stops, key=lambda p: (coords[p][0] - here[0]) ** 2 + (coords[p][1] - here[1]) ** 2)
-        stops.remove(nxt)
-        path.append(coords[nxt])
-        here = coords[nxt]
-    path.append(coords[row.pod_port_id])
-    return [[lon, lat] for lat, lon, _, _ in path]
-
-
-def unwrap_lons(path: list[list[float]]) -> list[list[float]]:
-    """Keep longitude continuous across the antimeridian (e.g. Busan -> Long Beach)."""
-    out = [list(path[0])]
-    for lon, lat in path[1:]:
-        prev = out[-1][0]
-        while lon - prev > 180:
-            lon -= 360
-        while lon - prev < -180:
-            lon += 360
-        out.append([lon, lat])
-    return out
+    return _route_path(row.pol_port_id, row.pod_port_id, json.loads(row.transshipment_port_ids),
+                       json.loads(row.route_chokepoints), coords)
 
 
 def route_progress(row) -> float:
-    """Fraction of the voyage elapsed, from ETD/ETA, clamped to [0, 1]."""
-    try:
-        etd = datetime.fromisoformat(row.etd.replace("Z", "+00:00"))
-        eta = datetime.fromisoformat(row.eta.replace("Z", "+00:00"))
-        if eta <= etd:
-            return 0.0
-        now = datetime.now(timezone.utc)
-        return min(1.0, max(0.0, (now - etd).total_seconds() / (eta - etd).total_seconds()))
-    except Exception:
-        return 0.0
-
-
-def split_path(path: list[list[float]], frac: float) -> tuple[list[list[float]], list[list[float]]]:
-    """(sailed, remaining) split of `path` at fraction `frac` of its total length."""
-    if len(path) < 2:
-        return list(path), list(path)
-    seg_lens = [math.dist(path[i], path[i + 1]) for i in range(len(path) - 1)]
-    total = sum(seg_lens)
-    if total == 0 or frac <= 0:
-        return [path[0]], list(path)
-    if frac >= 1:
-        return list(path), [path[-1]]
-    target, acc = frac * total, 0.0
-    for i, seg in enumerate(seg_lens):
-        if acc + seg >= target:
-            t = (target - acc) / seg if seg else 0.0
-            a, b = path[i], path[i + 1]
-            pt = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
-            return path[:i + 1] + [pt], [pt] + path[i + 1:]
-        acc += seg
-    return list(path), [path[-1]]
-
-
-def dotted_points(path: list[list[float]], n: int = 10) -> list[list[float]]:
-    """`n` evenly spaced points along `path`, used to draw a route as a dashed/dotted trail.
-
-    Routes here are straight segments between POL/TSP/POD/chokepoint coordinates, not real
-    sailing lanes, so on a real basemap they can visibly cut across land. Dashing them (rather
-    than drawing a solid line) reads as a schematic connector, not an asserted precise course.
-    """
-    if len(path) < 2:
-        return []
-    seg_lens = [math.dist(path[i], path[i + 1]) for i in range(len(path) - 1)]
-    total = sum(seg_lens)
-    if total == 0:
-        return []
-    pts, acc, seg_i = [], 0.0, 0
-    for k in range(n + 1):
-        target = total * k / n
-        while seg_i < len(seg_lens) - 1 and acc + seg_lens[seg_i] < target:
-            acc += seg_lens[seg_i]
-            seg_i += 1
-        seg = seg_lens[seg_i]
-        t = (target - acc) / seg if seg else 0.0
-        a, b = path[seg_i], path[seg_i + 1]
-        pts.append([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t])
-    return pts
-
-
-def dot_count(path: list[list[float]], per_unit: float = 1.1, lo: int = 5, hi: int = 40) -> int:
-    """Dash density scaled to a leg's length, so short hops don't get one giant dash."""
-    if len(path) < 2:
-        return lo
-    length = sum(math.dist(path[i], path[i + 1]) for i in range(len(path) - 1))
-    return max(lo, min(hi, round(length * per_unit)))
+    return _route_progress(row.etd, row.eta)
 
 
 with tab_map:
@@ -382,7 +301,7 @@ with tab_map:
             top = g.loc[g["risk_level"].map(RISK_ORDER).idxmax()]
             risk_by_ship[sid] = (top["risk_level"], top["recommended_action"], top["title"])
 
-    sailed_dot_rows, remaining_dot_rows, port_ids_used = [], [], set()
+    sailed_rows, remaining_dot_rows, port_ids_used = [], [], set()
     for r in shipments.itertuples():
         if r.pol_port_id not in coords or r.pod_port_id not in coords:
             continue
@@ -392,13 +311,16 @@ with tab_map:
         label = f"{r.shipment_id}: {coords[r.pol_port_id][2]} → {coords[r.pod_port_id][2]}"
         if top:
             label += f" · {top[0]} risk · {ACTIONS.get(top[1], '—')}"
-        for pt in dotted_points(sailed, n=dot_count(sailed)):
-            sailed_dot_rows.append({"position": pt, "label": label})
+        # `sailed` follows a real sea route (searoute), so a solid line is safe here — it no
+        # longer cuts across land the way a straight port-to-port line would. `remaining` is
+        # dashed (deck.gl's PathLayer has no dash pattern, so this is a string of small dots).
+        if len(sailed) >= 2:
+            sailed_rows.append({"path": sailed, "label": label})
         for pt in dotted_points(remaining, n=dot_count(remaining)):
             remaining_dot_rows.append({"position": pt, "label": label})
         port_ids_used.update(p for p in [r.pol_port_id, r.pod_port_id, *json.loads(r.transshipment_port_ids)]
                              if p in coords)
-    sailed_dots = pd.DataFrame(sailed_dot_rows)
+    sailed_paths = pd.DataFrame(sailed_rows)
     remaining_dots = pd.DataFrame(remaining_dot_rows)
     port_points = pd.DataFrame([{"lon": coords[p][1], "lat": coords[p][0], "name": coords[p][2],
                                  "locode": coords[p][3]} for p in port_ids_used])
@@ -440,31 +362,29 @@ with tab_map:
         layers.append(pdk.Layer("ScatterplotLayer", ev_points, get_position=["lon", "lat"],
                                 get_fill_color="dot_color", get_radius=9000, radius_min_pixels=6, pickable=True,
                                 stroked=True, get_line_color=[255, 255, 255], line_width_min_pixels=2))
-    # Routes are straight segments between real port/chokepoint coordinates, not sailing lanes,
-    # so on a real basemap a solid line can visibly cut across land. Dashed dot-trails read as a
-    # schematic connector rather than an asserted precise course; sailed = denser + solid blue,
-    # remaining = sparser + lighter, so progress is still legible.
-    if not sailed_dots.empty:
-        layers.append(pdk.Layer("ScatterplotLayer", sailed_dots, get_position="position",
-                                get_fill_color=theme.RGB["blue"] + [225], get_radius=1, radius_min_pixels=1.8,
-                                pickable=True))
+    # `sailed` follows a real sea route (searoute's offline shipping-lane network), so a solid
+    # line is safe — it hugs actual maritime lanes instead of cutting across land. `remaining`
+    # is drawn as a dashed dot-trail since deck.gl's PathLayer has no native dash pattern.
+    if not sailed_paths.empty:
+        layers.append(pdk.Layer("PathLayer", sailed_paths, get_path="path", get_color=theme.RGB["blue"] + [230],
+                                width_min_pixels=2.4, pickable=True, joint_rounded=True, cap_rounded=True,
+                                wrap_longitude=True))
     if not remaining_dots.empty:
         layers.append(pdk.Layer("ScatterplotLayer", remaining_dots, get_position="position",
-                                get_fill_color=theme.RGB["blue"] + [110], get_radius=1, radius_min_pixels=1.3,
+                                get_fill_color=theme.RGB["blue"] + [140], get_radius=1, radius_min_pixels=1.5,
                                 pickable=True))
 
     st.pydeck_chart(pdk.Deck(layers=layers, initial_view_state=pdk.ViewState(latitude=22, longitude=45, zoom=1.4),
                              tooltip={"text": "{label}\n{name}"}, map_provider="carto",
                              map_style="https://basemaps.cartocdn.com/gl/voyager-nolabels-gl-style/style.json"),
                     height=560)
-    legend = [("Sailed", None, "dot-dense"), ("Remaining", None, "dot-sparse"), ("Critical", theme.RED, "dot"),
+    legend = [("Sailed", None, "line-solid"), ("Remaining", None, "line-dot"), ("Critical", theme.RED, "dot"),
               ("High / medium", theme.AMBER, "dot"), ("Low", theme.GREEN, "dot"), ("Port", theme.TEXT, "dot")]
 
     def legend_item(label, color, kind):
-        if kind == "dot-dense":
-            mark = (f'<span style="width:20px;height:3px;background:repeating-linear-gradient(90deg,{theme.BLUE} 0 3px,'
-                    f'transparent 3px 6px);display:inline-block;"></span>')
-        elif kind == "dot-sparse":
+        if kind == "line-solid":
+            mark = f'<span style="width:20px;height:3px;background:{theme.BLUE};display:inline-block;"></span>'
+        elif kind == "line-dot":
             mark = (f'<span style="width:20px;height:3px;background:repeating-linear-gradient(90deg,{theme.BLUE}88 0 2px,'
                     f'transparent 2px 8px);display:inline-block;"></span>')
         else:
@@ -473,9 +393,9 @@ with tab_map:
 
     st.markdown('<div class="pg-legend">' + "".join(legend_item(*i) for i in legend) + '</div>',
                 unsafe_allow_html=True)
-    st.caption("Halos: clustered events (size = number of reports, colour = severity). Blue dashes: your shipments' "
-               "routes — illustrative straight-line connectors, denser where sailed, sparser where still ahead. "
-               "Grey dots: ports and chokepoints.")
+    st.caption("Halos: clustered events (size = number of reports, colour = severity). Blue line: your shipments' "
+               "real sea route (via a maritime shipping-lane network, not a straight line) — solid where sailed, "
+               "dotted where still ahead. Grey dots: ports and chokepoints.")
 
 # --------------------------------------------------------------------------- shipments & decisions
 
@@ -765,8 +685,26 @@ with tab_backtest:
 # --------------------------------------------------------------------------- ask
 
 with tab_ask:
-    st.caption("Ask about your shipments, events and decisions. Nemotron answers only from PortGuard's data and cites sources.")
     st.session_state.setdefault("chat", [])
+    st.markdown(
+        '<div class="pg-sub" style="padding:4px 0 var(--pg-s3);">Ask about your shipments, events and decisions. '
+        'Nemotron answers only from PortGuard’s data and cites sources.</div>',
+        unsafe_allow_html=True)
+
+    if not st.session_state["chat"]:
+        examples = [
+            "Which shipments go through Hormuz, and can we invoke force majeure?",
+            "What's our open exposure if every recommendation is taken?",
+            "Which decisions are still awaiting approval?",
+        ]
+        chips = "".join(chip(q, "info") for q in examples)
+        st.markdown(
+            '<div class="pg-card pg-empty">No messages yet — ask a question about active events, '
+            'at-risk shipments, or pending decisions. Try one of these:'
+            f'<div style="display:flex;flex-wrap:wrap;gap:var(--pg-s2);justify-content:center;'
+            f'margin-top:var(--pg-s3);">{chips}</div></div>',
+            unsafe_allow_html=True)
+
     for role, text in st.session_state["chat"]:
         st.chat_message(role).markdown(text)
     if question := st.chat_input("e.g. Which shipments go through Hormuz, and can we invoke force majeure?"):

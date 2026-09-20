@@ -16,3 +16,11 @@ data/*
 .DS_Store
 .idea/
 .vscode/
+
+# Claude Code agent worktrees
+.claude/
+
+# React frontend / FastAPI backend
+frontend/node_modules/
+frontend/dist/
+backend/__pycache__/
