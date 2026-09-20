@@ -342,8 +342,16 @@ def _ask_gemini(question: str) -> str:
 def ask(body: ChatRequest):
     sys.path.insert(0, str(SRC))
     from ask import answer
+    from nemotron import client_from_env
+
     try:
-        return {"answer": answer(body.question)}
+        # NEMOTRON_TIMEOUT defaults to 300s (fine for a background decision run, far too long
+        # for someone waiting on a chat reply) — this endpoint needs its own short budget so a
+        # slow/unreachable Nemotron falls back to Gemini in seconds, not minutes. Overriding
+        # just .timeout on the env-configured client keeps base_url/model/key/reasoning as set.
+        client = client_from_env()
+        client.timeout = 20
+        return {"answer": answer(body.question, client=client)}
     except Exception as nemotron_exc:
         try:
             return {"answer": _ask_gemini(body.question), "via": "gemini-fallback"}
