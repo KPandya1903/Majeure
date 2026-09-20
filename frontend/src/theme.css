@@ -118,6 +118,36 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .pg-panel-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 16px; }
 @media (max-width: 900px) { .pg-panel-grid { grid-template-columns: 1fr; } .pg-facts { grid-template-columns: 1fr; } }
 
+/* Ask PortGuard launcher + panel, pinned bottom-right above page content. */
+.pg-chat-launcher {
+  position: fixed; right: 20px; bottom: 20px; z-index: 900;
+  display: flex; align-items: center; gap: 9px; min-height: 48px; padding: 0 18px;
+  background: var(--pg-blue); color: #fff; border: 0; border-radius: 26px; font-weight: 600; font-size: 0.9rem;
+  box-shadow: 0 6px 20px rgba(11,92,213,0.32); transition: background 160ms ease-out, transform 160ms ease-out;
+}
+.pg-chat-launcher:hover { background: var(--pg-blue-dark); transform: translateY(-1px); }
+.pg-chat-panel {
+  position: fixed; right: 20px; bottom: 20px; z-index: 900; width: 380px; max-width: calc(100vw - 32px);
+  height: 540px; max-height: calc(100vh - 40px); display: flex; flex-direction: column;
+  background: var(--pg-card); border: 1px solid var(--pg-line); border-radius: 14px; overflow: hidden;
+  box-shadow: 0 16px 48px rgba(43,51,60,0.22);
+}
+.pg-chat-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--pg-blue); color: #fff; padding: 12px 14px;
+}
+.pg-chat-body { flex-grow: 1; overflow-y: auto; padding: var(--pg-s3) var(--pg-s4); }
+.pg-chat-msg {
+  border-radius: 10px; padding: 9px 12px; margin-bottom: 8px; font-size: 13.2px; line-height: 1.5;
+  white-space: pre-wrap; word-break: break-word;
+}
+.pg-chat-msg.user { background: var(--pg-blue-soft); color: var(--pg-text); margin-left: 28px; }
+.pg-chat-msg.assistant { background: #F4F5F7; color: var(--pg-text); margin-right: 12px; }
+.pg-chat-input { display: flex; gap: 8px; padding: var(--pg-s3); border-top: 1px solid var(--pg-line); }
+.pg-chat-input input {
+  flex-grow: 1; min-width: 0; border: 1px solid var(--pg-line); border-radius: 8px; padding: 10px 12px; font-size: 13.2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

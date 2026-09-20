@@ -31,6 +31,8 @@ export function KpiRow({ kpis }: { kpis: Kpis }) {
         note="reviewed in Shipments & decisions" />
       <KpiCard label="Open exposure" value={`$${fmtMoney(kpis.open_exposure_usd)}`}
         note="if every recommendation is taken" />
+      <KpiCard label="Cost avoided" value={`$${fmtMoney(kpis.avoided_cost_usd)}`}
+        note="vs. the costliest option on the table" />
       <KpiCard label="Force majeure notice due" value={hasDeadline ? fmtCountdown(kpis.next_deadline_hours) : "—"}
         note={hasDeadline ? "earliest of any drafted notice" : "No notices pending"} due={hasDeadline} />
     </div>

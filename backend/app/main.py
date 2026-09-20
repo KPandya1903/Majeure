@@ -12,6 +12,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -104,6 +105,20 @@ def kpis():
     exposure = sum(d.get("estimated_cost_usd") or 0 for d in latest if d["human_decision"] != "overridden")
     drafts = _rows("SELECT deadline_at FROM action_drafts WHERE status = 'draft' AND deadline_at IS NOT NULL")
     deadlines = [h for h in (hours_until(d["deadline_at"]) for d in drafts) if h is not None]
+
+    # What acting on the recommendation avoids: for each decision, the gap between the costliest
+    # option still on the table and the one PortGuard recommends. That difference is the whole
+    # product claim, so it's computed from the same priced options the decision panel shows —
+    # not a separate estimate. Only counts decisions not overridden by a human.
+    avoided = 0.0
+    for d in latest:
+        if d["human_decision"] == "overridden":
+            continue
+        opts = ((json.loads(d["input_payload"]).get("analysis") or {}).get("exposure") or {}).get("options") or []
+        costs = [o["cost_usd"] for o in opts if o.get("available") and o.get("cost_usd") is not None]
+        if costs:
+            avoided += max(costs) - (d.get("estimated_cost_usd") or 0)
+
     return {
         "active_events": len(events),
         "structured_events": sum(1 for e in events if e["is_structured"]),
@@ -111,6 +126,7 @@ def kpis():
         "n_critical": n_critical, "n_high": n_high,
         "pending_decisions": len(pending),
         "open_exposure_usd": exposure,
+        "avoided_cost_usd": round(avoided),
         "next_deadline_hours": min(deadlines) if deadlines else None,
     }
 
@@ -383,13 +399,30 @@ def ask(body: ChatRequest):
 
 @app.get("/api/sources")
 def sources():
-    """Per-source ingest counts and recency, for the sidebar's data-freshness panel (the
-    Streamlit build's "Data" table). `last_ingested` is ISO-8601 UTC; the frontend renders it
-    as a relative "N min ago" so staleness is obvious at a glance."""
+    """Per-source ingest counts and recency for the sidebar.
+
+    Two different clocks here, and conflating them is misleading:
+
+    * `last_ingested` — when we first saw the NEWEST item from that source. A quiet trade
+      publication that hasn't posted in two days shows two days, even though it's polled every
+      5 minutes. That's the source being quiet, not the pipeline being broken.
+    * `last_checked_min` — how long ago the pipeline actually fetched, read from
+      data/pipeline_state.json (written by run_pipeline.py --loop). This is the one that says
+      whether ingestion is alive.
+    """
     rows = _rows("""SELECT source, COUNT(*) AS signals, MAX(ingested_at) AS last_ingested
                     FROM signals GROUP BY source ORDER BY signals DESC""")
     newest = max((r["last_ingested"] for r in rows if r["last_ingested"]), default=None)
-    return {"sources": rows, "last_ingested": newest}
+
+    last_checked_min = None
+    try:
+        state = json.loads((ROOT / "data" / "pipeline_state.json").read_text())
+        if state:
+            last_checked_min = round((time.time() - max(state.values())) / 60, 1)
+    except Exception:
+        pass  # no state file (fresh deploy, or the pipeline has never run here)
+
+    return {"sources": rows, "last_ingested": newest, "last_checked_min": last_checked_min}
 
 
 @app.get("/api/health")

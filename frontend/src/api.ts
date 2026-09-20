@@ -27,6 +27,7 @@ export interface Kpis {
   n_high: number;
   pending_decisions: number;
   open_exposure_usd: number;
+  avoided_cost_usd: number;
   next_deadline_hours: number | null;
 }
 
@@ -114,7 +115,7 @@ export const api = {
   map: () => get<MapData>("/api/map"),
   shipments: () => get<Shipment[]>("/api/shipments"),
   events: () => get<EventRow[]>("/api/events"),
-  sources: () => get<{ sources: SourceRow[]; last_ingested: string | null }>("/api/sources"),
+  sources: () => get<{ sources: SourceRow[]; last_ingested: string | null; last_checked_min: number | null }>("/api/sources"),
   eventSignals: (id: string) => get<Record<string, unknown>[]>(`/api/events/${id}/signals`),
   traffic: () => get<TrafficStat[]>("/api/traffic"),
   trafficDaily: (locationId: string) => get<{ date: string; value: number }[]>(`/api/traffic/${locationId}/daily`),
