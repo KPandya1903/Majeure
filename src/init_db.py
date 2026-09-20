@@ -27,7 +27,8 @@ SCHEMAS_MD = ROOT / "docs" / "SCHEMAS.md"
 # Load order = precedence when the same URL arrives from two sources (first one wins):
 # structured data first, then publishers' own feeds, then news aggregators.
 SIGNAL_FILES = [DATA_DIR / name for name in (
-    "portwatch_signals.json", "gdacs_signals.json", "rss_signals.json", "gdelt_signals.json", "google_news_signals.json",
+    "portwatch_signals.json", "gdacs_signals.json", "official_signals.json",
+    "rss_signals.json", "gdelt_signals.json", "google_news_signals.json",
 )]
 
 SIGNAL_COLUMNS = [
@@ -62,6 +63,50 @@ def connect(db_path: Path) -> sqlite3.Connection:
 
 def table_columns(conn: sqlite3.Connection, table: str) -> list[str]:
     return [row[1] for row in conn.execute(f"PRAGMA table_info({table})")]
+
+
+def migrate_source_check(conn: sqlite3.Connection, ddl: str) -> bool:
+    """Rebuild `signals` when SCHEMAS.md has widened its source CHECK since the DB was created.
+
+    `CREATE TABLE IF NOT EXISTS` silently keeps the old constraint, so adding a source to the docs
+    would otherwise fail every insert from that source with a CHECK violation and nothing else --
+    which reads as "the new fetcher is broken" rather than "the table is out of date". SQLite cannot
+    ALTER a CHECK, so the table is copied into a new one; signals are reloaded from the JSON files on
+    every run, but decision_logs references them, hence the FK-off copy rather than a DROP.
+    """
+    current = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'signals'").fetchone()
+    if not current:
+        return False  # fresh database: the CREATE below makes it correctly first time
+    wanted = re.search(r"CREATE TABLE IF NOT EXISTS signals \((.*?)\n\);", ddl, re.S)
+    if not wanted:
+        return False
+    sources_now = set(re.findall(r"'([a-z_0-9]+)'", (re.search(r"source\s+TEXT NOT NULL CHECK \(source IN \((.*?)\)\)",
+                                                               current[0], re.S) or [None, ""])[1]))
+    sources_want = set(re.findall(r"'([a-z_0-9]+)'", (re.search(r"source\s+TEXT NOT NULL CHECK \(source IN \((.*?)\)\)",
+                                                                wanted.group(1), re.S) or [None, ""])[1]))
+    if not sources_want or sources_now == sources_want:
+        return False
+    log.info("signals.source CHECK is out of date (adding %s); rebuilding the table",
+             ", ".join(sorted(sources_want - sources_now)) or "none")
+    columns = ", ".join(table_columns(conn, "signals"))
+    body = wanted.group(1).replace("CREATE TABLE IF NOT EXISTS signals", "")
+    conn.execute("PRAGMA foreign_keys = OFF")
+    # Renaming the LIVE table first would make SQLite helpfully rewrite every other table's REFERENCES
+    # clause to point at the temporary name, leaving signal_ports and decision_logs referencing a table
+    # that the next statement drops. Build the replacement under a temporary name instead, and keep
+    # legacy_alter_table on for the final rename so the same rewrite does not happen in reverse.
+    conn.execute("PRAGMA legacy_alter_table = ON")
+    try:
+        with conn:
+            conn.execute(f"CREATE TABLE signals_new ({body}\n)")
+            conn.execute(f"INSERT INTO signals_new ({columns}) SELECT {columns} FROM signals")
+            conn.execute("DROP TABLE signals")
+            conn.execute("ALTER TABLE signals_new RENAME TO signals")
+    finally:
+        conn.execute("PRAGMA legacy_alter_table = OFF")
+        conn.execute("PRAGMA foreign_keys = ON")
+    return True
 
 
 def _native(value):
@@ -135,6 +180,8 @@ def load_signals(conn: sqlite3.Connection, path: Path) -> Counter:
 # Columns added after the first release: added in place so existing databases keep their data.
 MIGRATIONS = {
     "decision_logs": {"event_id": "TEXT", "estimated_cost_usd": "REAL", "force_majeure_applicable": "INTEGER"},
+    # Provenance for the shipment book: which parts are public-registry fact and which are generated.
+    "shipments": {"imo": "TEXT", "vessel_source": "TEXT", "carrier_source": "TEXT", "terms_source": "TEXT"},
 }
 TRAFFIC_FILES = {"traffic_daily": DATA_DIR / "traffic_daily.csv", "traffic_stats": DATA_DIR / "traffic_stats.csv"}
 
@@ -187,7 +234,9 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     conn = connect(args.db)
     try:
-        conn.executescript(load_ddl())
+        ddl = load_ddl()
+        migrate_source_check(conn, ddl)  # must run before the CREATEs: they are IF NOT EXISTS no-ops
+        conn.executescript(ddl)
         migrate(conn)
         log.info("schema ready: %s", args.db)
         load_ports(conn, PORTS_CSV)

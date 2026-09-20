@@ -1,5 +1,10 @@
-"""Parse maritime trade-press RSS feeds (gCaptain, Maritime Executive, Seatrade Maritime,
-Hellenic Shipping News, Splash247) into Xtract Signals.
+"""Parse maritime trade-press RSS feeds into Xtract Signals.
+
+Seventeen feeds: the five original trade-press titles plus container/logistics trade press (JOC,
+The Loadstar, Container News, World Cargo News, Marine Link, Maritime Logistics Professional,
+Marine Insight, Bunkerspot, SeaNews) and three general logistics titles whose maritime coverage
+is real but a minority of their output -- those are marked STRICT and filtered with is_maritime()
+so the general freight/trucking stories never reach the event clusterer.
 
 Output: data/rss_signals.json (title, citation link, publication date, clean excerpt per item)
 Feed notes: docs/DATA_SOURCES.md, section 3.
@@ -17,18 +22,39 @@ from typing import Optional
 
 import feedparser
 
-from common import (DATA_DIR, PortGazetteer, canonical_url, classify_event, clean_text, http_get, make_signal_id,
-                    setup_logging, url_key, utcnow, write_signals)
+from common import (DATA_DIR, PortGazetteer, canonical_url, classify_event, clean_text, http_get, is_maritime,
+                    make_signal_id, setup_logging, url_key, utcnow, write_signals)
 from schemas import XtractSignal
 
-# source name (must be in schemas.Source) -> feed URL. Order = precedence for duplicate URLs.
+# source name (must be in schemas.Source) -> feed URL. Order = precedence for duplicate URLs, so
+# the highest-credibility titles come first and win the de-duplication when a wire story is
+# syndicated across several feeds. Keep in step with SOURCE_GROUP in backend/app/main.py.
 FEEDS = {
+    # Tier-1 maritime trade press (see PUBLISHER_TIER in common.py)
+    "joc": "https://www.joc.com/rss.xml",
+    "loadstar": "https://theloadstar.com/feed/",
     "gcaptain": "https://gcaptain.com/feed/",
     "maritime_executive": "https://maritime-executive.com/articles.rss",
     "seatrade_maritime": "https://www.seatrade-maritime.com/rss.xml",
-    "hellenic_shipping_news": "https://www.hellenicshippingnews.com/feed/",
     "splash247": "https://splash247.com/feed/",
+    # Tier-2 maritime/container trade press
+    "container_news": "https://container-news.com/feed/",
+    "world_cargo_news": "https://www.worldcargonews.com/feed/",
+    "marine_link": "https://www.marinelink.com/news/rss",
+    "maritime_logistics": "https://www.maritimeprofessional.com/rss/news",
+    "marine_insight": "https://www.marineinsight.com/feed/",
+    "bunkerspot": "https://www.bunkerspot.com/rss",
+    "hellenic_shipping_news": "https://www.hellenicshippingnews.com/feed/",
+    "sea_news": "https://www.seanews.com.tr/rss/",
+    # General logistics: maritime coverage is a minority of output, so STRICT-filtered below.
+    "freightwaves": "https://www.freightwaves.com/news/feed",
+    "supply_chain_dive": "https://www.supplychaindive.com/feeds/news/",
+    "offshore_energy": "https://www.offshore-energy.biz/feed/",
 }
+# Feeds whose output is mostly NOT maritime: drop items that fail is_maritime(). Measured purity
+# when these were added: freightwaves 23/56, supply_chain_dive 4/10, offshore_energy 3/10 -- without
+# this filter they would bury the maritime signal in trucking and upstream-energy stories.
+STRICT = {"freightwaves", "supply_chain_dive", "offshore_energy"}
 SIGNALS_JSON = DATA_DIR / "rss_signals.json"
 
 _FOOTER_RE = re.compile(r"\s*The post .+? appeared first on .+?\.?$")
@@ -81,6 +107,11 @@ def build_signals(feed: feedparser.FeedParserDict, source: str, gazetteer: PortG
 
         snippet = clean_snippet(entry.get("summary") or entry.get("description"))
         categories = list(dict.fromkeys(t for t in (clean_text(tag.get("term")) for tag in entry.get("tags", [])) if t))
+        # A general-logistics feed carries trucking, rail and warehousing stories that have nothing
+        # to do with a vessel or a port; keeping them would dilute every downstream event cluster.
+        if source in STRICT and not is_maritime(f"{title} {snippet}"):
+            dropped["not_maritime"] += 1
+            continue
         signals.append(XtractSignal(
             signal_id=make_signal_id(link), source=source, title=title, source_url=canonical_url(link),
             published_at=entry_datetime(entry),

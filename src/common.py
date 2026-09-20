@@ -13,7 +13,7 @@ import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import NamedTuple, Optional
+from typing import Iterable, NamedTuple, Optional
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import numpy as np
@@ -205,6 +205,38 @@ SEA_AREA_LINKS = {
 }
 
 # --------------------------------------------------------------------------- GDACS codes (PortWatch + GDACS)
+
+# --------------------------------------------------------------------------- source credibility
+
+# How much weight one report deserves on its own, by who published it. Corroboration alone is a bad
+# proxy for truth: twenty aggregators recycling one wire story is not twenty independent confirmations,
+# and one NOAA hurricane advisory is not a rumour just because nobody else has repeated it yet.
+#
+#   1  Primary/official -- the body that declares the fact (a port authority, a met office, a navy).
+#   2  Specialist maritime trade press with its own newsroom and named reporters.
+#   3  Secondary maritime trade press: real coverage, but substantially syndicated.
+#   4  General logistics press and news aggregators: broad, noisy, often recycling tiers 1-3.
+#
+# Used by cluster_events.event_row() to set a floor on an event's confidence. Keep in step with
+# schemas.Source and with FEEDS in parse_rss.py.
+PUBLISHER_TIER: dict[str, int] = {
+    "portwatch": 1, "gdacs": 1, "nga_warnings": 1, "nhc": 1, "jtwc": 1, "usgs": 1,
+    "joc": 2, "loadstar": 2, "gcaptain": 2, "maritime_executive": 2, "seatrade_maritime": 2, "splash247": 2,
+    "container_news": 3, "world_cargo_news": 3, "marine_link": 3, "maritime_logistics": 3,
+    "marine_insight": 3, "bunkerspot": 3, "hellenic_shipping_news": 3, "sea_news": 3,
+    "freightwaves": 4, "supply_chain_dive": 4, "offshore_energy": 4, "gdelt": 4, "google_news": 4,
+}
+DEFAULT_TIER = 4
+# Confidence floor for an event whose best source sits in each tier, before corroboration is added.
+# A lone tier-1 advisory outranks three tier-4 aggregators repeating each other, which is the whole
+# point of tiering: it stops volume masquerading as verification.
+TIER_CONFIDENCE = {1: 0.75, 2: 0.55, 3: 0.45, 4: 0.35}
+
+
+def best_tier(sources: Iterable[str]) -> int:
+    """Most authoritative tier present in a cluster (lower number = more authoritative)."""
+    return min((PUBLISHER_TIER.get(s, DEFAULT_TIER) for s in sources), default=DEFAULT_TIER)
+
 
 GDACS_EVENT_TYPES = {
     "TC": EventType.SEVERE_WEATHER, "FL": EventType.SEVERE_WEATHER, "DR": EventType.SEVERE_WEATHER,

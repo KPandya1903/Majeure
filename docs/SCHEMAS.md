@@ -71,11 +71,31 @@ CREATE TABLE IF NOT EXISTS ports (
 );
 
 -- One row per Xtract Signal, from every source (see docs/DATA_SOURCES.md).
+CREATE TABLE IF NOT EXISTS pipeline_state (
+    -- One row per ingest GROUP (the labels in run_pipeline.SCHEDULE_MIN), recording when the
+    -- pipeline last ATTEMPTED that fetch. Distinct from a source's newest article: a quiet feed is
+    -- polled on schedule and may still have published nothing for days. The sidebar shows both and
+    -- must never conflate them.
+    --
+    -- This lives in the database rather than data/pipeline_state.json because that file is
+    -- gitignored and Render's free tier has no persistent disk: the deployed API could never see it,
+    -- so last_fetched_min was NULL for every source on the live site.
+    source_group     TEXT PRIMARY KEY,
+    last_fetched_at  TEXT NOT NULL,
+    ok               INTEGER NOT NULL DEFAULT 1
+);
+
 CREATE TABLE IF NOT EXISTS signals (
     signal_id        TEXT PRIMARY KEY,
     source           TEXT NOT NULL CHECK (source IN (
-                         'portwatch', 'gdacs', 'gcaptain', 'maritime_executive', 'seatrade_maritime',
-                         'hellenic_shipping_news', 'splash247', 'gdelt', 'google_news')),
+                         'portwatch', 'gdacs',
+                         'nga_warnings', 'nhc', 'jtwc', 'usgs',
+                         'joc', 'loadstar', 'gcaptain', 'maritime_executive', 'seatrade_maritime',
+                         'splash247', 'container_news', 'world_cargo_news', 'marine_link',
+                         'maritime_logistics', 'marine_insight', 'bunkerspot',
+                         'hellenic_shipping_news', 'sea_news',
+                         'freightwaves', 'supply_chain_dive', 'offshore_energy',
+                         'gdelt', 'google_news')),
     title            TEXT NOT NULL,
     source_url       TEXT NOT NULL,
     published_at     TEXT,
@@ -120,6 +140,9 @@ CREATE TABLE IF NOT EXISTS shipments (
     shipper                        TEXT,
     consignee                      TEXT,
     vessel_name                    TEXT,
+    imo                            TEXT,    -- IMO number of the real vessel, check-digit validated
+    vessel_source                  TEXT,    -- 'public_registry' | 'demo': is this a real ship?
+    carrier_source                 TEXT,    -- 'equasis' | 'name_prefix' | 'demo': how was the line attributed?
     voyage_number                  TEXT,
     pol_port_id                    TEXT NOT NULL REFERENCES ports (port_id),   -- port of loading
     pod_port_id                    TEXT NOT NULL REFERENCES ports (port_id),   -- port of discharge
@@ -141,6 +164,7 @@ CREATE TABLE IF NOT EXISTS shipments (
     deviation_permitted            INTEGER CHECK (deviation_permitted IN (0, 1)),
     notice_period_hours            INTEGER,
     governing_law                  TEXT,
+    terms_source                   TEXT,    -- 'synthetic' | 'extracted': are the contract terms real?
     status                         TEXT NOT NULL DEFAULT 'in_transit'
                                        CHECK (status IN ('booked', 'in_transit', 'delivered', 'cancelled')),
     created_at                     TEXT NOT NULL,
@@ -310,8 +334,13 @@ fields are `title`, `source_url`, `port_location`, `event_type` and `raw_text`.
   "additionalProperties": false,
   "properties": {
     "signal_id":    { "type": "string", "pattern": "^[0-9a-f]{16}$" },
-    "source":       { "enum": ["portwatch", "gdacs", "gcaptain", "maritime_executive", "seatrade_maritime",
-                               "hellenic_shipping_news", "splash247", "gdelt", "google_news"] },
+    "source":       { "enum": ["portwatch", "gdacs", "nga_warnings", "nhc", "jtwc", "usgs",
+                               "joc", "loadstar", "gcaptain", "maritime_executive", "seatrade_maritime",
+                               "splash247", "container_news", "world_cargo_news", "marine_link",
+                               "maritime_logistics", "marine_insight", "bunkerspot",
+                               "hellenic_shipping_news", "sea_news",
+                               "freightwaves", "supply_chain_dive", "offshore_energy",
+                               "gdelt", "google_news"] },
     "title":        { "type": "string", "minLength": 1 },
     "source_url":   { "type": "string", "format": "uri", "pattern": "^https?://",
                       "description": "Citation link to the original article or event page." },

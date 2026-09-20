@@ -219,9 +219,10 @@ can contain control characters.
 
 ## 3. Maritime trade-press RSS feeds
 
-All five are standard RSS 2.0 (four are WordPress). `parse_rss.py` reads them in the order
-below; the order sets precedence when two feeds carry the same URL. The feed name is the
-signal's `source`.
+Seventeen feeds, all standard RSS 2.0. `parse_rss.py` reads them in the order below; the order
+sets precedence when two feeds carry the same URL, so the highest-credibility titles win the
+de-duplication when a wire story is syndicated. The feed name is the signal's `source`, and each
+one's credibility tier lives in `PUBLISHER_TIER` (`src/common.py`).
 
 | `source` | Feed URL | Items | Notes |
 |---|---|---|---|
@@ -230,8 +231,32 @@ signal's `source`.
 | `seatrade_maritime` | `https://www.seatrade-maritime.com/rss.xml` | 50 | One-sentence standfirst as the summary |
 | `hellenic_shipping_news` | `https://www.hellenicshippingnews.com/feed/` | 20 | Categories include Greek labels (harmless) |
 | `splash247` | `https://splash247.com/feed/` | 10 | Categories carry region and company tags |
+| `joc` | `https://www.joc.com/rss.xml` | 40 | Journal of Commerce; container/rates analysis, tier 2 |
+| `loadstar` | `https://theloadstar.com/feed/` | 10 | The Loadstar; container-market reporting, tier 2 |
+| `container_news` | `https://container-news.com/feed/` | 10 | High maritime purity (10/10 measured) |
+| `world_cargo_news` | `https://www.worldcargonews.com/feed/` | 10 | Ports and terminal equipment focus |
+| `marine_link` | `https://www.marinelink.com/news/rss` | 10 | Custom feed; `<!-- Take=… -->` header before the XML |
+| `maritime_logistics` | `https://www.maritimeprofessional.com/rss/news` | 15 | Carries commodity stories too |
+| `marine_insight` | `https://www.marineinsight.com/feed/` | 15 | High maritime purity (15/15 measured) |
+| `bunkerspot` | `https://www.bunkerspot.com/rss` | 10 | Bunker fuel and emissions regulation |
+| `sea_news` | `https://www.seanews.com.tr/rss/` | 100 | Largest feed by item count; Turkish publisher, English text |
+| `freightwaves` | `https://www.freightwaves.com/news/feed` | 56 | **STRICT** — 23/56 maritime; rest is trucking/rail |
+| `supply_chain_dive` | `https://www.supplychaindive.com/feeds/news/` | 10 | **STRICT** — 4/10 maritime |
+| `offshore_energy` | `https://www.offshore-energy.biz/feed/` | 10 | **STRICT** — 3/10 maritime; mostly upstream energy |
 
-FreightWaves' feed (`/news/feed`) was checked and rejected: its newest item is from 2022.
+Feeds in `STRICT` (`parse_rss.py`) have their items passed through `is_maritime()` before becoming
+signals. Their maritime coverage is real but a minority of their output, and without the filter the
+trucking and upstream-energy stories would dilute every downstream event cluster.
+
+An earlier version of this file recorded FreightWaves as rejected because "its newest item is from
+2022". That is no longer true — the feed's newest item is current, though it still carries a long
+tail going back to 2021, which is another reason it is STRICT-filtered rather than trusted wholesale.
+
+Checked and **not** usable from a server: UKMTO (`/rss/incidents`), MARAD MSCI advisories and Port
+Technology all return 403 behind a WAF; Lloyd's List and TradeWinds return 500/404 without a
+subscription; ReCAAP and EMSA publish no RSS at the documented paths. UKMTO and MARAD are the most
+authoritative sources for the Hormuz and Bab el-Mandeb events PortGuard cares most about, so they
+are worth revisiting with a headless fetch or an email-to-feed bridge.
 
 **Per-item fields used:** `title`, `link` (the citation), `published`/`updated`,
 `author`, `tags` (categories), `id` (guid), and `summary` (the excerpt). No feed carries full
@@ -335,6 +360,71 @@ almost never match a shipment. Results are de-duplicated by URL and normalised t
 **Caveats:** the redirect URLs mean the same article found via a publisher's own feed gets a
 different `signal_id` (cross-source de-duplication only works on identical URLs). Google News
 RSS is an unofficial convenience feed; one request per run is polite.
+
+---
+
+## 6. Official government warnings (`fetch_official.py`)
+
+Four first-party publishers. These are the bodies that *declare* the fact rather than report on it,
+which is why they sit in tier 1 of `PUBLISHER_TIER` and why a single one of them can outrank several
+news aggregators agreeing with each other.
+
+| `source` | Endpoint | Shape | Notes |
+|---|---|---|---|
+| `nhc` | `https://www.nhc.noaa.gov/index-{at,ep,cp}.xml` | RSS | NOAA hurricane advisories, three basins. The "no active cyclones" placeholder item is dropped |
+| `jtwc` | `https://www.metoc.navy.mil/jtwc/rss/jtwc.rss` | RSS | US Navy, NW Pacific / N Indian Ocean |
+| `usgs` | `.../4.5_day.geojson` | GeoJSON | M4.5+ quakes; kept only when a tracked port is within 300 km |
+| `nga_warnings` | `https://msi.nga.mil/api/publications/broadcast-warn?status=active&output=json` | JSON | NAVAREA broadcast warnings in force |
+
+Three things about these that cost time to work out:
+
+**JTWC bundles every active storm into one RSS item.** Using the item link would collide all storms
+onto one `signal_id`, so the description is split on each storm's own warning-text product URL
+(`…/products/wp2426web.txt`). feedparser normalises `href='…'` to double quotes — matching only
+single quotes silently yields zero storms while the feed looks fine.
+
+**NGA serves warnings that are *in force*, not warnings that are *new*.** The newest message the API
+returns is from 2024 and the set reaches back to 2021; in-force navigational warnings legitimately
+persist for years. They are ingested for standing-hazard context and cannot cluster into recent
+events (`cluster_events.py` looks back 14 days). An old issue date here is not a stale feed. The
+matched set is ~200 messages, capped at the newest `NGA_MAX_SIGNALS` so live news is not buried.
+
+**NGA warnings carry no lat/lon field.** Coordinates are embedded in the message text in
+degrees-and-decimal-minutes DTG format (`19-23.0N 092-03.1W`) and are parsed out with a regex, then
+proximity-matched at a much tighter radius than GDACS uses (100 km, not 300). A navigational warning
+concerns one specific piece of water; at 300 km the "nearest port" is a coincidence, and the feed
+produced 259 essentially meaningless proximity matches before the radius was tightened.
+
+---
+
+## 7. Vessel identity (`fleet.py`)
+
+The shipment book is built on **real vessels**. Names and IMO numbers come from Wikidata's
+container-ship set, and every IMO is re-validated against its own check digit by `valid_imo()`
+before it is used — a transposed digit still looks like an IMO number, and an invalid one sends
+anyone verifying the fleet to a dead end. Two of the twenty vessels originally listed were caught
+this way.
+
+```sparql
+SELECT ?name ?imo WHERE {
+  ?ship wdt:P31/wdt:P279* wd:Q17210 ; wdt:P458 ?imo ; rdfs:label ?name .
+  FILTER(LANG(?name) = "en")
+}
+```
+
+Note the label must be bound with `rdfs:label` and filtered directly: putting the name filter inside
+`SERVICE wikibase:label` matches nothing, because the label is bound after the filter runs.
+
+The operating carrier is inferred from the vessel-name prefix ("MSC …", "CMA CGM …", "Ever …"),
+which is reliable for liner tonnage and is recorded as `carrier_source = "name_prefix"` — an
+attribution, not a registry lookup. The registered owner of a chartered ship is often a leasing
+company rather than the line operating it, so Equasis or GISIS would answer a subtly different
+question; both need credentials and neither publishes an API.
+
+**Everything commercial is synthetic** and flagged `terms_source = "synthetic"`: BL numbers, shipper
+and consignee, cargo values, and every contract term. Real Bills of Lading are commercially
+confidential and are published nowhere. The dashboard states this next to the money rather than in a
+footer.
 
 ---
 

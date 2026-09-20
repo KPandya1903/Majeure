@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
-from common import iso, setup_logging, utcnow
+from common import TIER_CONFIDENCE, best_tier, iso, setup_logging, utcnow
 from schemas import Corroboration, Headline
 
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "portguard.db"
@@ -92,7 +92,11 @@ def event_row(e: dict, now: str) -> dict:
         event_id = a["signal_id"]
         event_type = a["event_type"]
     else:
-        confidence = min(0.9, 0.35 + 0.15 * (n_pub - 1))
+        # Confidence starts from WHO is reporting, not just how many are. A lone JOC or Loadstar
+        # story is worth more than three aggregators recycling the same wire copy, and before
+        # tiering every unconfirmed report scored an identical 0.35 regardless of publisher.
+        tier = best_tier(m["source"] for m in members)
+        confidence = min(0.9, TIER_CONFIDENCE[tier] + 0.15 * (n_pub - 1))
         first_day = min(m["published_at"] or now for m in members)[:10]
         key = f"{a['location_port_id'] or sorted(a['ports'])[0]}|{a['event_type']}|{first_day}"
         event_id = hashlib.sha1(key.encode()).hexdigest()[:16]

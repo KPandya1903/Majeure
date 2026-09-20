@@ -24,8 +24,12 @@ class EventType(str, Enum):
 Severity = Literal["low", "medium", "high", "critical"]
 Source = Literal[
     "portwatch", "gdacs",                                   # structured hazard / disruption data
+    "nga_warnings", "nhc", "jtwc", "usgs",                  # official government warnings (src/fetch_official.py)
     "gcaptain", "maritime_executive", "seatrade_maritime",  # maritime trade-press RSS feeds
-    "hellenic_shipping_news", "splash247",
+    "hellenic_shipping_news", "splash247", "joc", "loadstar",
+    "container_news", "world_cargo_news", "marine_link", "maritime_logistics",
+    "marine_insight", "bunkerspot", "sea_news",
+    "freightwaves", "offshore_energy", "supply_chain_dive",  # general logistics: maritime-filtered on ingest
     "gdelt", "google_news",                                 # news search / firehose
 ]
 Action = Literal["monitor", "notify_customer", "reroute", "expedite", "hold_cargo", "invoke_force_majeure"]
@@ -101,6 +105,12 @@ class BillOfLading(_Strict):
     cargo_description: Optional[str] = None
     container_count: Optional[int] = Field(default=None, ge=0)
     cargo_value_usd: Optional[float] = Field(default=None, ge=0)
+    imo: Optional[str] = Field(default=None, pattern=r"^\d{7}$")
+    # Where the vessel identity and the carrier attribution came from. The dashboard shows these
+    # verbatim: a demo that mixes registry fact with generated filler has to say which is which, or
+    # every figure downstream inherits the ambiguity. See src/fleet.py.
+    vessel_source: Optional[Literal["public_registry", "demo"]] = None
+    carrier_source: Optional[Literal["equasis", "name_prefix", "demo"]] = None
 
     _utc = field_validator("etd", "eta")(_to_utc)
 
@@ -115,6 +125,10 @@ class ContractTerms(_Strict):
     deviation_permitted: Optional[bool] = None
     notice_period_hours: Optional[int] = Field(default=None, ge=0)
     governing_law: Optional[str] = None
+    # "synthetic" = generated for the demo; "extracted" = parsed from a real BL by extract_contract.py.
+    # Real liner contracts are confidential and unpublished, so the demo book is necessarily synthetic
+    # here even where the vessel above is real.
+    terms_source: Optional[Literal["synthetic", "extracted"]] = None
 
 
 class Shipment(_Strict):
