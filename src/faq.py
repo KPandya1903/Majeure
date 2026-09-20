@@ -165,16 +165,19 @@ def a_shipments_overview(conn: sqlite3.Connection) -> str:
 
 
 def a_shipments_at_risk(conn: sqlite3.Connection) -> str:
-    rows = _rows(conn, """SELECT shipment_id, score, risk_level, title FROM (
+    rows = _rows(conn, """SELECT shipment_id, score, risk_level, title, vessel_name, carrier FROM (
                               SELECT d.shipment_id, d.risk_score AS score, d.risk_level, e.title,
+                                     s.vessel_name, s.carrier,
                                      ROW_NUMBER() OVER (PARTITION BY d.shipment_id
                                                         ORDER BY d.risk_score DESC) AS rn
                               FROM decision_logs d LEFT JOIN events e USING (event_id)
+                              LEFT JOIN shipments s USING (shipment_id)
                               WHERE d.risk_level IN ('high','critical')) ranked
                           WHERE rn = 1 ORDER BY score DESC""")
     if not rows:
         return "No shipment is currently at high or critical risk."
-    lines = [f"- **{r['shipment_id']}** — {r['risk_level']} ({r['score']:.2f}) from *{r['title']}*" for r in rows]
+    lines = [f"- **{r['vessel_name'] or r['shipment_id']}** ({r['carrier']}) — "
+             f"{r['risk_level']} risk, {r['score']:.2f}, from *{r['title']}*" for r in rows]
     return f"**{len(rows)} shipments** are at high or critical risk:\n" + "\n".join(lines)
 
 
@@ -191,20 +194,23 @@ def a_value_at_risk(conn: sqlite3.Connection) -> str:
 
 
 def a_force_majeure(conn: sqlite3.Connection) -> str:
-    rows = _rows(conn, """SELECT shipment_id, recommended_action, estimated_cost_usd, title, citations
+    rows = _rows(conn, """SELECT shipment_id, recommended_action, estimated_cost_usd, title, citations,
+                                 vessel_name, carrier
                           FROM (
                               SELECT d.shipment_id, d.recommended_action, d.estimated_cost_usd,
-                                     e.title, d.citations,
+                                     e.title, d.citations, s.vessel_name, s.carrier,
                                      ROW_NUMBER() OVER (PARTITION BY d.shipment_id
                                                         ORDER BY d.risk_score DESC) AS rn
                               FROM decision_logs d LEFT JOIN events e USING (event_id)
+                              LEFT JOIN shipments s USING (shipment_id)
                               WHERE d.force_majeure_applicable = 1) ranked
                           WHERE rn = 1""")
     if not rows:
         return ("No shipment currently qualifies for force majeure. PortGuard marks a clause as "
                 "applicable only when the event type is named in the Bill of Lading's clause text.")
-    lines = [f"- **{r['shipment_id']}** — triggered by *{r['title']}*, "
-             f"recommended action **{(r['recommended_action'] or '').replace('_', ' ')}**" for r in rows]
+    lines = [f"- **{r['vessel_name'] or r['shipment_id']}** ({r['carrier']}) — triggered by "
+             f"*{r['title']}*, recommended **{(r['recommended_action'] or '').replace('_', ' ')}**"
+             for r in rows]
     urls = [u for r in rows for u in json.loads(r["citations"] or "[]")[:2]]
     return (f"**{len(rows)} shipments** have force majeure available:\n" + "\n".join(lines) + _cite(urls))
 

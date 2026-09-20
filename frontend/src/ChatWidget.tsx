@@ -13,7 +13,12 @@ const EXAMPLES = [
 // in the bubble and nothing was clickable, which quietly defeated the point of citing at all.
 // Three constructs is the whole grammar the answers use, so this stays inline rather than pulling
 // in a markdown library for 2 KB of output.
-const INLINE_RE = /\*\*(.+?)\*\*|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+// **bold** | *italic* | [1](url). The italic arm is not optional decoration: answers write event
+// names as *RED SEA TENSIONS*, and without it the asterisks render literally, which reads as a
+// broken chatbot even though the answer underneath is correct. The bold arm must come first so
+// `**x**` is never matched as two italics.
+const INLINE_RE =
+  /\*\*(.+?)\*\*|\*(?!\s)([^*\n]+?)(?<!\s)\*|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
 
 function renderInline(text: string, keyPrefix: string) {
   const out: ReactNode[] = [];
@@ -22,10 +27,12 @@ function renderInline(text: string, keyPrefix: string) {
     if (m.index! > last) out.push(text.slice(last, m.index));
     if (m[1] !== undefined) {
       out.push(<strong key={`${keyPrefix}-b${m.index}`}>{m[1]}</strong>);
+    } else if (m[2] !== undefined) {
+      out.push(<em key={`${keyPrefix}-i${m.index}`}>{m[2]}</em>);
     } else {
       out.push(
-        <a key={`${keyPrefix}-a${m.index}`} href={m[3]} target="_blank" rel="noopener noreferrer">
-          {m[2]}
+        <a key={`${keyPrefix}-a${m.index}`} href={m[4]} target="_blank" rel="noopener noreferrer">
+          {m[3]}
         </a>,
       );
     }
