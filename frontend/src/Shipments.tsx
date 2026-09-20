@@ -78,6 +78,18 @@ function DecisionPanel({ shipment, decision, onReviewed }: { shipment: Shipment;
   const [drafts, setDrafts] = useState<Draft[] | null>(null);
   const [openDraft, setOpenDraft] = useState<number | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
+  const [to, setTo] = useState("");
+  const [sending, setSending] = useState<number | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [mail, setMail] = useState<{ configured: boolean; default_recipient: string | null } | null>(null);
+
+  // Ask up front whether this deployment can send at all. Offering a Send button that cannot work
+  // is worse than offering none: the operator finds out only after believing a notice went out.
+  useEffect(() => {
+    api.mailStatus()
+      .then((m) => { setMail(m); if (m.default_recipient) setTo(m.default_recipient); })
+      .catch(() => setMail({ configured: false, default_recipient: null }));
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -99,6 +111,19 @@ function DecisionPanel({ shipment, decision, onReviewed }: { shipment: Shipment;
       onReviewed();
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function sendDraft(d: Draft) {
+    setSending(d.draft_id);
+    setSendError(null);
+    try {
+      await api.sendDraft(d.draft_id, to.trim());
+      setDrafts(await api.drafts(decision.decision_id).catch(() => drafts ?? []));
+    } catch (e) {
+      setSendError(e instanceof Error ? e.message : "Could not send.");
+    } finally {
+      setSending(null);
     }
   }
 
@@ -282,10 +307,42 @@ function DecisionPanel({ shipment, decision, onReviewed }: { shipment: Shipment;
               {openDraft === d.draft_id && (
                 <div>
                   <pre className="pg-draft-body">{d.body}</pre>
-                  <button className="pg-btn" style={{ minHeight: 34, fontSize: 12.5 }}
-                          onClick={() => copyDraft(d)}>
-                    {copied === d.draft_id ? "Copied" : "Copy to clipboard"}
-                  </button>
+                  <div className="pg-draft-actions">
+                    <button className="pg-btn" style={{ minHeight: 34, fontSize: 12.5 }}
+                            onClick={() => copyDraft(d)}>
+                      {copied === d.draft_id ? "Copied" : "Copy text"}
+                    </button>
+                    {d.status === "sent" ? (
+                      <span style={{ fontSize: 12.5, color: "var(--pg-green)" }}>
+                        Sent to <strong>{d.sent_to}</strong>
+                        {d.sent_at ? ` on ${d.sent_at.slice(0, 16).replace("T", " ")} UTC` : ""}
+                      </span>
+                    ) : d.status === "approved" ? (
+                      <>
+                        <input value={to} onChange={(e) => setTo(e.target.value)}
+                               placeholder="recipient@company.com" aria-label="Send to"
+                               style={{ flexGrow: 1, minWidth: 180, border: "1px solid var(--pg-line)",
+                                        borderRadius: 6, padding: "7px 10px", fontSize: 12.5 }} />
+                        <button className="pg-btn primary" style={{ minHeight: 34, fontSize: 12.5 }}
+                                disabled={sending === d.draft_id || !to.trim() || !mail?.configured}
+                                title={mail?.configured ? "" : "Email is not configured on this deployment"}
+                                onClick={() => sendDraft(d)}>
+                          {sending === d.draft_id ? "Sending…" : "Send with signed copy"}
+                        </button>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: 12.5, color: "var(--pg-muted)" }}>
+                        Approve this decision to enable sending.
+                      </span>
+                    )}
+                  </div>
+                  {!mail?.configured && d.status === "approved" && (
+                    <div className="pg-draft-hint">
+                      Email is not configured here, so nothing can be transmitted. Copy the text, or
+                      set RESEND_API_KEY to enable sending.
+                    </div>
+                  )}
+                  {sendError && <div className="pg-draft-hint" style={{ color: "var(--pg-red)" }}>{sendError}</div>}
                 </div>
               )}
             </div>

@@ -322,6 +322,61 @@ def decision_drafts(decision_id: int):
     return _rows("SELECT * FROM action_drafts WHERE decision_id = ?", (decision_id,))
 
 
+class DraftSend(BaseModel):
+    to: Optional[str] = None
+
+
+@app.get("/api/mail/status")
+def mail_status():
+    """Whether this deployment can actually send, and where it defaults to.
+
+    The interface asks before it offers a Send button: a button that cannot work is worse than no
+    button, because the operator finds out only after they believed a notice had gone out."""
+    from mailer import default_recipient, is_configured
+    return {"configured": is_configured(), "default_recipient": default_recipient()}
+
+
+@app.post("/api/drafts/{draft_id}/send")
+def send_draft(draft_id: int, body: DraftSend):
+    """Email an approved draft, with the notice attached as a signable PDF."""
+    import base64
+
+    import mailer
+    import notice_pdf
+
+    draft = _row("SELECT * FROM action_drafts WHERE draft_id = ?", (draft_id,))
+    if not draft:
+        raise HTTPException(404, "draft not found")
+    # Only an approved draft may be sent. Sending an unreviewed one would defeat the entire
+    # approval step, which is the product's one safety property.
+    if draft["status"] not in ("approved", "sent"):
+        raise HTTPException(409, "This notice has not been approved yet. Approve it first.")
+
+    to = (body.to or mailer.default_recipient() or "").strip()
+    if not to:
+        raise HTTPException(400, "No recipient. Enter an address, or set NOTICE_RECIPIENT.")
+
+    decision = _row("SELECT shipment_id FROM decision_logs WHERE decision_id = ?", (draft["decision_id"],))
+    shipment = _row("SELECT * FROM shipments WHERE shipment_id = ?", (decision["shipment_id"],)) if decision else {}
+
+    try:
+        pdf = notice_pdf.build(draft["kind"], draft["subject"], draft["body"], shipment or {},
+                               draft["deadline_at"], draft["generated_by"] or "")
+        message_id = mailer.send(
+            to=to, subject=draft["subject"],
+            body=draft["body"] + "\n\n---\nThe signed-copy version of this notice is attached as a PDF.",
+            attachments=[{"filename": notice_pdf.filename(draft["kind"], shipment or {}),
+                          "content": base64.b64encode(pdf).decode("ascii")}])
+    except mailer.MailError as exc:
+        raise HTTPException(502, str(exc)) from exc
+
+    sent_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    with _session() as conn:
+        conn.execute("UPDATE action_drafts SET status='sent', sent_at=?, sent_to=?, provider_message_id=? "
+                     "WHERE draft_id=?", (sent_at, to, message_id, draft_id))
+    return {"ok": True, "sent_to": to, "sent_at": sent_at, "message_id": message_id}
+
+
 class DraftUpdate(BaseModel):
     subject: Optional[str] = None
     body: Optional[str] = None

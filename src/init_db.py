@@ -183,6 +183,8 @@ MIGRATIONS = {
     "decision_logs": {"event_id": "TEXT", "estimated_cost_usd": "REAL", "force_majeure_applicable": "INTEGER"},
     # Provenance for the shipment book: which parts are public-registry fact and which are generated.
     "shipments": {"imo": "TEXT", "vessel_source": "TEXT", "carrier_source": "TEXT", "terms_source": "TEXT"},
+    # A force majeure notice is only worth anything if you can show who it went to and when.
+    "action_drafts": {"sent_at": "TEXT", "sent_to": "TEXT", "provider_message_id": "TEXT"},
 }
 TRAFFIC_FILES = {"traffic_daily": DATA_DIR / "traffic_daily.csv", "traffic_stats": DATA_DIR / "traffic_stats.csv"}
 

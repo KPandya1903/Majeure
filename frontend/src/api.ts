@@ -101,6 +101,7 @@ export interface TrafficStat {
 export interface Draft {
   draft_id: number; decision_id: number; kind: string; subject: string; body: string;
   deadline_at: string | null; generated_by: string; status: string;
+  sent_at?: string | null; sent_to?: string | null;
 }
 export interface BacktestScenario {
   scenario: string; event: string; matched: boolean; match_reason: string | null;
@@ -145,6 +146,9 @@ export const api = {
   drafts: (decisionId: number) => get<Draft[]>(`/api/decisions/${decisionId}/drafts`),
   updateDraft: (id: number, body: Partial<Pick<Draft, "subject" | "body" | "status">>) =>
     send<{ ok: true }>("PATCH", `/api/drafts/${id}`, body),
+  sendDraft: (id: number, to: string) =>
+    send<{ ok: true; sent_to: string; sent_at: string }>("POST", `/api/drafts/${id}/send`, { to }),
+  mailStatus: () => get<{ configured: boolean; default_recipient: string | null }>("/api/mail/status"),
   ask: (question: string) => send<{ answer: string }>("POST", "/api/ask", { question }),
 };
 

@@ -42,3 +42,11 @@ services:
       # Supabase Session pooler URL, set in the dashboard (never committed). See .env.example.
       - key: DATABASE_URL
         sync: false
+      # Sending approved notices. Without RESEND_API_KEY the Send button stays disabled and the
+      # service says so, rather than pretending a notice was served.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: NOTICE_FROM
+        sync: false
+      - key: NOTICE_RECIPIENT
+        sync: false

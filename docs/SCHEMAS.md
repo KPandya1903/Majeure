@@ -256,6 +256,9 @@ CREATE TABLE IF NOT EXISTS action_drafts (
     deadline_at   TEXT,                                        -- e.g. force majeure notice due
     generated_by  TEXT NOT NULL,                               -- 'template' or the model id
     status        TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'approved', 'sent', 'discarded')),
+    sent_at       TEXT,                                        -- when it was actually transmitted
+    sent_to       TEXT,                                        -- the address it went to
+    provider_message_id TEXT,                                  -- the mail provider's receipt
     created_at    TEXT NOT NULL,
     UNIQUE (decision_id, kind)
 );
