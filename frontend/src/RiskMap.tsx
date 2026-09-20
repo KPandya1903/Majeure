@@ -9,7 +9,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 // which only shows up in a production build (Vite's dev server serves node_modules directly,
 // so this masks the problem locally).
 import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
-import type { MapData, Route } from "./api";
+import type { ChokePoint, MapData, PortPoint, Route } from "./api";
 import { api, ACTIONS, RISK_TONE, fmtDate } from "./api";
 import { Chip } from "./components";
 
@@ -160,16 +160,34 @@ function toEventFeatures(data: MapData) {
     })),
   };
 }
-function toPointFeatures(points: { lon: number; lat: number }[]) {
+/** GeoJSON points that KEEP their label. `properties: {}` was throwing away the name and locode
+ *  the API already sends, which is why a port dot had nothing to show on hover. */
+function toPointFeatures(points: { lon: number; lat: number }[], label?: (p: never) => string) {
   return {
     type: "FeatureCollection" as const,
-    features: points.map((p) => ({ type: "Feature" as const, properties: {}, geometry: { type: "Point" as const, coordinates: [p.lon, p.lat] } })),
+    features: points.map((p) => ({
+      type: "Feature" as const,
+      properties: label ? { label: label(p as never) } : {},
+      geometry: { type: "Point" as const, coordinates: [p.lon, p.lat] },
+    })),
   };
+}
+
+/** "Rotterdam · NLRTM" — the locode is what a shipping person actually recognises. */
+function portLabel(p: PortPoint): string {
+  const code = (p.locode || "").trim();
+  return code && code !== p.name ? `${p.name} · ${code}` : p.name;
+}
+
+/** "Suez Canal · transits −8% vs baseline" — the measured number, where we have one. */
+function chokepointLabel(c: ChokePoint): string {
+  return c.pct_change == null ? c.name
+    : `${c.name} · transits ${c.pct_change > 0 ? "+" : ""}${Math.round(c.pct_change)}% vs baseline`;
 }
 
 export default function RiskMap() {
   const [data, setData] = useState<MapData | null>(null);
-  const [hover, setHover] = useState<string | null>(null);
+  const [hover, setHover] = useState<{ label: string; x: number; y: number } | null>(null);
   const [hoveredShip, setHoveredShip] = useState<string | null>(null);
   // Viewport centre, used only to decide which side of a vessel its card opens on. Tracked on
   // moveEnd rather than move: the flip is re-evaluated when the card next opens, so updating it on
@@ -271,36 +289,41 @@ export default function RiskMap() {
         touchZoomRotate={true}
         onMouseMove={(e) => {
           const f = e.features?.[0];
-          setHover(f ? (f.properties?.label as string) ?? null : null);
+          const label = f ? (f.properties?.label as string) ?? null : null;
+          setHover(label ? { label, x: e.point.x, y: e.point.y } : null);
         }}
-        interactiveLayerIds={["routes-line"]}
+        onMouseLeave={() => setHover(null)}
+        // Ports and chokepoints are hoverable too, not just the route lines. Order matters: the
+        // first match wins, so the small precise dots are listed ahead of the big event halos,
+        // which would otherwise swallow every port sitting inside one.
+        interactiveLayerIds={["ports-dot", "chokepoints-dot", "events-dot", "routes-line"]}
       >
         <NavigationControl position="top-right" />
 
-        <Source id="chokepoints" type="geojson" data={toPointFeatures(data.chokepoints)}>
-          <Layer id="chokepoints-dot" type="circle" paint={{ "circle-radius": 3.5, "circle-color": "#6B7581", "circle-opacity": 0.65 }} />
+        {/* Painted bottom to top. The route lines go FIRST so the port and chokepoint dots
+            sit above them: a line drawn over a dot also captures its hover, and routes pass
+            straight through the chokepoints people most want to inspect. */}
+        <Source id="routes" type="geojson" data={toLineFeatures(data)}>
+          <Layer id="routes-line" type="line"
+            paint={{ "line-color": "#0B5CD5", "line-width": 2.4, "line-opacity": 0.9 }}
+            layout={{ "line-cap": "round", "line-join": "round" }} />
         </Source>
-
+        <Source id="remaining" type="geojson" data={toDotFeatures(remainingDots)}>
+          <Layer id="remaining-dot" type="circle" paint={{ "circle-radius": 1.5, "circle-color": "#0B5CD5", "circle-opacity": 0.55 }} />
+        </Source>
         <Source id="events" type="geojson" data={toEventFeatures(data)}>
           <Layer id="events-halo" type="circle"
             paint={{ "circle-radius": ["get", "radius"], "circle-color": ["get", "color"], "circle-opacity": 0.18 }} />
           <Layer id="events-dot" type="circle"
             paint={{ "circle-radius": 6, "circle-color": ["get", "color"], "circle-stroke-width": 2, "circle-stroke-color": "#fff" }} />
         </Source>
-
-        <Source id="ports" type="geojson" data={toPointFeatures(data.ports)}>
+        <Source id="chokepoints" type="geojson"
+                data={toPointFeatures(data.chokepoints, (c) => chokepointLabel(c))}>
+          <Layer id="chokepoints-dot" type="circle" paint={{ "circle-radius": 3.5, "circle-color": "#6B7581", "circle-opacity": 0.65 }} />
+        </Source>
+        <Source id="ports" type="geojson" data={toPointFeatures(data.ports, (p) => portLabel(p))}>
           <Layer id="ports-dot" type="circle"
             paint={{ "circle-radius": 4, "circle-color": "#2B333C", "circle-stroke-width": 2, "circle-stroke-color": "#fff" }} />
-        </Source>
-
-        <Source id="routes" type="geojson" data={toLineFeatures(data)}>
-          <Layer id="routes-line" type="line"
-            paint={{ "line-color": "#0B5CD5", "line-width": 2.4, "line-opacity": 0.9 }}
-            layout={{ "line-cap": "round", "line-join": "round" }} />
-        </Source>
-
-        <Source id="remaining" type="geojson" data={toDotFeatures(remainingDots)}>
-          <Layer id="remaining-dot" type="circle" paint={{ "circle-radius": 1.5, "circle-color": "#0B5CD5", "circle-opacity": 0.55 }} />
         </Source>
 
         {data.routes.map((r) => (
@@ -314,9 +337,11 @@ export default function RiskMap() {
       </Map>
 
       {hover && (
-        <div style={{ position: "absolute", pointerEvents: "none", background: "#fff", border: "1px solid var(--pg-line)",
-                     borderRadius: 6, padding: "4px 8px", fontSize: 12, top: 8, left: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
-          {hover}
+        <div style={{ position: "absolute", pointerEvents: "none", background: "#fff",
+                      border: "1px solid var(--pg-line)", borderRadius: 6, padding: "5px 9px",
+                      fontSize: 12, whiteSpace: "nowrap", boxShadow: "0 4px 12px rgba(0,0,0,0.14)",
+                      left: hover.x + 14, top: hover.y - 10 }}>
+          {hover.label}
         </div>
       )}
 
