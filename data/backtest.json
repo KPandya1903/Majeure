@@ -1,0 +1,2781 @@
+{
+  "generated_at": "2026-09-19T19:40:52Z",
+  "note": "Historical replay. Events and traffic are real (IMF PortWatch); each shipment is a synthetic example routed through the affected place. Decisions use only what was known the day after the event started.",
+  "scenarios": [
+    {
+      "scenario": "Red Sea crisis (Dec 2023)",
+      "event": "RED SEA TENSIONS",
+      "event_start": "2023-12-16T00:00:00Z",
+      "matched": true,
+      "match_reason": "route_chokepoint",
+      "location_id": "chokepoint:bab-el-mandeb-strait",
+      "warning_days_before_eta": 26.0,
+      "traffic_location": "Bab el-Mandeb Strait",
+      "traffic_metric": "transits",
+      "traffic_at_decision_pct": -4.5,
+      "traffic_change_pct": -40.6,
+      "cheapest_action": "invoke_force_majeure",
+      "force_majeure_covered": true,
+      "exposure_wait_usd": 10000.0,
+      "exposure_best_usd": 0.0,
+      "savings_usd": 10000.0,
+      "recommended_action": "invoke_force_majeure",
+      "risk_level": "high",
+      "model": "portguard-rules-v1",
+      "rationale": "RED SEA TENSIONS (security_threat, high risk). Cheapest available option: invoke_force_majeure at about $0. The clause covers this kind of event. Written notice is due by 2023-12-19 00:00 UTC.",
+      "summary": "RED SEA TENSIONS started 16 Dec 2023. The example shipment (Shanghai \u2192 Rotterdam) matches via route chokepoint (Bab el-Mandeb Strait), 26 days before its ETA. PortGuard would recommend **invoke force majeure** (high risk): waiting would cost ~$10,000, the best available option ~$0. Over the following month, measured transits at Bab el-Mandeb Strait changed -41% vs the month before.",
+      "traffic_series": [
+        {
+          "date": "2023-11-01",
+          "daily": 61,
+          "7-day average": 61.0
+        },
+        {
+          "date": "2023-11-02",
+          "daily": 94,
+          "7-day average": 77.5
+        },
+        {
+          "date": "2023-11-03",
+          "daily": 87,
+          "7-day average": 80.7
+        },
+        {
+          "date": "2023-11-04",
+          "daily": 85,
+          "7-day average": 81.8
+        },
+        {
+          "date": "2023-11-05",
+          "daily": 69,
+          "7-day average": 79.2
+        },
+        {
+          "date": "2023-11-06",
+          "daily": 65,
+          "7-day average": 76.8
+        },
+        {
+          "date": "2023-11-07",
+          "daily": 67,
+          "7-day average": 75.4
+        },
+        {
+          "date": "2023-11-08",
+          "daily": 77,
+          "7-day average": 77.7
+        },
+        {
+          "date": "2023-11-09",
+          "daily": 84,
+          "7-day average": 76.3
+        },
+        {
+          "date": "2023-11-10",
+          "daily": 70,
+          "7-day average": 73.9
+        },
+        {
+          "date": "2023-11-11",
+          "daily": 86,
+          "7-day average": 74.0
+        },
+        {
+          "date": "2023-11-12",
+          "daily": 71,
+          "7-day average": 74.3
+        },
+        {
+          "date": "2023-11-13",
+          "daily": 84,
+          "7-day average": 77.0
+        },
+        {
+          "date": "2023-11-14",
+          "daily": 70,
+          "7-day average": 77.4
+        },
+        {
+          "date": "2023-11-15",
+          "daily": 76,
+          "7-day average": 77.3
+        },
+        {
+          "date": "2023-11-16",
+          "daily": 75,
+          "7-day average": 76.0
+        },
+        {
+          "date": "2023-11-17",
+          "daily": 87,
+          "7-day average": 78.4
+        },
+        {
+          "date": "2023-11-18",
+          "daily": 84,
+          "7-day average": 78.1
+        },
+        {
+          "date": "2023-11-19",
+          "daily": 59,
+          "7-day average": 76.4
+        },
+        {
+          "date": "2023-11-20",
+          "daily": 72,
+          "7-day average": 74.7
+        },
+        {
+          "date": "2023-11-21",
+          "daily": 87,
+          "7-day average": 77.1
+        },
+        {
+          "date": "2023-11-22",
+          "daily": 84,
+          "7-day average": 78.3
+        },
+        {
+          "date": "2023-11-23",
+          "daily": 75,
+          "7-day average": 78.3
+        },
+        {
+          "date": "2023-11-24",
+          "daily": 86,
+          "7-day average": 78.1
+        },
+        {
+          "date": "2023-11-25",
+          "daily": 74,
+          "7-day average": 76.7
+        },
+        {
+          "date": "2023-11-26",
+          "daily": 88,
+          "7-day average": 80.9
+        },
+        {
+          "date": "2023-11-27",
+          "daily": 65,
+          "7-day average": 79.9
+        },
+        {
+          "date": "2023-11-28",
+          "daily": 77,
+          "7-day average": 78.4
+        },
+        {
+          "date": "2023-11-29",
+          "daily": 89,
+          "7-day average": 79.1
+        },
+        {
+          "date": "2023-11-30",
+          "daily": 72,
+          "7-day average": 78.7
+        },
+        {
+          "date": "2023-12-01",
+          "daily": 64,
+          "7-day average": 75.6
+        },
+        {
+          "date": "2023-12-02",
+          "daily": 67,
+          "7-day average": 74.6
+        },
+        {
+          "date": "2023-12-03",
+          "daily": 90,
+          "7-day average": 74.9
+        },
+        {
+          "date": "2023-12-04",
+          "daily": 85,
+          "7-day average": 77.7
+        },
+        {
+          "date": "2023-12-05",
+          "daily": 72,
+          "7-day average": 77.0
+        },
+        {
+          "date": "2023-12-06",
+          "daily": 66,
+          "7-day average": 73.7
+        },
+        {
+          "date": "2023-12-07",
+          "daily": 75,
+          "7-day average": 74.1
+        },
+        {
+          "date": "2023-12-08",
+          "daily": 82,
+          "7-day average": 76.7
+        },
+        {
+          "date": "2023-12-09",
+          "daily": 77,
+          "7-day average": 78.1
+        },
+        {
+          "date": "2023-12-10",
+          "daily": 65,
+          "7-day average": 74.6
+        },
+        {
+          "date": "2023-12-11",
+          "daily": 62,
+          "7-day average": 71.3
+        },
+        {
+          "date": "2023-12-12",
+          "daily": 83,
+          "7-day average": 72.9
+        },
+        {
+          "date": "2023-12-13",
+          "daily": 81,
+          "7-day average": 75.0
+        },
+        {
+          "date": "2023-12-14",
+          "daily": 91,
+          "7-day average": 77.3
+        },
+        {
+          "date": "2023-12-15",
+          "daily": 76,
+          "7-day average": 76.4
+        },
+        {
+          "date": "2023-12-16",
+          "daily": 65,
+          "7-day average": 74.7
+        },
+        {
+          "date": "2023-12-17",
+          "daily": 57,
+          "7-day average": 73.6
+        },
+        {
+          "date": "2023-12-18",
+          "daily": 52,
+          "7-day average": 72.1
+        },
+        {
+          "date": "2023-12-19",
+          "daily": 56,
+          "7-day average": 68.3
+        },
+        {
+          "date": "2023-12-20",
+          "daily": 63,
+          "7-day average": 65.7
+        },
+        {
+          "date": "2023-12-21",
+          "daily": 53,
+          "7-day average": 60.3
+        },
+        {
+          "date": "2023-12-22",
+          "daily": 50,
+          "7-day average": 56.6
+        },
+        {
+          "date": "2023-12-23",
+          "daily": 50,
+          "7-day average": 54.4
+        },
+        {
+          "date": "2023-12-24",
+          "daily": 69,
+          "7-day average": 56.1
+        },
+        {
+          "date": "2023-12-25",
+          "daily": 60,
+          "7-day average": 57.3
+        },
+        {
+          "date": "2023-12-26",
+          "daily": 57,
+          "7-day average": 57.4
+        },
+        {
+          "date": "2023-12-27",
+          "daily": 45,
+          "7-day average": 54.9
+        },
+        {
+          "date": "2023-12-28",
+          "daily": 45,
+          "7-day average": 53.7
+        },
+        {
+          "date": "2023-12-29",
+          "daily": 70,
+          "7-day average": 56.6
+        },
+        {
+          "date": "2023-12-30",
+          "daily": 44,
+          "7-day average": 55.7
+        },
+        {
+          "date": "2023-12-31",
+          "daily": 49,
+          "7-day average": 52.9
+        },
+        {
+          "date": "2024-01-01",
+          "daily": 36,
+          "7-day average": 49.4
+        },
+        {
+          "date": "2024-01-02",
+          "daily": 52,
+          "7-day average": 48.7
+        },
+        {
+          "date": "2024-01-03",
+          "daily": 41,
+          "7-day average": 48.1
+        },
+        {
+          "date": "2024-01-04",
+          "daily": 54,
+          "7-day average": 49.4
+        },
+        {
+          "date": "2024-01-05",
+          "daily": 45,
+          "7-day average": 45.9
+        },
+        {
+          "date": "2024-01-06",
+          "daily": 45,
+          "7-day average": 46.0
+        },
+        {
+          "date": "2024-01-07",
+          "daily": 43,
+          "7-day average": 45.1
+        },
+        {
+          "date": "2024-01-08",
+          "daily": 51,
+          "7-day average": 47.3
+        },
+        {
+          "date": "2024-01-09",
+          "daily": 53,
+          "7-day average": 47.4
+        },
+        {
+          "date": "2024-01-10",
+          "daily": 43,
+          "7-day average": 47.7
+        },
+        {
+          "date": "2024-01-11",
+          "daily": 55,
+          "7-day average": 47.9
+        },
+        {
+          "date": "2024-01-12",
+          "daily": 35,
+          "7-day average": 46.4
+        },
+        {
+          "date": "2024-01-13",
+          "daily": 43,
+          "7-day average": 46.1
+        },
+        {
+          "date": "2024-01-14",
+          "daily": 27,
+          "7-day average": 43.9
+        },
+        {
+          "date": "2024-01-15",
+          "daily": 29,
+          "7-day average": 40.7
+        },
+        {
+          "date": "2024-01-16",
+          "daily": 38,
+          "7-day average": 38.6
+        },
+        {
+          "date": "2024-01-17",
+          "daily": 46,
+          "7-day average": 39.0
+        },
+        {
+          "date": "2024-01-18",
+          "daily": 32,
+          "7-day average": 35.7
+        },
+        {
+          "date": "2024-01-19",
+          "daily": 36,
+          "7-day average": 35.9
+        },
+        {
+          "date": "2024-01-20",
+          "daily": 39,
+          "7-day average": 35.3
+        },
+        {
+          "date": "2024-01-21",
+          "daily": 40,
+          "7-day average": 37.1
+        },
+        {
+          "date": "2024-01-22",
+          "daily": 45,
+          "7-day average": 39.4
+        },
+        {
+          "date": "2024-01-23",
+          "daily": 35,
+          "7-day average": 39.0
+        },
+        {
+          "date": "2024-01-24",
+          "daily": 31,
+          "7-day average": 36.9
+        },
+        {
+          "date": "2024-01-25",
+          "daily": 34,
+          "7-day average": 37.1
+        },
+        {
+          "date": "2024-01-26",
+          "daily": 29,
+          "7-day average": 36.1
+        },
+        {
+          "date": "2024-01-27",
+          "daily": 32,
+          "7-day average": 35.1
+        },
+        {
+          "date": "2024-01-28",
+          "daily": 31,
+          "7-day average": 33.9
+        },
+        {
+          "date": "2024-01-29",
+          "daily": 37,
+          "7-day average": 32.7
+        },
+        {
+          "date": "2024-01-30",
+          "daily": 28,
+          "7-day average": 31.7
+        },
+        {
+          "date": "2024-01-31",
+          "daily": 37,
+          "7-day average": 32.6
+        },
+        {
+          "date": "2024-02-01",
+          "daily": 32,
+          "7-day average": 32.3
+        },
+        {
+          "date": "2024-02-02",
+          "daily": 39,
+          "7-day average": 33.7
+        },
+        {
+          "date": "2024-02-03",
+          "daily": 28,
+          "7-day average": 33.1
+        },
+        {
+          "date": "2024-02-04",
+          "daily": 27,
+          "7-day average": 32.6
+        },
+        {
+          "date": "2024-02-05",
+          "daily": 50,
+          "7-day average": 34.4
+        },
+        {
+          "date": "2024-02-06",
+          "daily": 37,
+          "7-day average": 35.7
+        },
+        {
+          "date": "2024-02-07",
+          "daily": 28,
+          "7-day average": 34.4
+        },
+        {
+          "date": "2024-02-08",
+          "daily": 29,
+          "7-day average": 34.0
+        },
+        {
+          "date": "2024-02-09",
+          "daily": 30,
+          "7-day average": 32.7
+        },
+        {
+          "date": "2024-02-10",
+          "daily": 32,
+          "7-day average": 33.3
+        },
+        {
+          "date": "2024-02-11",
+          "daily": 38,
+          "7-day average": 34.9
+        },
+        {
+          "date": "2024-02-12",
+          "daily": 28,
+          "7-day average": 31.7
+        },
+        {
+          "date": "2024-02-13",
+          "daily": 41,
+          "7-day average": 32.3
+        },
+        {
+          "date": "2024-02-14",
+          "daily": 32,
+          "7-day average": 32.9
+        }
+      ]
+    },
+    {
+      "scenario": "Baltimore bridge collapse (Mar 2024)",
+      "event": "COLLAPSE FRANCIS SCOTT KEY BRIDGE",
+      "event_start": "2024-03-26T00:00:00Z",
+      "matched": true,
+      "match_reason": "port_of_discharge",
+      "location_id": "port103",
+      "warning_days_before_eta": 5.0,
+      "traffic_location": "Baltimore",
+      "traffic_metric": "port calls",
+      "traffic_at_decision_pct": -21.7,
+      "traffic_change_pct": -76.4,
+      "cheapest_action": "invoke_force_majeure",
+      "force_majeure_covered": true,
+      "exposure_wait_usd": 18400.0,
+      "exposure_best_usd": 10000.0,
+      "savings_usd": 8400.0,
+      "recommended_action": "invoke_force_majeure",
+      "risk_level": "high",
+      "model": "portguard-rules-v1",
+      "rationale": "COLLAPSE FRANCIS SCOTT KEY BRIDGE (port_closure, high risk). Cheapest available option: invoke_force_majeure at about $10,000. The clause covers this kind of event. Written notice is due by 2024-03-29 00:00 UTC.",
+      "summary": "COLLAPSE FRANCIS SCOTT KEY BRIDGE started 26 Mar 2024. The example shipment (Rotterdam \u2192 Baltimore) matches via port of discharge (Baltimore), 5 days before its ETA. PortGuard would recommend **invoke force majeure** (high risk): waiting would cost ~$18,400, the best available option ~$10,000. Over the following month, measured port calls at Baltimore changed -76% vs the month before.",
+      "traffic_series": [
+        {
+          "date": "2024-02-10",
+          "daily": 7,
+          "7-day average": 7.0
+        },
+        {
+          "date": "2024-02-11",
+          "daily": 1,
+          "7-day average": 4.0
+        },
+        {
+          "date": "2024-02-12",
+          "daily": 6,
+          "7-day average": 4.7
+        },
+        {
+          "date": "2024-02-13",
+          "daily": 5,
+          "7-day average": 4.8
+        },
+        {
+          "date": "2024-02-14",
+          "daily": 5,
+          "7-day average": 4.8
+        },
+        {
+          "date": "2024-02-15",
+          "daily": 6,
+          "7-day average": 5.0
+        },
+        {
+          "date": "2024-02-16",
+          "daily": 6,
+          "7-day average": 5.1
+        },
+        {
+          "date": "2024-02-17",
+          "daily": 2,
+          "7-day average": 4.4
+        },
+        {
+          "date": "2024-02-18",
+          "daily": 7,
+          "7-day average": 5.3
+        },
+        {
+          "date": "2024-02-19",
+          "daily": 3,
+          "7-day average": 4.9
+        },
+        {
+          "date": "2024-02-20",
+          "daily": 6,
+          "7-day average": 5.0
+        },
+        {
+          "date": "2024-02-21",
+          "daily": 5,
+          "7-day average": 5.0
+        },
+        {
+          "date": "2024-02-22",
+          "daily": 4,
+          "7-day average": 4.7
+        },
+        {
+          "date": "2024-02-23",
+          "daily": 7,
+          "7-day average": 4.9
+        },
+        {
+          "date": "2024-02-24",
+          "daily": 8,
+          "7-day average": 5.7
+        },
+        {
+          "date": "2024-02-25",
+          "daily": 4,
+          "7-day average": 5.3
+        },
+        {
+          "date": "2024-02-26",
+          "daily": 3,
+          "7-day average": 5.3
+        },
+        {
+          "date": "2024-02-27",
+          "daily": 7,
+          "7-day average": 5.4
+        },
+        {
+          "date": "2024-02-28",
+          "daily": 5,
+          "7-day average": 5.4
+        },
+        {
+          "date": "2024-02-29",
+          "daily": 2,
+          "7-day average": 5.1
+        },
+        {
+          "date": "2024-03-01",
+          "daily": 5,
+          "7-day average": 4.9
+        },
+        {
+          "date": "2024-03-02",
+          "daily": 2,
+          "7-day average": 4.0
+        },
+        {
+          "date": "2024-03-03",
+          "daily": 3,
+          "7-day average": 3.9
+        },
+        {
+          "date": "2024-03-04",
+          "daily": 6,
+          "7-day average": 4.3
+        },
+        {
+          "date": "2024-03-05",
+          "daily": 5,
+          "7-day average": 4.0
+        },
+        {
+          "date": "2024-03-06",
+          "daily": 8,
+          "7-day average": 4.4
+        },
+        {
+          "date": "2024-03-07",
+          "daily": 6,
+          "7-day average": 5.0
+        },
+        {
+          "date": "2024-03-08",
+          "daily": 4,
+          "7-day average": 4.9
+        },
+        {
+          "date": "2024-03-09",
+          "daily": 7,
+          "7-day average": 5.6
+        },
+        {
+          "date": "2024-03-10",
+          "daily": 5,
+          "7-day average": 5.9
+        },
+        {
+          "date": "2024-03-11",
+          "daily": 4,
+          "7-day average": 5.6
+        },
+        {
+          "date": "2024-03-12",
+          "daily": 6,
+          "7-day average": 5.7
+        },
+        {
+          "date": "2024-03-13",
+          "daily": 5,
+          "7-day average": 5.3
+        },
+        {
+          "date": "2024-03-14",
+          "daily": 5,
+          "7-day average": 5.1
+        },
+        {
+          "date": "2024-03-15",
+          "daily": 5,
+          "7-day average": 5.3
+        },
+        {
+          "date": "2024-03-16",
+          "daily": 9,
+          "7-day average": 5.6
+        },
+        {
+          "date": "2024-03-17",
+          "daily": 9,
+          "7-day average": 6.1
+        },
+        {
+          "date": "2024-03-18",
+          "daily": 4,
+          "7-day average": 6.1
+        },
+        {
+          "date": "2024-03-19",
+          "daily": 8,
+          "7-day average": 6.4
+        },
+        {
+          "date": "2024-03-20",
+          "daily": 6,
+          "7-day average": 6.6
+        },
+        {
+          "date": "2024-03-21",
+          "daily": 10,
+          "7-day average": 7.3
+        },
+        {
+          "date": "2024-03-22",
+          "daily": 1,
+          "7-day average": 6.7
+        },
+        {
+          "date": "2024-03-23",
+          "daily": 7,
+          "7-day average": 6.4
+        },
+        {
+          "date": "2024-03-24",
+          "daily": 5,
+          "7-day average": 5.9
+        },
+        {
+          "date": "2024-03-25",
+          "daily": 5,
+          "7-day average": 6.0
+        },
+        {
+          "date": "2024-03-26",
+          "daily": 0,
+          "7-day average": 4.9
+        },
+        {
+          "date": "2024-03-27",
+          "daily": 1,
+          "7-day average": 4.1
+        },
+        {
+          "date": "2024-03-28",
+          "daily": 1,
+          "7-day average": 2.9
+        },
+        {
+          "date": "2024-03-29",
+          "daily": 0,
+          "7-day average": 2.7
+        },
+        {
+          "date": "2024-03-30",
+          "daily": 1,
+          "7-day average": 1.9
+        },
+        {
+          "date": "2024-03-31",
+          "daily": 0,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-04-01",
+          "daily": 1,
+          "7-day average": 0.6
+        },
+        {
+          "date": "2024-04-02",
+          "daily": 2,
+          "7-day average": 0.9
+        },
+        {
+          "date": "2024-04-03",
+          "daily": 0,
+          "7-day average": 0.7
+        },
+        {
+          "date": "2024-04-04",
+          "daily": 2,
+          "7-day average": 0.9
+        },
+        {
+          "date": "2024-04-05",
+          "daily": 2,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-04-06",
+          "daily": 1,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-04-07",
+          "daily": 1,
+          "7-day average": 1.3
+        },
+        {
+          "date": "2024-04-08",
+          "daily": 0,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-04-09",
+          "daily": 1,
+          "7-day average": 1.0
+        },
+        {
+          "date": "2024-04-10",
+          "daily": 0,
+          "7-day average": 1.0
+        },
+        {
+          "date": "2024-04-11",
+          "daily": 3,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-04-12",
+          "daily": 2,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-04-13",
+          "daily": 1,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-04-14",
+          "daily": 1,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-04-15",
+          "daily": 2,
+          "7-day average": 1.4
+        },
+        {
+          "date": "2024-04-16",
+          "daily": 0,
+          "7-day average": 1.3
+        },
+        {
+          "date": "2024-04-17",
+          "daily": 2,
+          "7-day average": 1.6
+        },
+        {
+          "date": "2024-04-18",
+          "daily": 1,
+          "7-day average": 1.3
+        },
+        {
+          "date": "2024-04-19",
+          "daily": 1,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-04-20",
+          "daily": 0,
+          "7-day average": 1.0
+        },
+        {
+          "date": "2024-04-21",
+          "daily": 2,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-04-22",
+          "daily": 2,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-04-23",
+          "daily": 1,
+          "7-day average": 1.3
+        },
+        {
+          "date": "2024-04-24",
+          "daily": 3,
+          "7-day average": 1.4
+        },
+        {
+          "date": "2024-04-25",
+          "daily": 3,
+          "7-day average": 1.7
+        },
+        {
+          "date": "2024-04-26",
+          "daily": 2,
+          "7-day average": 1.9
+        },
+        {
+          "date": "2024-04-27",
+          "daily": 2,
+          "7-day average": 2.1
+        },
+        {
+          "date": "2024-04-28",
+          "daily": 0,
+          "7-day average": 1.9
+        },
+        {
+          "date": "2024-04-29",
+          "daily": 0,
+          "7-day average": 1.6
+        },
+        {
+          "date": "2024-04-30",
+          "daily": 1,
+          "7-day average": 1.6
+        },
+        {
+          "date": "2024-05-01",
+          "daily": 0,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-05-02",
+          "daily": 3,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-05-03",
+          "daily": 1,
+          "7-day average": 1.0
+        },
+        {
+          "date": "2024-05-04",
+          "daily": 2,
+          "7-day average": 1.0
+        },
+        {
+          "date": "2024-05-05",
+          "daily": 0,
+          "7-day average": 1.0
+        },
+        {
+          "date": "2024-05-06",
+          "daily": 1,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-05-07",
+          "daily": 1,
+          "7-day average": 1.1
+        },
+        {
+          "date": "2024-05-08",
+          "daily": 1,
+          "7-day average": 1.3
+        },
+        {
+          "date": "2024-05-09",
+          "daily": 3,
+          "7-day average": 1.3
+        },
+        {
+          "date": "2024-05-10",
+          "daily": 1,
+          "7-day average": 1.3
+        },
+        {
+          "date": "2024-05-11",
+          "daily": 0,
+          "7-day average": 1.0
+        },
+        {
+          "date": "2024-05-12",
+          "daily": 2,
+          "7-day average": 1.3
+        },
+        {
+          "date": "2024-05-13",
+          "daily": 5,
+          "7-day average": 1.9
+        },
+        {
+          "date": "2024-05-14",
+          "daily": 1,
+          "7-day average": 1.9
+        },
+        {
+          "date": "2024-05-15",
+          "daily": 1,
+          "7-day average": 1.9
+        },
+        {
+          "date": "2024-05-16",
+          "daily": 4,
+          "7-day average": 2.0
+        },
+        {
+          "date": "2024-05-17",
+          "daily": 4,
+          "7-day average": 2.4
+        },
+        {
+          "date": "2024-05-18",
+          "daily": 3,
+          "7-day average": 2.9
+        },
+        {
+          "date": "2024-05-19",
+          "daily": 4,
+          "7-day average": 3.1
+        },
+        {
+          "date": "2024-05-20",
+          "daily": 2,
+          "7-day average": 2.7
+        },
+        {
+          "date": "2024-05-21",
+          "daily": 3,
+          "7-day average": 3.0
+        },
+        {
+          "date": "2024-05-22",
+          "daily": 5,
+          "7-day average": 3.6
+        },
+        {
+          "date": "2024-05-23",
+          "daily": 7,
+          "7-day average": 4.0
+        },
+        {
+          "date": "2024-05-24",
+          "daily": 0,
+          "7-day average": 3.4
+        },
+        {
+          "date": "2024-05-25",
+          "daily": 7,
+          "7-day average": 4.0
+        }
+      ]
+    },
+    {
+      "scenario": "US East & Gulf Coast port strike (Oct 2024)",
+      "event": "US PORTS STRIKE",
+      "event_start": "2024-10-01T00:00:00Z",
+      "matched": true,
+      "match_reason": "port_of_discharge",
+      "location_id": "port815",
+      "warning_days_before_eta": 2.0,
+      "traffic_location": "New York-New Jersey",
+      "traffic_metric": "port calls",
+      "traffic_at_decision_pct": -32.9,
+      "traffic_change_pct": -7.9,
+      "cheapest_action": "reroute",
+      "force_majeure_covered": null,
+      "exposure_wait_usd": 48000.0,
+      "exposure_best_usd": 19370.0,
+      "savings_usd": 28630.0,
+      "recommended_action": "reroute",
+      "risk_level": "high",
+      "model": "portguard-rules-v1",
+      "rationale": "US PORTS STRIKE (labor_strike, high risk). Cheapest available option: reroute at about $19,370. Divert to New Haven (130 km away) and haul the rest.",
+      "summary": "US PORTS STRIKE started 01 Oct 2024. The example shipment (Shanghai \u2192 New York-New Jersey) matches via port of discharge (New York-New Jersey), 2 days before its ETA. PortGuard would recommend **reroute** (high risk): waiting would cost ~$48,000, the best available option ~$19,370. Over the following month, measured port calls at New York-New Jersey changed -8% vs the month before.",
+      "traffic_series": [
+        {
+          "date": "2024-08-17",
+          "daily": 15,
+          "7-day average": 15.0
+        },
+        {
+          "date": "2024-08-18",
+          "daily": 13,
+          "7-day average": 14.0
+        },
+        {
+          "date": "2024-08-19",
+          "daily": 10,
+          "7-day average": 12.7
+        },
+        {
+          "date": "2024-08-20",
+          "daily": 7,
+          "7-day average": 11.2
+        },
+        {
+          "date": "2024-08-21",
+          "daily": 13,
+          "7-day average": 11.6
+        },
+        {
+          "date": "2024-08-22",
+          "daily": 11,
+          "7-day average": 11.5
+        },
+        {
+          "date": "2024-08-23",
+          "daily": 17,
+          "7-day average": 12.3
+        },
+        {
+          "date": "2024-08-24",
+          "daily": 12,
+          "7-day average": 11.9
+        },
+        {
+          "date": "2024-08-25",
+          "daily": 12,
+          "7-day average": 11.7
+        },
+        {
+          "date": "2024-08-26",
+          "daily": 7,
+          "7-day average": 11.3
+        },
+        {
+          "date": "2024-08-27",
+          "daily": 11,
+          "7-day average": 11.9
+        },
+        {
+          "date": "2024-08-28",
+          "daily": 12,
+          "7-day average": 11.7
+        },
+        {
+          "date": "2024-08-29",
+          "daily": 10,
+          "7-day average": 11.6
+        },
+        {
+          "date": "2024-08-30",
+          "daily": 13,
+          "7-day average": 11.0
+        },
+        {
+          "date": "2024-08-31",
+          "daily": 8,
+          "7-day average": 10.4
+        },
+        {
+          "date": "2024-09-01",
+          "daily": 13,
+          "7-day average": 10.6
+        },
+        {
+          "date": "2024-09-02",
+          "daily": 5,
+          "7-day average": 10.3
+        },
+        {
+          "date": "2024-09-03",
+          "daily": 19,
+          "7-day average": 11.4
+        },
+        {
+          "date": "2024-09-04",
+          "daily": 11,
+          "7-day average": 11.3
+        },
+        {
+          "date": "2024-09-05",
+          "daily": 9,
+          "7-day average": 11.1
+        },
+        {
+          "date": "2024-09-06",
+          "daily": 12,
+          "7-day average": 11.0
+        },
+        {
+          "date": "2024-09-07",
+          "daily": 10,
+          "7-day average": 11.3
+        },
+        {
+          "date": "2024-09-08",
+          "daily": 9,
+          "7-day average": 10.7
+        },
+        {
+          "date": "2024-09-09",
+          "daily": 13,
+          "7-day average": 11.9
+        },
+        {
+          "date": "2024-09-10",
+          "daily": 7,
+          "7-day average": 10.1
+        },
+        {
+          "date": "2024-09-11",
+          "daily": 13,
+          "7-day average": 10.4
+        },
+        {
+          "date": "2024-09-12",
+          "daily": 10,
+          "7-day average": 10.6
+        },
+        {
+          "date": "2024-09-13",
+          "daily": 13,
+          "7-day average": 10.7
+        },
+        {
+          "date": "2024-09-14",
+          "daily": 12,
+          "7-day average": 11.0
+        },
+        {
+          "date": "2024-09-15",
+          "daily": 7,
+          "7-day average": 10.7
+        },
+        {
+          "date": "2024-09-16",
+          "daily": 14,
+          "7-day average": 10.9
+        },
+        {
+          "date": "2024-09-17",
+          "daily": 10,
+          "7-day average": 11.3
+        },
+        {
+          "date": "2024-09-18",
+          "daily": 9,
+          "7-day average": 10.7
+        },
+        {
+          "date": "2024-09-19",
+          "daily": 13,
+          "7-day average": 11.1
+        },
+        {
+          "date": "2024-09-20",
+          "daily": 8,
+          "7-day average": 10.4
+        },
+        {
+          "date": "2024-09-21",
+          "daily": 12,
+          "7-day average": 10.4
+        },
+        {
+          "date": "2024-09-22",
+          "daily": 12,
+          "7-day average": 11.1
+        },
+        {
+          "date": "2024-09-23",
+          "daily": 7,
+          "7-day average": 10.1
+        },
+        {
+          "date": "2024-09-24",
+          "daily": 11,
+          "7-day average": 10.3
+        },
+        {
+          "date": "2024-09-25",
+          "daily": 11,
+          "7-day average": 10.6
+        },
+        {
+          "date": "2024-09-26",
+          "daily": 8,
+          "7-day average": 9.9
+        },
+        {
+          "date": "2024-09-27",
+          "daily": 14,
+          "7-day average": 10.7
+        },
+        {
+          "date": "2024-09-28",
+          "daily": 14,
+          "7-day average": 11.0
+        },
+        {
+          "date": "2024-09-29",
+          "daily": 7,
+          "7-day average": 10.3
+        },
+        {
+          "date": "2024-09-30",
+          "daily": 3,
+          "7-day average": 9.7
+        },
+        {
+          "date": "2024-10-01",
+          "daily": 4,
+          "7-day average": 8.7
+        },
+        {
+          "date": "2024-10-02",
+          "daily": 1,
+          "7-day average": 7.3
+        },
+        {
+          "date": "2024-10-03",
+          "daily": 2,
+          "7-day average": 6.4
+        },
+        {
+          "date": "2024-10-04",
+          "daily": 13,
+          "7-day average": 6.3
+        },
+        {
+          "date": "2024-10-05",
+          "daily": 12,
+          "7-day average": 6.0
+        },
+        {
+          "date": "2024-10-06",
+          "daily": 6,
+          "7-day average": 5.9
+        },
+        {
+          "date": "2024-10-07",
+          "daily": 12,
+          "7-day average": 7.1
+        },
+        {
+          "date": "2024-10-08",
+          "daily": 10,
+          "7-day average": 8.0
+        },
+        {
+          "date": "2024-10-09",
+          "daily": 11,
+          "7-day average": 9.4
+        },
+        {
+          "date": "2024-10-10",
+          "daily": 9,
+          "7-day average": 10.4
+        },
+        {
+          "date": "2024-10-11",
+          "daily": 6,
+          "7-day average": 9.4
+        },
+        {
+          "date": "2024-10-12",
+          "daily": 14,
+          "7-day average": 9.7
+        },
+        {
+          "date": "2024-10-13",
+          "daily": 6,
+          "7-day average": 9.7
+        },
+        {
+          "date": "2024-10-14",
+          "daily": 7,
+          "7-day average": 9.0
+        },
+        {
+          "date": "2024-10-15",
+          "daily": 5,
+          "7-day average": 8.3
+        },
+        {
+          "date": "2024-10-16",
+          "daily": 5,
+          "7-day average": 7.4
+        },
+        {
+          "date": "2024-10-17",
+          "daily": 14,
+          "7-day average": 8.1
+        },
+        {
+          "date": "2024-10-18",
+          "daily": 10,
+          "7-day average": 8.7
+        },
+        {
+          "date": "2024-10-19",
+          "daily": 10,
+          "7-day average": 8.1
+        },
+        {
+          "date": "2024-10-20",
+          "daily": 7,
+          "7-day average": 8.3
+        },
+        {
+          "date": "2024-10-21",
+          "daily": 14,
+          "7-day average": 9.3
+        },
+        {
+          "date": "2024-10-22",
+          "daily": 9,
+          "7-day average": 9.9
+        },
+        {
+          "date": "2024-10-23",
+          "daily": 13,
+          "7-day average": 11.0
+        },
+        {
+          "date": "2024-10-24",
+          "daily": 17,
+          "7-day average": 11.4
+        },
+        {
+          "date": "2024-10-25",
+          "daily": 7,
+          "7-day average": 11.0
+        },
+        {
+          "date": "2024-10-26",
+          "daily": 6,
+          "7-day average": 10.4
+        },
+        {
+          "date": "2024-10-27",
+          "daily": 11,
+          "7-day average": 11.0
+        },
+        {
+          "date": "2024-10-28",
+          "daily": 10,
+          "7-day average": 10.4
+        },
+        {
+          "date": "2024-10-29",
+          "daily": 10,
+          "7-day average": 10.6
+        },
+        {
+          "date": "2024-10-30",
+          "daily": 9,
+          "7-day average": 10.0
+        },
+        {
+          "date": "2024-10-31",
+          "daily": 14,
+          "7-day average": 9.6
+        },
+        {
+          "date": "2024-11-01",
+          "daily": 9,
+          "7-day average": 9.9
+        },
+        {
+          "date": "2024-11-02",
+          "daily": 9,
+          "7-day average": 10.3
+        },
+        {
+          "date": "2024-11-03",
+          "daily": 11,
+          "7-day average": 10.3
+        },
+        {
+          "date": "2024-11-04",
+          "daily": 8,
+          "7-day average": 10.0
+        },
+        {
+          "date": "2024-11-05",
+          "daily": 8,
+          "7-day average": 9.7
+        },
+        {
+          "date": "2024-11-06",
+          "daily": 12,
+          "7-day average": 10.1
+        },
+        {
+          "date": "2024-11-07",
+          "daily": 10,
+          "7-day average": 9.6
+        },
+        {
+          "date": "2024-11-08",
+          "daily": 11,
+          "7-day average": 9.9
+        },
+        {
+          "date": "2024-11-09",
+          "daily": 11,
+          "7-day average": 10.1
+        },
+        {
+          "date": "2024-11-10",
+          "daily": 6,
+          "7-day average": 9.4
+        },
+        {
+          "date": "2024-11-11",
+          "daily": 7,
+          "7-day average": 9.3
+        },
+        {
+          "date": "2024-11-12",
+          "daily": 7,
+          "7-day average": 9.1
+        },
+        {
+          "date": "2024-11-13",
+          "daily": 10,
+          "7-day average": 8.9
+        },
+        {
+          "date": "2024-11-14",
+          "daily": 10,
+          "7-day average": 8.9
+        },
+        {
+          "date": "2024-11-15",
+          "daily": 12,
+          "7-day average": 9.0
+        },
+        {
+          "date": "2024-11-16",
+          "daily": 12,
+          "7-day average": 9.1
+        },
+        {
+          "date": "2024-11-17",
+          "daily": 8,
+          "7-day average": 9.4
+        },
+        {
+          "date": "2024-11-18",
+          "daily": 9,
+          "7-day average": 9.7
+        },
+        {
+          "date": "2024-11-19",
+          "daily": 18,
+          "7-day average": 11.3
+        },
+        {
+          "date": "2024-11-20",
+          "daily": 13,
+          "7-day average": 11.7
+        },
+        {
+          "date": "2024-11-21",
+          "daily": 8,
+          "7-day average": 11.4
+        },
+        {
+          "date": "2024-11-22",
+          "daily": 8,
+          "7-day average": 10.9
+        },
+        {
+          "date": "2024-11-23",
+          "daily": 12,
+          "7-day average": 10.9
+        },
+        {
+          "date": "2024-11-24",
+          "daily": 9,
+          "7-day average": 11.0
+        },
+        {
+          "date": "2024-11-25",
+          "daily": 11,
+          "7-day average": 11.3
+        },
+        {
+          "date": "2024-11-26",
+          "daily": 8,
+          "7-day average": 9.9
+        },
+        {
+          "date": "2024-11-27",
+          "daily": 11,
+          "7-day average": 9.6
+        },
+        {
+          "date": "2024-11-28",
+          "daily": 4,
+          "7-day average": 9.0
+        },
+        {
+          "date": "2024-11-29",
+          "daily": 15,
+          "7-day average": 10.0
+        },
+        {
+          "date": "2024-11-30",
+          "daily": 9,
+          "7-day average": 9.6
+        }
+      ]
+    },
+    {
+      "scenario": "Panama Canal drought restrictions (2023)",
+      "event": "RESTRICTIONS PANAMA CANAL",
+      "event_start": "2023-11-03T00:00:00Z",
+      "matched": true,
+      "match_reason": "route_chokepoint",
+      "location_id": "chokepoint:panama-canal",
+      "warning_days_before_eta": 19.0,
+      "traffic_location": "Panama Canal",
+      "traffic_metric": "transits",
+      "traffic_at_decision_pct": -9.9,
+      "traffic_change_pct": -23.5,
+      "cheapest_action": "monitor",
+      "force_majeure_covered": false,
+      "exposure_wait_usd": 9600.0,
+      "exposure_best_usd": 9600.0,
+      "savings_usd": 0.0,
+      "recommended_action": "notify_customer",
+      "risk_level": "high",
+      "model": "portguard-rules-v1",
+      "rationale": "RESTRICTIONS PANAMA CANAL (chokepoint_disruption, high risk). Cheapest available option: monitor at about $9,600. Wait it out: ~12 days of delay (chokepoint_disruption, severity high).",
+      "summary": "RESTRICTIONS PANAMA CANAL started 03 Nov 2023. The example shipment (Shanghai \u2192 Houston (US-TX)) matches via route chokepoint (Panama Canal), 19 days before its ETA. PortGuard would recommend **notify customer** (high risk): waiting would cost ~$9,600, the best available option ~$9,600. Over the following month, measured transits at Panama Canal changed -24% vs the month before.",
+      "traffic_series": [
+        {
+          "date": "2023-09-19",
+          "daily": 29,
+          "7-day average": 29.0
+        },
+        {
+          "date": "2023-09-20",
+          "daily": 32,
+          "7-day average": 30.5
+        },
+        {
+          "date": "2023-09-21",
+          "daily": 28,
+          "7-day average": 29.7
+        },
+        {
+          "date": "2023-09-22",
+          "daily": 31,
+          "7-day average": 30.0
+        },
+        {
+          "date": "2023-09-23",
+          "daily": 31,
+          "7-day average": 30.2
+        },
+        {
+          "date": "2023-09-24",
+          "daily": 34,
+          "7-day average": 30.8
+        },
+        {
+          "date": "2023-09-25",
+          "daily": 29,
+          "7-day average": 30.6
+        },
+        {
+          "date": "2023-09-26",
+          "daily": 29,
+          "7-day average": 30.6
+        },
+        {
+          "date": "2023-09-27",
+          "daily": 32,
+          "7-day average": 30.6
+        },
+        {
+          "date": "2023-09-28",
+          "daily": 31,
+          "7-day average": 31.0
+        },
+        {
+          "date": "2023-09-29",
+          "daily": 31,
+          "7-day average": 31.0
+        },
+        {
+          "date": "2023-09-30",
+          "daily": 29,
+          "7-day average": 30.7
+        },
+        {
+          "date": "2023-10-01",
+          "daily": 30,
+          "7-day average": 30.1
+        },
+        {
+          "date": "2023-10-02",
+          "daily": 29,
+          "7-day average": 30.1
+        },
+        {
+          "date": "2023-10-03",
+          "daily": 31,
+          "7-day average": 30.4
+        },
+        {
+          "date": "2023-10-04",
+          "daily": 30,
+          "7-day average": 30.1
+        },
+        {
+          "date": "2023-10-05",
+          "daily": 31,
+          "7-day average": 30.1
+        },
+        {
+          "date": "2023-10-06",
+          "daily": 33,
+          "7-day average": 30.4
+        },
+        {
+          "date": "2023-10-07",
+          "daily": 35,
+          "7-day average": 31.3
+        },
+        {
+          "date": "2023-10-08",
+          "daily": 29,
+          "7-day average": 31.1
+        },
+        {
+          "date": "2023-10-09",
+          "daily": 34,
+          "7-day average": 31.9
+        },
+        {
+          "date": "2023-10-10",
+          "daily": 29,
+          "7-day average": 31.6
+        },
+        {
+          "date": "2023-10-11",
+          "daily": 30,
+          "7-day average": 31.6
+        },
+        {
+          "date": "2023-10-12",
+          "daily": 29,
+          "7-day average": 31.3
+        },
+        {
+          "date": "2023-10-13",
+          "daily": 29,
+          "7-day average": 30.7
+        },
+        {
+          "date": "2023-10-14",
+          "daily": 29,
+          "7-day average": 29.9
+        },
+        {
+          "date": "2023-10-15",
+          "daily": 32,
+          "7-day average": 30.3
+        },
+        {
+          "date": "2023-10-16",
+          "daily": 28,
+          "7-day average": 29.4
+        },
+        {
+          "date": "2023-10-17",
+          "daily": 28,
+          "7-day average": 29.3
+        },
+        {
+          "date": "2023-10-18",
+          "daily": 27,
+          "7-day average": 28.9
+        },
+        {
+          "date": "2023-10-19",
+          "daily": 32,
+          "7-day average": 29.3
+        },
+        {
+          "date": "2023-10-20",
+          "daily": 29,
+          "7-day average": 29.3
+        },
+        {
+          "date": "2023-10-21",
+          "daily": 27,
+          "7-day average": 29.0
+        },
+        {
+          "date": "2023-10-22",
+          "daily": 27,
+          "7-day average": 28.3
+        },
+        {
+          "date": "2023-10-23",
+          "daily": 35,
+          "7-day average": 29.3
+        },
+        {
+          "date": "2023-10-24",
+          "daily": 29,
+          "7-day average": 29.4
+        },
+        {
+          "date": "2023-10-25",
+          "daily": 31,
+          "7-day average": 30.0
+        },
+        {
+          "date": "2023-10-26",
+          "daily": 30,
+          "7-day average": 29.7
+        },
+        {
+          "date": "2023-10-27",
+          "daily": 32,
+          "7-day average": 30.1
+        },
+        {
+          "date": "2023-10-28",
+          "daily": 30,
+          "7-day average": 30.6
+        },
+        {
+          "date": "2023-10-29",
+          "daily": 29,
+          "7-day average": 30.9
+        },
+        {
+          "date": "2023-10-30",
+          "daily": 30,
+          "7-day average": 30.1
+        },
+        {
+          "date": "2023-10-31",
+          "daily": 29,
+          "7-day average": 30.1
+        },
+        {
+          "date": "2023-11-01",
+          "daily": 31,
+          "7-day average": 30.1
+        },
+        {
+          "date": "2023-11-02",
+          "daily": 28,
+          "7-day average": 29.9
+        },
+        {
+          "date": "2023-11-03",
+          "daily": 25,
+          "7-day average": 28.9
+        },
+        {
+          "date": "2023-11-04",
+          "daily": 22,
+          "7-day average": 27.7
+        },
+        {
+          "date": "2023-11-05",
+          "daily": 27,
+          "7-day average": 27.4
+        },
+        {
+          "date": "2023-11-06",
+          "daily": 28,
+          "7-day average": 27.1
+        },
+        {
+          "date": "2023-11-07",
+          "daily": 25,
+          "7-day average": 26.6
+        },
+        {
+          "date": "2023-11-08",
+          "daily": 26,
+          "7-day average": 25.9
+        },
+        {
+          "date": "2023-11-09",
+          "daily": 25,
+          "7-day average": 25.4
+        },
+        {
+          "date": "2023-11-10",
+          "daily": 24,
+          "7-day average": 25.3
+        },
+        {
+          "date": "2023-11-11",
+          "daily": 22,
+          "7-day average": 25.3
+        },
+        {
+          "date": "2023-11-12",
+          "daily": 23,
+          "7-day average": 24.7
+        },
+        {
+          "date": "2023-11-13",
+          "daily": 23,
+          "7-day average": 24.0
+        },
+        {
+          "date": "2023-11-14",
+          "daily": 21,
+          "7-day average": 23.4
+        },
+        {
+          "date": "2023-11-15",
+          "daily": 24,
+          "7-day average": 23.1
+        },
+        {
+          "date": "2023-11-16",
+          "daily": 23,
+          "7-day average": 22.9
+        },
+        {
+          "date": "2023-11-17",
+          "daily": 27,
+          "7-day average": 23.3
+        },
+        {
+          "date": "2023-11-18",
+          "daily": 22,
+          "7-day average": 23.3
+        },
+        {
+          "date": "2023-11-19",
+          "daily": 20,
+          "7-day average": 22.9
+        },
+        {
+          "date": "2023-11-20",
+          "daily": 21,
+          "7-day average": 22.6
+        },
+        {
+          "date": "2023-11-21",
+          "daily": 22,
+          "7-day average": 22.7
+        },
+        {
+          "date": "2023-11-22",
+          "daily": 24,
+          "7-day average": 22.7
+        },
+        {
+          "date": "2023-11-23",
+          "daily": 23,
+          "7-day average": 22.7
+        },
+        {
+          "date": "2023-11-24",
+          "daily": 22,
+          "7-day average": 22.0
+        },
+        {
+          "date": "2023-11-25",
+          "daily": 26,
+          "7-day average": 22.6
+        },
+        {
+          "date": "2023-11-26",
+          "daily": 24,
+          "7-day average": 23.1
+        },
+        {
+          "date": "2023-11-27",
+          "daily": 25,
+          "7-day average": 23.7
+        },
+        {
+          "date": "2023-11-28",
+          "daily": 26,
+          "7-day average": 24.3
+        },
+        {
+          "date": "2023-11-29",
+          "daily": 21,
+          "7-day average": 23.9
+        },
+        {
+          "date": "2023-11-30",
+          "daily": 23,
+          "7-day average": 23.9
+        },
+        {
+          "date": "2023-12-01",
+          "daily": 24,
+          "7-day average": 24.1
+        },
+        {
+          "date": "2023-12-02",
+          "daily": 28,
+          "7-day average": 24.4
+        },
+        {
+          "date": "2023-12-03",
+          "daily": 25,
+          "7-day average": 24.6
+        },
+        {
+          "date": "2023-12-04",
+          "daily": 24,
+          "7-day average": 24.4
+        },
+        {
+          "date": "2023-12-05",
+          "daily": 22,
+          "7-day average": 23.9
+        },
+        {
+          "date": "2023-12-06",
+          "daily": 20,
+          "7-day average": 23.7
+        },
+        {
+          "date": "2023-12-07",
+          "daily": 23,
+          "7-day average": 23.7
+        },
+        {
+          "date": "2023-12-08",
+          "daily": 19,
+          "7-day average": 23.0
+        },
+        {
+          "date": "2023-12-09",
+          "daily": 19,
+          "7-day average": 21.7
+        },
+        {
+          "date": "2023-12-10",
+          "daily": 21,
+          "7-day average": 21.1
+        },
+        {
+          "date": "2023-12-11",
+          "daily": 18,
+          "7-day average": 20.3
+        },
+        {
+          "date": "2023-12-12",
+          "daily": 20,
+          "7-day average": 20.0
+        },
+        {
+          "date": "2023-12-13",
+          "daily": 20,
+          "7-day average": 20.0
+        },
+        {
+          "date": "2023-12-14",
+          "daily": 23,
+          "7-day average": 20.0
+        },
+        {
+          "date": "2023-12-15",
+          "daily": 22,
+          "7-day average": 20.4
+        },
+        {
+          "date": "2023-12-16",
+          "daily": 23,
+          "7-day average": 21.0
+        },
+        {
+          "date": "2023-12-17",
+          "daily": 22,
+          "7-day average": 21.1
+        },
+        {
+          "date": "2023-12-18",
+          "daily": 21,
+          "7-day average": 21.6
+        },
+        {
+          "date": "2023-12-19",
+          "daily": 19,
+          "7-day average": 21.4
+        },
+        {
+          "date": "2023-12-20",
+          "daily": 20,
+          "7-day average": 21.4
+        },
+        {
+          "date": "2023-12-21",
+          "daily": 20,
+          "7-day average": 21.0
+        },
+        {
+          "date": "2023-12-22",
+          "daily": 23,
+          "7-day average": 21.1
+        },
+        {
+          "date": "2023-12-23",
+          "daily": 23,
+          "7-day average": 21.1
+        },
+        {
+          "date": "2023-12-24",
+          "daily": 23,
+          "7-day average": 21.3
+        },
+        {
+          "date": "2023-12-25",
+          "daily": 24,
+          "7-day average": 21.7
+        },
+        {
+          "date": "2023-12-26",
+          "daily": 15,
+          "7-day average": 21.1
+        },
+        {
+          "date": "2023-12-27",
+          "daily": 19,
+          "7-day average": 21.0
+        },
+        {
+          "date": "2023-12-28",
+          "daily": 27,
+          "7-day average": 22.0
+        },
+        {
+          "date": "2023-12-29",
+          "daily": 23,
+          "7-day average": 22.0
+        },
+        {
+          "date": "2023-12-30",
+          "daily": 22,
+          "7-day average": 21.9
+        },
+        {
+          "date": "2023-12-31",
+          "daily": 22,
+          "7-day average": 21.7
+        },
+        {
+          "date": "2024-01-01",
+          "daily": 22,
+          "7-day average": 21.4
+        },
+        {
+          "date": "2024-01-02",
+          "daily": 21,
+          "7-day average": 22.3
+        }
+      ]
+    },
+    {
+      "scenario": "Strait of Hormuz disruption (Mar 2026)",
+      "event": "HORMUZ-26",
+      "event_start": "2026-03-01T00:00:00Z",
+      "matched": true,
+      "match_reason": "route_chokepoint",
+      "location_id": "chokepoint:strait-of-hormuz",
+      "warning_days_before_eta": 4.0,
+      "traffic_location": "Strait of Hormuz",
+      "traffic_metric": "transits",
+      "traffic_at_decision_pct": 2.2,
+      "traffic_change_pct": -96.0,
+      "cheapest_action": "monitor",
+      "force_majeure_covered": false,
+      "exposure_wait_usd": 30000.0,
+      "exposure_best_usd": 30000.0,
+      "savings_usd": 0.0,
+      "recommended_action": "notify_customer",
+      "risk_level": "high",
+      "model": "portguard-rules-v1",
+      "rationale": "HORMUZ-26 (chokepoint_disruption, high risk). Cheapest available option: monitor at about $30,000. Wait it out: ~12 days of delay (chokepoint_disruption, severity high).",
+      "summary": "HORMUZ-26 started 01 Mar 2026. The example shipment (Jebel Ali \u2192 Mumbai-Jawaharlal Nehru (Nhava Sheva)) matches via route chokepoint (Strait of Hormuz), 4 days before its ETA. PortGuard would recommend **notify customer** (high risk): waiting would cost ~$30,000, the best available option ~$30,000. Over the following month, measured transits at Strait of Hormuz changed -96% vs the month before.",
+      "traffic_series": [
+        {
+          "date": "2026-01-15",
+          "daily": 62,
+          "7-day average": 62.0
+        },
+        {
+          "date": "2026-01-16",
+          "daily": 53,
+          "7-day average": 57.5
+        },
+        {
+          "date": "2026-01-17",
+          "daily": 38,
+          "7-day average": 51.0
+        },
+        {
+          "date": "2026-01-18",
+          "daily": 54,
+          "7-day average": 51.8
+        },
+        {
+          "date": "2026-01-19",
+          "daily": 58,
+          "7-day average": 53.0
+        },
+        {
+          "date": "2026-01-20",
+          "daily": 58,
+          "7-day average": 53.8
+        },
+        {
+          "date": "2026-01-21",
+          "daily": 56,
+          "7-day average": 54.1
+        },
+        {
+          "date": "2026-01-22",
+          "daily": 64,
+          "7-day average": 54.4
+        },
+        {
+          "date": "2026-01-23",
+          "daily": 48,
+          "7-day average": 53.7
+        },
+        {
+          "date": "2026-01-24",
+          "daily": 46,
+          "7-day average": 54.9
+        },
+        {
+          "date": "2026-01-25",
+          "daily": 64,
+          "7-day average": 56.3
+        },
+        {
+          "date": "2026-01-26",
+          "daily": 43,
+          "7-day average": 54.1
+        },
+        {
+          "date": "2026-01-27",
+          "daily": 61,
+          "7-day average": 54.6
+        },
+        {
+          "date": "2026-01-28",
+          "daily": 54,
+          "7-day average": 54.3
+        },
+        {
+          "date": "2026-01-29",
+          "daily": 72,
+          "7-day average": 55.4
+        },
+        {
+          "date": "2026-01-30",
+          "daily": 71,
+          "7-day average": 58.7
+        },
+        {
+          "date": "2026-01-31",
+          "daily": 70,
+          "7-day average": 62.1
+        },
+        {
+          "date": "2026-02-01",
+          "daily": 49,
+          "7-day average": 60.0
+        },
+        {
+          "date": "2026-02-02",
+          "daily": 67,
+          "7-day average": 63.4
+        },
+        {
+          "date": "2026-02-03",
+          "daily": 66,
+          "7-day average": 64.1
+        },
+        {
+          "date": "2026-02-04",
+          "daily": 43,
+          "7-day average": 62.6
+        },
+        {
+          "date": "2026-02-05",
+          "daily": 71,
+          "7-day average": 62.4
+        },
+        {
+          "date": "2026-02-06",
+          "daily": 60,
+          "7-day average": 60.9
+        },
+        {
+          "date": "2026-02-07",
+          "daily": 60,
+          "7-day average": 59.4
+        },
+        {
+          "date": "2026-02-08",
+          "daily": 58,
+          "7-day average": 60.7
+        },
+        {
+          "date": "2026-02-09",
+          "daily": 53,
+          "7-day average": 58.7
+        },
+        {
+          "date": "2026-02-10",
+          "daily": 65,
+          "7-day average": 58.6
+        },
+        {
+          "date": "2026-02-11",
+          "daily": 81,
+          "7-day average": 64.0
+        },
+        {
+          "date": "2026-02-12",
+          "daily": 68,
+          "7-day average": 63.6
+        },
+        {
+          "date": "2026-02-13",
+          "daily": 103,
+          "7-day average": 69.7
+        },
+        {
+          "date": "2026-02-14",
+          "daily": 91,
+          "7-day average": 74.1
+        },
+        {
+          "date": "2026-02-15",
+          "daily": 74,
+          "7-day average": 76.4
+        },
+        {
+          "date": "2026-02-16",
+          "daily": 54,
+          "7-day average": 76.6
+        },
+        {
+          "date": "2026-02-17",
+          "daily": 75,
+          "7-day average": 78.0
+        },
+        {
+          "date": "2026-02-18",
+          "daily": 109,
+          "7-day average": 82.0
+        },
+        {
+          "date": "2026-02-19",
+          "daily": 115,
+          "7-day average": 88.7
+        },
+        {
+          "date": "2026-02-20",
+          "daily": 94,
+          "7-day average": 87.4
+        },
+        {
+          "date": "2026-02-21",
+          "daily": 86,
+          "7-day average": 86.7
+        },
+        {
+          "date": "2026-02-22",
+          "daily": 127,
+          "7-day average": 94.3
+        },
+        {
+          "date": "2026-02-23",
+          "daily": 104,
+          "7-day average": 101.4
+        },
+        {
+          "date": "2026-02-24",
+          "daily": 93,
+          "7-day average": 104.0
+        },
+        {
+          "date": "2026-02-25",
+          "daily": 116,
+          "7-day average": 105.0
+        },
+        {
+          "date": "2026-02-26",
+          "daily": 89,
+          "7-day average": 101.3
+        },
+        {
+          "date": "2026-02-27",
+          "daily": 64,
+          "7-day average": 97.0
+        },
+        {
+          "date": "2026-02-28",
+          "daily": 57,
+          "7-day average": 92.9
+        },
+        {
+          "date": "2026-03-01",
+          "daily": 20,
+          "7-day average": 77.6
+        },
+        {
+          "date": "2026-03-02",
+          "daily": 4,
+          "7-day average": 63.3
+        },
+        {
+          "date": "2026-03-03",
+          "daily": 4,
+          "7-day average": 50.6
+        },
+        {
+          "date": "2026-03-04",
+          "daily": 0,
+          "7-day average": 34.0
+        },
+        {
+          "date": "2026-03-05",
+          "daily": 3,
+          "7-day average": 21.7
+        },
+        {
+          "date": "2026-03-06",
+          "daily": 2,
+          "7-day average": 12.9
+        },
+        {
+          "date": "2026-03-07",
+          "daily": 3,
+          "7-day average": 5.1
+        },
+        {
+          "date": "2026-03-08",
+          "daily": 2,
+          "7-day average": 2.6
+        },
+        {
+          "date": "2026-03-09",
+          "daily": 2,
+          "7-day average": 2.3
+        },
+        {
+          "date": "2026-03-10",
+          "daily": 2,
+          "7-day average": 2.0
+        },
+        {
+          "date": "2026-03-11",
+          "daily": 2,
+          "7-day average": 2.3
+        },
+        {
+          "date": "2026-03-12",
+          "daily": 1,
+          "7-day average": 2.0
+        },
+        {
+          "date": "2026-03-13",
+          "daily": 0,
+          "7-day average": 1.7
+        },
+        {
+          "date": "2026-03-14",
+          "daily": 1,
+          "7-day average": 1.4
+        },
+        {
+          "date": "2026-03-15",
+          "daily": 7,
+          "7-day average": 2.1
+        },
+        {
+          "date": "2026-03-16",
+          "daily": 4,
+          "7-day average": 2.4
+        },
+        {
+          "date": "2026-03-17",
+          "daily": 1,
+          "7-day average": 2.3
+        },
+        {
+          "date": "2026-03-18",
+          "daily": 0,
+          "7-day average": 2.0
+        },
+        {
+          "date": "2026-03-19",
+          "daily": 0,
+          "7-day average": 1.9
+        },
+        {
+          "date": "2026-03-20",
+          "daily": 3,
+          "7-day average": 2.3
+        },
+        {
+          "date": "2026-03-21",
+          "daily": 0,
+          "7-day average": 2.1
+        },
+        {
+          "date": "2026-03-22",
+          "daily": 2,
+          "7-day average": 1.4
+        },
+        {
+          "date": "2026-03-23",
+          "daily": 4,
+          "7-day average": 1.4
+        },
+        {
+          "date": "2026-03-24",
+          "daily": 2,
+          "7-day average": 1.6
+        },
+        {
+          "date": "2026-03-25",
+          "daily": 2,
+          "7-day average": 1.9
+        },
+        {
+          "date": "2026-03-26",
+          "daily": 4,
+          "7-day average": 2.4
+        },
+        {
+          "date": "2026-03-27",
+          "daily": 2,
+          "7-day average": 2.3
+        },
+        {
+          "date": "2026-03-28",
+          "daily": 6,
+          "7-day average": 3.1
+        },
+        {
+          "date": "2026-03-29",
+          "daily": 5,
+          "7-day average": 3.6
+        },
+        {
+          "date": "2026-03-30",
+          "daily": 6,
+          "7-day average": 3.9
+        },
+        {
+          "date": "2026-03-31",
+          "daily": 5,
+          "7-day average": 4.3
+        },
+        {
+          "date": "2026-04-01",
+          "daily": 7,
+          "7-day average": 5.0
+        },
+        {
+          "date": "2026-04-02",
+          "daily": 1,
+          "7-day average": 4.6
+        },
+        {
+          "date": "2026-04-03",
+          "daily": 3,
+          "7-day average": 4.7
+        },
+        {
+          "date": "2026-04-04",
+          "daily": 11,
+          "7-day average": 5.4
+        },
+        {
+          "date": "2026-04-05",
+          "daily": 4,
+          "7-day average": 5.3
+        },
+        {
+          "date": "2026-04-06",
+          "daily": 5,
+          "7-day average": 5.1
+        },
+        {
+          "date": "2026-04-07",
+          "daily": 3,
+          "7-day average": 4.9
+        },
+        {
+          "date": "2026-04-08",
+          "daily": 3,
+          "7-day average": 4.3
+        },
+        {
+          "date": "2026-04-09",
+          "daily": 8,
+          "7-day average": 5.3
+        },
+        {
+          "date": "2026-04-10",
+          "daily": 3,
+          "7-day average": 5.3
+        },
+        {
+          "date": "2026-04-11",
+          "daily": 7,
+          "7-day average": 4.7
+        },
+        {
+          "date": "2026-04-12",
+          "daily": 12,
+          "7-day average": 5.9
+        },
+        {
+          "date": "2026-04-13",
+          "daily": 7,
+          "7-day average": 6.1
+        },
+        {
+          "date": "2026-04-14",
+          "daily": 5,
+          "7-day average": 6.4
+        },
+        {
+          "date": "2026-04-15",
+          "daily": 7,
+          "7-day average": 7.0
+        },
+        {
+          "date": "2026-04-16",
+          "daily": 3,
+          "7-day average": 6.3
+        },
+        {
+          "date": "2026-04-17",
+          "daily": 8,
+          "7-day average": 7.0
+        },
+        {
+          "date": "2026-04-18",
+          "daily": 20,
+          "7-day average": 8.9
+        },
+        {
+          "date": "2026-04-19",
+          "daily": 2,
+          "7-day average": 7.4
+        },
+        {
+          "date": "2026-04-20",
+          "daily": 3,
+          "7-day average": 6.9
+        },
+        {
+          "date": "2026-04-21",
+          "daily": 4,
+          "7-day average": 6.7
+        },
+        {
+          "date": "2026-04-22",
+          "daily": 5,
+          "7-day average": 6.4
+        },
+        {
+          "date": "2026-04-23",
+          "daily": 3,
+          "7-day average": 6.4
+        },
+        {
+          "date": "2026-04-24",
+          "daily": 6,
+          "7-day average": 6.1
+        },
+        {
+          "date": "2026-04-25",
+          "daily": 4,
+          "7-day average": 3.9
+        },
+        {
+          "date": "2026-04-26",
+          "daily": 3,
+          "7-day average": 4.0
+        },
+        {
+          "date": "2026-04-27",
+          "daily": 7,
+          "7-day average": 4.6
+        },
+        {
+          "date": "2026-04-28",
+          "daily": 10,
+          "7-day average": 5.4
+        },
+        {
+          "date": "2026-04-29",
+          "daily": 39,
+          "7-day average": 10.3
+        },
+        {
+          "date": "2026-04-30",
+          "daily": 11,
+          "7-day average": 11.4
+        }
+      ]
+    }
+  ]
+}

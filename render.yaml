@@ -1,0 +1,26 @@
+# Render Blueprint for the PortGuard AI API. Deploy: render.com -> New -> Blueprint -> this repo.
+# The React frontend deploys separately on Vercel (Root Directory = frontend/, see frontend/README.md).
+services:
+  - type: web
+    name: portguard-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      # Optional — only needed for the "Ask PortGuard" chat tab. Without these it degrades
+      # gracefully (the tab shows "Nemotron is not reachable"); every other endpoint (KPIs,
+      # map, shipments, decisions, events, traffic, backtest, signals) reads pre-computed data
+      # from data/portguard.db and needs no LLM call at request time.
+      - key: NEMOTRON_BASE_URL
+        value: https://integrate.api.nvidia.com/v1
+        sync: false
+      - key: NEMOTRON_API_KEY
+        sync: false
+      - key: NEMOTRON_MODEL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
