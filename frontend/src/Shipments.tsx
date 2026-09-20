@@ -52,7 +52,15 @@ function FleetRow({ s, selected, onSelect, rowRef }:
           <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
             <Chip text={top.risk_level.toUpperCase()} tone={RISK_TONE[top.risk_level]} />
             <span>{top.recommended_action_label} — ${fmtMoney(top.estimated_cost_usd ?? 0)}</span>
-            {top.recommended_action === "invoke_force_majeure" && dueHours !== null ? (
+            {/* Review state belongs on the row, not only inside the panel. Without it the table
+                looks identical before and after a decision is actioned, so an operator scanning
+                thirty-three shipments cannot tell which ones still need them. A reviewed row also
+                stops showing a notice countdown: the deadline is no longer the thing to act on. */}
+            {top.human_decision === "approved" ? (
+              <Chip text="APPROVED" tone="ok" />
+            ) : top.human_decision === "overridden" ? (
+              <Chip text="OVERRIDDEN" tone="mute" />
+            ) : top.recommended_action === "invoke_force_majeure" && dueHours !== null ? (
               <Chip text={`Notice ${fmtCountdown(dueHours)}`} tone={dueHours > 0 ? "warn" : "risk"} />
             ) : top.estimated_cost_usd ? (
               <Chip text={`$${fmtMoney(top.estimated_cost_usd)}`} tone={top.risk_level === "critical" ? "risk" : "warn"} />

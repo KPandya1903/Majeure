@@ -38,6 +38,8 @@ SOURCE_GROUP = {
     "portwatch": "PortWatch", "gdacs": "GDACS", "gdelt": "GDELT", "google_news": "Google News",
     "nga_warnings": "Official warnings", "nhc": "Official warnings",
     "jtwc": "Official warnings", "usgs": "Official warnings",
+    "federal_register": "Trade policy", "white_house": "Trade policy",
+    "ustr": "Trade policy", "wto": "Trade policy",
     "gcaptain": "Trade-press RSS", "maritime_executive": "Trade-press RSS",
     "seatrade_maritime": "Trade-press RSS", "hellenic_shipping_news": "Trade-press RSS",
     "splash247": "Trade-press RSS", "joc": "Trade-press RSS", "loadstar": "Trade-press RSS",

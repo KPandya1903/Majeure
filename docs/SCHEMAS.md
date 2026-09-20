@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS signals (
                          'maritime_logistics', 'marine_insight', 'bunkerspot',
                          'hellenic_shipping_news', 'sea_news',
                          'freightwaves', 'supply_chain_dive', 'offshore_energy',
+                         'federal_register', 'white_house', 'ustr', 'wto',
                          'gdelt', 'google_news')),
     title            TEXT NOT NULL,
     source_url       TEXT NOT NULL,

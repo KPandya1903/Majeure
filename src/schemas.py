@@ -30,6 +30,7 @@ Source = Literal[
     "container_news", "world_cargo_news", "marine_link", "maritime_logistics",
     "marine_insight", "bunkerspot", "sea_news",
     "freightwaves", "offshore_energy", "supply_chain_dive",  # general logistics: maritime-filtered on ingest
+    "federal_register", "white_house", "ustr", "wto",       # trade policy (src/fetch_policy.py)
     "gdelt", "google_news",                                 # news search / firehose
 ]
 Action = Literal["monitor", "notify_customer", "reroute", "expedite", "hold_cargo", "invoke_force_majeure"]

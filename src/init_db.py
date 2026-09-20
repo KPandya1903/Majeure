@@ -29,7 +29,7 @@ SCHEMAS_MD = ROOT / "docs" / "SCHEMAS.md"
 # structured data first, then publishers' own feeds, then news aggregators.
 SIGNAL_FILES = [DATA_DIR / name for name in (
     "portwatch_signals.json", "gdacs_signals.json", "official_signals.json",
-    "rss_signals.json", "gdelt_signals.json", "google_news_signals.json",
+    "policy_signals.json", "rss_signals.json", "gdelt_signals.json", "google_news_signals.json",
 )]
 
 SIGNAL_COLUMNS = [
@@ -74,7 +74,32 @@ def migrate_source_check(conn: sqlite3.Connection, ddl: str) -> bool:
     every run, but decision_logs references them, hence the FK-off copy rather than a DROP.
     """
     if store.is_postgres():
-        return False  # Postgres CHECK constraints are alterable in place; this dance is SQLite-only
+        # Postgres CAN alter a CHECK in place, which is why this does not need SQLite's
+        # rebuild-the-table dance -- but it still has to happen. Skipping it entirely meant adding
+        # a source to the docs left the deployed constraint stale, and every insert from that
+        # source failed while the run still reported "ok".
+        wanted = re.search(r"CREATE TABLE IF NOT EXISTS signals \((.*?)\n\);", ddl, re.S)
+        if not wanted:
+            return False
+        clause = re.search(r"source\s+TEXT NOT NULL CHECK \(source IN \((.*?)\)\)", wanted.group(1), re.S)
+        if not clause:
+            return False
+        sources = sorted(set(re.findall(r"'([a-z_0-9]+)'", clause.group(1))))
+        row = conn.execute("""
+            SELECT con.conname, pg_get_constraintdef(con.oid)
+            FROM pg_constraint con JOIN pg_class rel ON rel.oid = con.conrelid
+            WHERE rel.relname = 'signals' AND con.contype = 'c'
+              AND pg_get_constraintdef(con.oid) LIKE '%source%'""").fetchone()
+        if row and set(re.findall(r"'([a-z_0-9]+)'", row[1])) == set(sources):
+            return False
+        values = ", ".join(f"'{s}'" for s in sources)
+        with conn:
+            if row:
+                conn.execute(f'ALTER TABLE signals DROP CONSTRAINT "{row[0]}"')
+            conn.execute(f"ALTER TABLE signals ADD CONSTRAINT signals_source_check "
+                         f"CHECK (source IN ({values}))")
+        log.info("signals.source CHECK updated in Postgres (%d sources)", len(sources))
+        return True
     current = conn.execute(
         "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'signals'").fetchone()
     if not current:

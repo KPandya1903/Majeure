@@ -221,6 +221,10 @@ SEA_AREA_LINKS = {
 # schemas.Source and with FEEDS in parse_rss.py.
 PUBLISHER_TIER: dict[str, int] = {
     "portwatch": 1, "gdacs": 1, "nga_warnings": 1, "nhc": 1, "jtwc": 1, "usgs": 1,
+    # Trade policy: the Federal Register IS the legal record of a US trade measure, and the White
+    # House and USTR publish the action itself rather than reporting on it. Tier 1 for the same
+    # reason NOAA is -- these bodies do not report the fact, they declare it.
+    "federal_register": 1, "white_house": 1, "ustr": 1, "wto": 2,
     "joc": 2, "loadstar": 2, "gcaptain": 2, "maritime_executive": 2, "seatrade_maritime": 2, "splash247": 2,
     "container_news": 3, "world_cargo_news": 3, "marine_link": 3, "maritime_logistics": 3,
     "marine_insight": 3, "bunkerspot": 3, "hellenic_shipping_news": 3, "sea_news": 3,

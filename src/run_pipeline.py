@@ -30,6 +30,7 @@ SCHEDULE_MIN = {
     "GDACS": 5,                # live hazard alerts
     "Trade-press RSS": 5,      # new articles a few times a day per feed
     "Official warnings": 10,   # NOAA/JTWC advisories reissue ~6-hourly; NGA warnings change rarely
+    "Trade policy": 30,        # the Federal Register publishes once a business day
     "GDELT": 15,               # one new GKG file every 15 minutes (fetched incrementally)
     "Google News": 10,         # unofficial feed: stay polite
     "PortWatch traffic": 360,  # daily data, published ~5-7 days late
@@ -43,6 +44,7 @@ def ingest_steps(loop: bool) -> list[tuple[str, list[str], bool]]:
         ("PortWatch", ["fetch_portwatch.py"], True), ("GDACS", ["fetch_gdacs.py"], False),
         ("Trade-press RSS", ["parse_rss.py"], False),
         ("Official warnings", ["fetch_official.py"], False),
+        ("Trade policy", ["fetch_policy.py"], False),
         ("GDELT", ["fetch_gdelt.py"] + (["--incremental"] if loop else []), False),
         ("Google News", ["fetch_google_news.py"], False), ("PortWatch traffic", ["fetch_traffic.py"], False),
     ]
