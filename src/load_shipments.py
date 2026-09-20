@@ -29,6 +29,7 @@ COLUMNS = [
     "cargo_description", "container_count", "cargo_value_usd", "incoterm", "force_majeure_clause",
     "demurrage_usd_per_day", "detention_usd_per_day", "free_time_days", "late_delivery_penalty_usd_per_day",
     "deviation_permitted", "notice_period_hours", "governing_law", "created_at", "updated_at",
+    "imo", "vessel_source", "carrier_source", "terms_source",
 ]
 UPSERT = (
     f"INSERT INTO shipments ({', '.join(COLUMNS)}) VALUES ({', '.join(':' + c for c in COLUMNS)}) "
@@ -56,6 +57,9 @@ def shipment_row(s: Shipment, now: datetime) -> dict:
         "deviation_permitted": None if terms.deviation_permitted is None else int(terms.deviation_permitted),
         "notice_period_hours": terms.notice_period_hours, "governing_law": terms.governing_law,
         "created_at": iso(now), "updated_at": iso(now),
+        # Default to the honest answer for a book loaded without provenance: it is demo data.
+        "imo": bl.imo, "vessel_source": bl.vessel_source or "demo",
+        "carrier_source": bl.carrier_source or "demo", "terms_source": terms.terms_source or "synthetic",
     }
 
 

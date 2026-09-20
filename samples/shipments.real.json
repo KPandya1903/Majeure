@@ -1,0 +1,500 @@
+[
+  {
+    "shipment_id": "SHP-9334686",
+    "bill_of_lading": {
+      "bl_number": "MAEU4686001",
+      "carrier": "A.P. Moller-Maersk",
+      "shipper": "Consumer electronics exporter (Shanghai)",
+      "consignee": "Importer of record (Rotterdam)",
+      "vessel_name": "MAERSK TUKANG",
+      "imo": "9334686",
+      "voyage_number": "144E",
+      "port_of_loading": {
+        "port_id": "port1188",
+        "name": "Shanghai",
+        "country": "China",
+        "lat": 31.19179536,
+        "lon": 121.6441968
+      },
+      "port_of_discharge": {
+        "port_id": "port1114",
+        "name": "Rotterdam",
+        "country": "The Netherlands",
+        "lat": 51.92228121,
+        "lon": 4.215144967
+      },
+      "transshipment_ports": [
+        {
+          "port_id": "port1201",
+          "name": "Singapore",
+          "country": "Singapore",
+          "lat": 1.271989257,
+          "lon": 103.7074816
+        }
+      ],
+      "route_chokepoints": [
+        "chokepoint:malacca-strait",
+        "chokepoint:bab-el-mandeb-strait",
+        "chokepoint:suez-canal"
+      ],
+      "etd": "2026-09-20T08:38:00Z",
+      "eta": "2026-10-22T08:38:00Z",
+      "cargo_description": "Consumer electronics, 40' HC",
+      "container_count": 32,
+      "cargo_value_usd": 1220000.0,
+      "vessel_source": "public_registry",
+      "carrier_source": "name_prefix"
+    },
+    "contract_terms": {
+      "incoterm": "CFR",
+      "force_majeure_clause": "Neither party is liable for delay or failure to perform caused by war, blockade, hostilities, piracy, strikes, closure of ports or canals, or any other cause beyond its reasonable control, provided written notice is given within 72 hours of the party becoming aware of the event.",
+      "demurrage_usd_per_day": 190.0,
+      "detention_usd_per_day": 220.0,
+      "free_time_days": 5,
+      "late_delivery_penalty_usd_per_day": 500.0,
+      "deviation_permitted": false,
+      "notice_period_hours": 72,
+      "governing_law": "Singapore law",
+      "terms_source": "synthetic"
+    }
+  },
+  {
+    "shipment_id": "SHP-9352016",
+    "bill_of_lading": {
+      "bl_number": "MAEU2016002",
+      "carrier": "A.P. Moller-Maersk",
+      "shipper": "Household appliances exporter (Ningbo)",
+      "consignee": "Importer of record (Hamburg)",
+      "vessel_name": "MAERSK SALALAH",
+      "imo": "9352016",
+      "voyage_number": "064W",
+      "port_of_loading": {
+        "port_id": "port824",
+        "name": "Ningbo",
+        "country": "China",
+        "lat": 29.92076897,
+        "lon": 121.8818408
+      },
+      "port_of_discharge": {
+        "port_id": "port446",
+        "name": "Hamburg",
+        "country": "Germany",
+        "lat": 53.51640056,
+        "lon": 9.964294338
+      },
+      "transshipment_ports": [],
+      "route_chokepoints": [
+        "chokepoint:malacca-strait",
+        "chokepoint:bab-el-mandeb-strait",
+        "chokepoint:suez-canal"
+      ],
+      "etd": "2026-09-18T08:38:00Z",
+      "eta": "2026-10-15T08:38:00Z",
+      "cargo_description": "Household appliances",
+      "container_count": 16,
+      "cargo_value_usd": 820000.0,
+      "vessel_source": "public_registry",
+      "carrier_source": "name_prefix"
+    },
+    "contract_terms": {
+      "incoterm": "DAP",
+      "force_majeure_clause": "Neither party is liable for delay or failure to perform caused by war, blockade, hostilities, piracy, strikes, closure of ports or canals, or any other cause beyond its reasonable control, provided written notice is given within 48 hours of the party becoming aware of the event.",
+      "demurrage_usd_per_day": 170.0,
+      "detention_usd_per_day": 200.0,
+      "free_time_days": 5,
+      "late_delivery_penalty_usd_per_day": 2000.0,
+      "deviation_permitted": true,
+      "notice_period_hours": 48,
+      "governing_law": "English law",
+      "terms_source": "synthetic"
+    }
+  },
+  {
+    "shipment_id": "SHP-9301471",
+    "bill_of_lading": {
+      "bl_number": "MSCU1471003",
+      "carrier": "Mediterranean Shipping Company",
+      "shipper": "Polyethylene resin exporter (Jebel Ali)",
+      "consignee": "Importer of record (Mumbai-Jawaharlal Nehru (Nhava Sheva))",
+      "vessel_name": "MSC VALENCIA",
+      "imo": "9301471",
+      "voyage_number": "268S",
+      "port_of_loading": {
+        "port_id": "port744",
+        "name": "Jebel Ali",
+        "country": "United Arab Emirates",
+        "lat": 24.99941947,
+        "lon": 55.07781687
+      },
+      "port_of_discharge": {
+        "port_id": "port776",
+        "name": "Mumbai-Jawaharlal Nehru (Nhava Sheva)",
+        "country": "India",
+        "lat": 18.91732276,
+        "lon": 72.93965039
+      },
+      "transshipment_ports": [],
+      "route_chokepoints": [
+        "chokepoint:strait-of-hormuz"
+      ],
+      "etd": "2026-09-12T08:38:00Z",
+      "eta": "2026-10-16T08:38:00Z",
+      "cargo_description": "Polyethylene resin, 20' dry",
+      "container_count": 26,
+      "cargo_value_usd": 1370000.0,
+      "vessel_source": "public_registry",
+      "carrier_source": "name_prefix"
+    },
+    "contract_terms": {
+      "incoterm": "FOB",
+      "force_majeure_clause": "Neither party is liable for delay or failure to perform caused by war, blockade, hostilities, piracy, strikes, closure of ports or canals, or any other cause beyond its reasonable control, provided written notice is given within 72 hours of the party becoming aware of the event.",
+      "demurrage_usd_per_day": 290.0,
+      "detention_usd_per_day": 210.0,
+      "free_time_days": 7,
+      "late_delivery_penalty_usd_per_day": 1100.0,
+      "deviation_permitted": false,
+      "notice_period_hours": 72,
+      "governing_law": "Singapore law",
+      "terms_source": "synthetic"
+    }
+  },
+  {
+    "shipment_id": "SHP-9226205",
+    "bill_of_lading": {
+      "bl_number": "MSCU6205004",
+      "carrier": "Mediterranean Shipping Company",
+      "shipper": "Automotive parts exporter (Busan)",
+      "consignee": "Importer of record (Los Angeles-Long Beach)",
+      "vessel_name": "MSC BREMEN",
+      "imo": "9226205",
+      "voyage_number": "273W",
+      "port_of_loading": {
+        "port_id": "port1065",
+        "name": "Busan",
+        "country": "Korea",
+        "lat": 35.08955067,
+        "lon": 128.9385952
+      },
+      "port_of_discharge": {
+        "port_id": "port664",
+        "name": "Los Angeles-Long Beach",
+        "country": "United States",
+        "lat": 33.75569193,
+        "lon": -118.2437881
+      },
+      "transshipment_ports": [],
+      "route_chokepoints": [],
+      "etd": "2026-09-16T08:38:00Z",
+      "eta": "2026-10-16T08:38:00Z",
+      "cargo_description": "Automotive parts, 40' dry",
+      "container_count": 23,
+      "cargo_value_usd": 860000.0,
+      "vessel_source": "public_registry",
+      "carrier_source": "name_prefix"
+    },
+    "contract_terms": {
+      "incoterm": "FOB",
+      "force_majeure_clause": "Neither party is liable for delay or failure to perform caused by war, blockade, hostilities, piracy, strikes, closure of ports or canals, or any other cause beyond its reasonable control, provided written notice is given within 72 hours of the party becoming aware of the event.",
+      "demurrage_usd_per_day": 180.0,
+      "detention_usd_per_day": 150.0,
+      "free_time_days": 5,
+      "late_delivery_penalty_usd_per_day": 1100.0,
+      "deviation_permitted": true,
+      "notice_period_hours": 72,
+      "governing_law": "English law",
+      "terms_source": "synthetic"
+    }
+  },
+  {
+    "shipment_id": "SHP-9299630",
+    "bill_of_lading": {
+      "bl_number": "CMDU9630005",
+      "carrier": "CMA CGM",
+      "shipper": "Agricultural machinery exporter (Antwerp)",
+      "consignee": "Importer of record (Santos)",
+      "vessel_name": "CMA CGM NABUCCO",
+      "imo": "9299630",
+      "voyage_number": "138W",
+      "port_of_loading": {
+        "port_id": "port57",
+        "name": "Antwerp",
+        "country": "Belgium",
+        "lat": 51.27935494,
+        "lon": 4.317802311
+      },
+      "port_of_discharge": {
+        "port_id": "port1160",
+        "name": "Santos",
+        "country": "Brazil",
+        "lat": -23.91706787,
+        "lon": -46.33656353
+      },
+      "transshipment_ports": [],
+      "route_chokepoints": [
+        "chokepoint:dover-strait"
+      ],
+      "etd": "2026-09-09T08:38:00Z",
+      "eta": "2026-10-12T08:38:00Z",
+      "cargo_description": "Agricultural machinery, flat racks",
+      "container_count": 8,
+      "cargo_value_usd": 1450000.0,
+      "vessel_source": "public_registry",
+      "carrier_source": "name_prefix"
+    },
+    "contract_terms": {
+      "incoterm": "CIF",
+      "force_majeure_clause": "Neither party is liable for delay or failure to perform caused by war, blockade, hostilities, piracy, strikes, closure of ports or canals, or any other cause beyond its reasonable control, provided written notice is given within 72 hours of the party becoming aware of the event.",
+      "demurrage_usd_per_day": 270.0,
+      "detention_usd_per_day": 160.0,
+      "free_time_days": 5,
+      "late_delivery_penalty_usd_per_day": 1900.0,
+      "deviation_permitted": true,
+      "notice_period_hours": 72,
+      "governing_law": "New York law",
+      "terms_source": "synthetic"
+    }
+  },
+  {
+    "shipment_id": "SHP-9317975",
+    "bill_of_lading": {
+      "bl_number": "CMDU7975006",
+      "carrier": "CMA CGM",
+      "shipper": "Textiles and footwear exporter (Singapore)",
+      "consignee": "Importer of record (Felixstowe)",
+      "vessel_name": "CMA CGM WHITE SHARK",
+      "imo": "9317975",
+      "voyage_number": "197N",
+      "port_of_loading": {
+        "port_id": "port1201",
+        "name": "Singapore",
+        "country": "Singapore",
+        "lat": 1.271989257,
+        "lon": 103.7074816
+      },
+      "port_of_discharge": {
+        "port_id": "port343",
+        "name": "Felixstowe",
+        "country": "United Kingdom",
+        "lat": 51.95411087,
+        "lon": 1.29314837
+      },
+      "transshipment_ports": [],
+      "route_chokepoints": [
+        "chokepoint:bab-el-mandeb-strait",
+        "chokepoint:suez-canal"
+      ],
+      "etd": "2026-09-23T08:38:00Z",
+      "eta": "2026-10-19T08:38:00Z",
+      "cargo_description": "Textiles and footwear",
+      "container_count": 40,
+      "cargo_value_usd": 700000.0,
+      "vessel_source": "public_registry",
+      "carrier_source": "name_prefix"
+    },
+    "contract_terms": {
+      "incoterm": "DAP",
+      "force_majeure_clause": "Neither party is liable for delay or failure to perform caused by war, blockade, hostilities, piracy, strikes, closure of ports or canals, or any other cause beyond its reasonable control, provided written notice is given within 72 hours of the party becoming aware of the event.",
+      "demurrage_usd_per_day": 140.0,
+      "detention_usd_per_day": 170.0,
+      "free_time_days": 7,
+      "late_delivery_penalty_usd_per_day": 2800.0,
+      "deviation_permitted": false,
+      "notice_period_hours": 72,
+      "governing_law": "English law",
+      "terms_source": "synthetic"
+    }
+  },
+  {
+    "shipment_id": "SHP-9345427",
+    "bill_of_lading": {
+      "bl_number": "COSU5427007",
+      "carrier": "COSCO Shipping Lines",
+      "shipper": "Furniture exporter (Yantian)",
+      "consignee": "Importer of record (New York-New Jersey)",
+      "vessel_name": "COSCO AMERICA",
+      "imo": "9345427",
+      "voyage_number": "159S",
+      "port_of_loading": {
+        "port_id": "port1414",
+        "name": "Yantian",
+        "country": "China",
+        "lat": 22.58487742,
+        "lon": 114.2935158
+      },
+      "port_of_discharge": {
+        "port_id": "port815",
+        "name": "New York-New Jersey",
+        "country": "United States",
+        "lat": 40.63298387,
+        "lon": -74.17942126
+      },
+      "transshipment_ports": [],
+      "route_chokepoints": [
+        "chokepoint:panama-canal"
+      ],
+      "etd": "2026-09-17T08:38:00Z",
+      "eta": "2026-10-04T08:38:00Z",
+      "cargo_description": "Furniture, 40' HC",
+      "container_count": 8,
+      "cargo_value_usd": 1750000.0,
+      "vessel_source": "public_registry",
+      "carrier_source": "name_prefix"
+    },
+    "contract_terms": {
+      "incoterm": "CFR",
+      "force_majeure_clause": "Neither party is liable for delay or failure to perform caused by war, blockade, hostilities, piracy, strikes, closure of ports or canals, or any other cause beyond its reasonable control, provided written notice is given within 48 hours of the party becoming aware of the event.",
+      "demurrage_usd_per_day": 270.0,
+      "detention_usd_per_day": 90.0,
+      "free_time_days": 5,
+      "late_delivery_penalty_usd_per_day": 2500.0,
+      "deviation_permitted": false,
+      "notice_period_hours": 48,
+      "governing_law": "New York law",
+      "terms_source": "synthetic"
+    }
+  },
+  {
+    "shipment_id": "SHP-9345439",
+    "bill_of_lading": {
+      "bl_number": "COSU5439008",
+      "carrier": "COSCO Shipping Lines",
+      "shipper": "Marble and building stone exporter (Piraeus)",
+      "consignee": "Importer of record (Valencia)",
+      "vessel_name": "COSCO AFRICA",
+      "imo": "9345439",
+      "voyage_number": "054S",
+      "port_of_loading": {
+        "port_id": "port908",
+        "name": "Piraeus",
+        "country": "Greece",
+        "lat": 37.95244597,
+        "lon": 23.60374677
+      },
+      "port_of_discharge": {
+        "port_id": "port1348",
+        "name": "Valencia",
+        "country": "Spain",
+        "lat": 39.44220953,
+        "lon": -0.322345205
+      },
+      "transshipment_ports": [],
+      "route_chokepoints": [],
+      "etd": "2026-09-11T08:38:00Z",
+      "eta": "2026-10-18T08:38:00Z",
+      "cargo_description": "Marble and building stone",
+      "container_count": 27,
+      "cargo_value_usd": 970000.0,
+      "vessel_source": "public_registry",
+      "carrier_source": "name_prefix"
+    },
+    "contract_terms": {
+      "incoterm": "DAP",
+      "force_majeure_clause": "Neither party is liable for delay or failure to perform caused by war, blockade, hostilities, piracy, strikes, closure of ports or canals, or any other cause beyond its reasonable control, provided written notice is given within 24 hours of the party becoming aware of the event.",
+      "demurrage_usd_per_day": 140.0,
+      "detention_usd_per_day": 240.0,
+      "free_time_days": 3,
+      "late_delivery_penalty_usd_per_day": 1100.0,
+      "deviation_permitted": true,
+      "notice_period_hours": 24,
+      "governing_law": "English law",
+      "terms_source": "synthetic"
+    }
+  },
+  {
+    "shipment_id": "SHP-9300386",
+    "bill_of_lading": {
+      "bl_number": "EGLV0386009",
+      "carrier": "Evergreen Marine",
+      "shipper": "Solar modules exporter (Qingdao Port)",
+      "consignee": "Importer of record (Los Angeles-Long Beach)",
+      "vessel_name": "EVER SHINE",
+      "imo": "9300386",
+      "voyage_number": "092W",
+      "port_of_loading": {
+        "port_id": "port1069",
+        "name": "Qingdao Port",
+        "country": "China",
+        "lat": 36.02677905,
+        "lon": 120.2226181
+      },
+      "port_of_discharge": {
+        "port_id": "port664",
+        "name": "Los Angeles-Long Beach",
+        "country": "United States",
+        "lat": 33.75569193,
+        "lon": -118.2437881
+      },
+      "transshipment_ports": [],
+      "route_chokepoints": [],
+      "etd": "2026-09-16T08:38:00Z",
+      "eta": "2026-10-06T08:38:00Z",
+      "cargo_description": "Solar modules, 40' HC",
+      "container_count": 31,
+      "cargo_value_usd": 790000.0,
+      "vessel_source": "public_registry",
+      "carrier_source": "name_prefix"
+    },
+    "contract_terms": {
+      "incoterm": "CFR",
+      "force_majeure_clause": "Neither party is liable for delay or failure to perform caused by war, blockade, hostilities, piracy, strikes, closure of ports or canals, or any other cause beyond its reasonable control, provided written notice is given within 48 hours of the party becoming aware of the event.",
+      "demurrage_usd_per_day": 270.0,
+      "detention_usd_per_day": 90.0,
+      "free_time_days": 5,
+      "late_delivery_penalty_usd_per_day": 1400.0,
+      "deviation_permitted": false,
+      "notice_period_hours": 48,
+      "governing_law": "New York law",
+      "terms_source": "synthetic"
+    }
+  },
+  {
+    "shipment_id": "SHP-9300403",
+    "bill_of_lading": {
+      "bl_number": "EGLV0403010",
+      "carrier": "Evergreen Marine",
+      "shipper": "Rubber and latex products exporter (Port Klang)",
+      "consignee": "Importer of record (Barcelona)",
+      "vessel_name": "EVER SMART",
+      "imo": "9300403",
+      "voyage_number": "040N",
+      "port_of_loading": {
+        "port_id": "port960",
+        "name": "Port Klang",
+        "country": "Malaysia",
+        "lat": 2.972594826,
+        "lon": 101.3403063
+      },
+      "port_of_discharge": {
+        "port_id": "port118",
+        "name": "Barcelona",
+        "country": "Spain",
+        "lat": 41.33797839,
+        "lon": 2.146489899
+      },
+      "transshipment_ports": [],
+      "route_chokepoints": [
+        "chokepoint:bab-el-mandeb-strait",
+        "chokepoint:suez-canal"
+      ],
+      "etd": "2026-09-21T08:38:00Z",
+      "eta": "2026-10-13T08:38:00Z",
+      "cargo_description": "Rubber and latex products",
+      "container_count": 9,
+      "cargo_value_usd": 390000.0,
+      "vessel_source": "public_registry",
+      "carrier_source": "name_prefix"
+    },
+    "contract_terms": {
+      "incoterm": "CIF",
+      "force_majeure_clause": "Neither party is liable for delay or failure to perform caused by war, blockade, hostilities, piracy, strikes, closure of ports or canals, or any other cause beyond its reasonable control, provided written notice is given within 24 hours of the party becoming aware of the event.",
+      "demurrage_usd_per_day": 290.0,
+      "detention_usd_per_day": 100.0,
+      "free_time_days": 7,
+      "late_delivery_penalty_usd_per_day": 1400.0,
+      "deviation_permitted": false,
+      "notice_period_hours": 24,
+      "governing_law": "Singapore law",
+      "terms_source": "synthetic"
+    }
+  }
+]

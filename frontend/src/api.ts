@@ -82,7 +82,13 @@ export interface Shipment {
   shipment_id: string; bl_number: string; pol: string; pol_locode: string; pod: string; pod_locode: string;
   transshipment: string[]; eta: string; etd: string | null; vessel_name: string | null; voyage_number: string | null;
   cargo_description: string | null; container_count: number | null; cargo_value_usd: number | null;
-  incoterm: string | null; decisions: Decision[];
+  incoterm: string | null; carrier: string | null; decisions: Decision[];
+  // Provenance, set by src/fleet.py. "public_registry" means the vessel name and IMO are real and
+  // verifiable; "synthetic" terms mean the contract figures are generated for the demo.
+  imo: string | null;
+  vessel_source: "public_registry" | "demo" | null;
+  carrier_source: "equasis" | "name_prefix" | "demo" | null;
+  terms_source: "synthetic" | "extracted" | null;
 }
 
 export interface EventRow {

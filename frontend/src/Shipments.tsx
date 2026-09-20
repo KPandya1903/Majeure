@@ -23,8 +23,16 @@ function FleetRow({ s, selected, onSelect }: { s: Shipment; selected: boolean; o
   return (
     <tr className={selected ? "selected" : ""} onClick={onSelect}>
       <td>
-        <div style={{ fontWeight: 600 }}>{s.shipment_id}</div>
+        <div style={{ fontWeight: 600 }}>{s.vessel_name ?? s.shipment_id}</div>
         <div className="pg-mono">{s.bl_number}</div>
+        {/* IMO is the vessel's permanent identifier: showing it is what makes the claim "this is a
+            real ship" checkable by anyone, in Equasis or GISIS, in about ten seconds. */}
+        {s.imo && s.vessel_source === "public_registry" ? (
+          <div style={{ fontSize: 11, color: "var(--pg-faint)", marginTop: 2 }}
+               title={`${s.carrier ?? "Carrier"} — real vessel, IMO ${s.imo}. Carrier attributed from the vessel name.`}>
+            IMO {s.imo} · {s.carrier}
+          </div>
+        ) : null}
       </td>
       <td>
         <div>{s.pol_locode} → {s.pod_locode}</div>
@@ -80,6 +88,16 @@ function DecisionPanel({ shipment, decision, onReviewed }: { shipment: Shipment;
     <div className="pg-card" style={{ marginTop: 18 }}>
       <div className="pg-eyebrow">{shipment.pol} → {shipment.pod} · {shipment.bl_number}</div>
       <div className="pg-h">{decision.recommended_action_label}</div>
+      {/* The costs below are priced from contract terms that are generated, on a vessel that is
+          real. Saying which is which here — next to the money, not buried in a footer — is the
+          difference between a demo someone can trust and one they have to take on faith. */}
+      {shipment.vessel_source === "public_registry" && shipment.terms_source === "synthetic" ? (
+        <div style={{ fontSize: 11.5, color: "var(--pg-faint)", marginTop: 6, lineHeight: 1.45 }}>
+          {shipment.vessel_name} (IMO {shipment.imo}) and {shipment.carrier} are real and verifiable;
+          the carrier is attributed from the vessel name. Contract terms and cargo values below are
+          synthetic — real Bills of Lading are commercially confidential.
+        </div>
+      ) : null}
 
       {decision.exposure?.force_majeure_covered === false ? (
         <div className="pg-card" style={{ marginTop: 10, color: "var(--pg-muted)", fontSize: "0.87rem" }}>

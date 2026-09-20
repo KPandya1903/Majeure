@@ -35,14 +35,28 @@ from routing import dot_count, dotted_points, route_path, route_progress, split_
 # parse_rss.py.
 SOURCE_GROUP = {
     "portwatch": "PortWatch", "gdacs": "GDACS", "gdelt": "GDELT", "google_news": "Google News",
+    "nga_warnings": "Official warnings", "nhc": "Official warnings",
+    "jtwc": "Official warnings", "usgs": "Official warnings",
     "gcaptain": "Trade-press RSS", "maritime_executive": "Trade-press RSS",
     "seatrade_maritime": "Trade-press RSS", "hellenic_shipping_news": "Trade-press RSS",
-    "splash247": "Trade-press RSS",
+    "splash247": "Trade-press RSS", "joc": "Trade-press RSS", "loadstar": "Trade-press RSS",
+    "container_news": "Trade-press RSS", "world_cargo_news": "Trade-press RSS",
+    "marine_link": "Trade-press RSS", "maritime_logistics": "Trade-press RSS",
+    "marine_insight": "Trade-press RSS", "bunkerspot": "Trade-press RSS",
+    "sea_news": "Trade-press RSS", "freightwaves": "Trade-press RSS",
+    "supply_chain_dive": "Trade-press RSS", "offshore_energy": "Trade-press RSS",
 }
 
 RISK_ORDER = {"low": 0, "medium": 1, "high": 2, "critical": 3}
 ACTIONS = {"monitor": "Monitor", "notify_customer": "Notify customer", "reroute": "Reroute",
            "expedite": "Expedite", "hold_cargo": "Hold cargo", "invoke_force_majeure": "Invoke force majeure"}
+
+def log_faq_failure(exc: Exception) -> None:
+    """The FAQ router is an optimisation, never a dependency: if it raises we fall through to the
+    model rather than failing the request, but the failure must still be visible in the logs."""
+    print(f"[faq] router failed, falling through to the model: {type(exc).__name__}: {exc}",
+          file=sys.stderr, flush=True)
+
 
 app = FastAPI(title="PortGuard AI API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -245,6 +259,11 @@ def shipments():
             "eta": r["eta"], "etd": r["etd"], "vessel_name": r["vessel_name"], "voyage_number": r["voyage_number"],
             "cargo_description": r["cargo_description"], "container_count": r["container_count"],
             "cargo_value_usd": r["cargo_value_usd"], "incoterm": r["incoterm"],
+            "carrier": r["carrier"],
+            # Provenance travels with the row so the UI never has to guess which half of a shipment
+            # is public-registry fact and which is generated. See src/fleet.py.
+            "imo": r["imo"], "vessel_source": r["vessel_source"],
+            "carrier_source": r["carrier_source"], "terms_source": r["terms_source"],
             "decisions": [_decision_detail(d) for d in ship_decisions],
         })
     return out
@@ -391,7 +410,20 @@ def _ask_gemini(question: str) -> str:
 def ask(body: ChatRequest):
     sys.path.insert(0, str(SRC))
     from ask import answer
+    from faq import answer as faq_answer
     from nemotron import client_from_env
+
+    # Most questions asked of this endpoint are the same thirty topics in different words, and the
+    # hosted model charges 8-40s for each of them (measured: ~39s for a real analytical question,
+    # and the 20s budget below cannot bound it because requests' timeout is per-read, not total).
+    # faq.py answers those from SQL in well under a millisecond, computing every number from the
+    # live database so a routed answer is never staler than a generated one. Anything the router is
+    # not confident about falls through to the model untouched.
+    try:
+        if hit := faq_answer(body.question, db=DB_PATH):
+            return {"answer": hit[0], "via": "faq", "topic": hit[1]}
+    except Exception as exc:  # a router bug must never take the chat down; the model still works
+        log_faq_failure(exc)
 
     try:
         # NEMOTRON_TIMEOUT defaults to 300s (fine for a background decision run, far too long
@@ -427,11 +459,23 @@ def sources():
                     FROM signals GROUP BY source ORDER BY signals DESC""")
     newest = max((r["last_ingested"] for r in rows if r["last_ingested"]), default=None)
 
-    state = {}
+    # The database is the primary record: data/pipeline_state.json is gitignored and Render's free
+    # tier has no persistent disk, so on the deployed instance the file is never present and every
+    # last_fetched_min came back NULL -- the sidebar's "Fetched" column was a column of dashes even
+    # while the pipeline was running. The file is still read as a fallback for databases written by
+    # an older pipeline that only knew about the JSON.
+    state: dict[str, float] = {}
     try:
-        state = json.loads((ROOT / "data" / "pipeline_state.json").read_text())
+        for r in _rows("SELECT source_group, last_fetched_at FROM pipeline_state"):
+            state[r["source_group"]] = datetime.fromisoformat(
+                r["last_fetched_at"].replace("Z", "+00:00")).timestamp()
     except Exception:
-        pass  # no state file (fresh deploy, or the pipeline has never run here)
+        pass  # table missing (database predates the migration)
+    if not state:
+        try:
+            state = json.loads((ROOT / "data" / "pipeline_state.json").read_text())
+        except Exception:
+            pass  # no state file either: the pipeline has never run against this deployment
 
     now = time.time()
     for r in rows:
