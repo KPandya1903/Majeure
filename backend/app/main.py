@@ -311,14 +311,46 @@ class ChatRequest(BaseModel):
     question: str
 
 
+def _ask_gemini(question: str) -> str:
+    """Fallback for /api/ask when Nemotron doesn't answer in time. NVIDIA's hosted API can be
+    slow/variable for a "thinking" model on a real analytical question (confirmed: a request
+    that finishes in ~1s for a one-word reply can still exceed a 60s timeout on a real one) —
+    Gemini is the documented fallback for exactly that case. Reuses ask.py's own context
+    builder and system prompt so both providers answer from the same grounded data."""
+    import requests
+    from ask import SYSTEM_PROMPT, build_context
+
+    key = os.environ.get("GEMINI_API_KEY")
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY not set")
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        context = build_context(conn)
+    resp = requests.post(
+        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={key}",
+        json={
+            "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+            "contents": [{"parts": [{"text": json.dumps({"question": question, "context": context}, ensure_ascii=False)}]}],
+        },
+        timeout=30,
+    )
+    resp.raise_for_status()
+    return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+
+
 @app.post("/api/ask")
 def ask(body: ChatRequest):
+    sys.path.insert(0, str(SRC))
+    from ask import answer
     try:
-        sys.path.insert(0, str(SRC))
-        from ask import answer
         return {"answer": answer(body.question)}
-    except Exception as exc:
-        return {"answer": f"Nemotron is not reachable ({type(exc).__name__}). Check NEMOTRON_BASE_URL in .env."}
+    except Exception as nemotron_exc:
+        try:
+            return {"answer": _ask_gemini(body.question), "via": "gemini-fallback"}
+        except Exception as gemini_exc:
+            return {"answer": f"Nemotron is not reachable ({type(nemotron_exc).__name__}), and the Gemini "
+                              f"fallback also failed ({type(gemini_exc).__name__}). Check NEMOTRON_BASE_URL "
+                              f"and GEMINI_API_KEY."}
 
 
 @app.get("/api/health")
