@@ -25,8 +25,9 @@ const SEVERITY_COLOR: Record<string, string> = { critical: "#D62828", high: "#B4
  * value only arrives when the map data is refetched, which would make the icon jump. This
  * tweens between the last two known positions the way a ride-hailing app smooths between GPS
  * pings: nothing is invented, the motion just interpolates values we already have. */
-function ShipMarker({ route, onSelect, selected }:
-  { route: Route; onSelect: () => void; selected: boolean }) {
+function ShipMarker({ route, active, onOpen, onClose, center }:
+  { route: Route; active: boolean; onOpen: () => void; onClose: () => void;
+    center: { lng: number; lat: number } }) {
   const [pos, setPos] = useState<[number, number] | null>(route.position);
   const fromRef = useRef<[number, number] | null>(route.position);
   const rafRef = useRef<number | undefined>(undefined);
@@ -53,17 +54,55 @@ function ShipMarker({ route, onSelect, selected }:
 
   if (!pos) return null;
   const tone = route.risk_level ? SEVERITY_COLOR[route.risk_level] ?? "#0B5CD5" : "#0B5CD5";
+  // Flip the card towards the middle of the map so a vessel near an edge does not get its details
+  // clipped by the map frame. Cheap approximation from the viewport centre, which is accurate
+  // enough at these zoom levels and avoids projecting on every render.
+  const flipX = pos[0] > center.lng;
+  const flipY = pos[1] > center.lat;
   return (
-    <Marker longitude={pos[0]} latitude={pos[1]} anchor="center" onClick={onSelect}>
-      <div
-        title={`${route.vessel_name ?? route.shipment_id} · ${route.carrier ?? ""}`}
-        style={{ cursor: "pointer", transform: `rotate(${route.bearing}deg)`, transition: "transform 400ms ease-out" }}
-      >
-        {/* Simple hull outline pointing "up" (north) at 0deg, rotated to the route bearing. */}
-        <svg width={selected ? 26 : 20} height={selected ? 26 : 20} viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="11" fill="#fff" stroke={tone} strokeWidth="2" />
-          <path d="M12 4 L16.5 17 L12 14.5 L7.5 17 Z" fill={tone} />
-        </svg>
+    <Marker longitude={pos[0]} latitude={pos[1]} anchor="center" style={{ zIndex: active ? 10 : 1 }}>
+      {/* The card is a DOM child of this hover container, so moving the pointer onto the card does
+          not fire mouseleave here -- only leaving both does. The close delay in the parent covers
+          the few pixels of gap between the icon and the card. */}
+      <div style={{ position: "relative", lineHeight: 0 }} onMouseEnter={onOpen} onMouseLeave={onClose}>
+        {/* No `title` attribute: the OS tooltip fires on the same hover as the card, drawing a
+            second, uglier label in the corner of the screen that says less than the card does. */}
+        <div
+          aria-label={`${route.vessel_name ?? route.shipment_id}, ${route.carrier ?? "unknown carrier"}`}
+          style={{ cursor: "pointer", transform: `rotate(${route.bearing}deg)`,
+                   transition: "transform 400ms ease-out" }}
+        >
+          {/* Simple hull outline pointing "up" (north) at 0deg, rotated to the route bearing. */}
+          <svg width={active ? 26 : 20} height={active ? 26 : 20} viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="11" fill="#fff" stroke={tone} strokeWidth="2" />
+            <path d="M12 4 L16.5 17 L12 14.5 L7.5 17 Z" fill={tone} />
+          </svg>
+        </div>
+        {active && (
+          <div className="pg-card pg-ship-pop"
+               style={{ [flipX ? "right" : "left"]: 20, [flipY ? "top" : "bottom"]: 20 } as React.CSSProperties}>
+            <div className="pg-eyebrow">{route.carrier}</div>
+            <div style={{ fontWeight: 700, fontSize: 15, marginTop: 2 }}>
+              {route.vessel_name ?? route.shipment_id}
+            </div>
+            <div style={{ fontSize: 12.5, color: "var(--pg-muted)", marginTop: 4 }}>
+              {route.label.split(": ")[1]}
+            </div>
+            {route.cargo_description && (
+              <div style={{ fontSize: 12.5, marginTop: 6 }}>{route.cargo_description}</div>
+            )}
+            <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+              <Chip text={`${Math.round(route.progress * 100)}% sailed`} tone="info" />
+              {route.risk_level
+                ? <Chip text={route.risk_level.toUpperCase()} tone={RISK_TONE[route.risk_level]} />
+                : <Chip text="CLEAR" tone="ok" />}
+            </div>
+            <div style={{ fontSize: 11.5, color: "var(--pg-faint)", marginTop: 8, lineHeight: 1.45 }}>
+              ETA {fmtDate(route.eta)}. Position estimated from voyage timing along the sea route —
+              not live AIS.
+            </div>
+          </div>
+        )}
       </div>
     </Marker>
   );
@@ -105,7 +144,25 @@ function toPointFeatures(points: { lon: number; lat: number }[]) {
 export default function RiskMap() {
   const [data, setData] = useState<MapData | null>(null);
   const [hover, setHover] = useState<string | null>(null);
-  const [selectedShip, setSelectedShip] = useState<string | null>(null);
+  const [hoveredShip, setHoveredShip] = useState<string | null>(null);
+  // Viewport centre, used only to decide which side of a vessel its card opens on. Tracked on
+  // moveEnd rather than move: the flip is re-evaluated when the card next opens, so updating it on
+  // every animation frame of a pan would re-render every marker for no visible benefit.
+  const [center, setCenter] = useState({ lng: 45, lat: 22 });
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // Crossing the gap between the vessel icon and its card briefly leaves both elements, which
+  // would otherwise close the card the moment you reached for it. A short grace period makes the
+  // card reachable; entering it cancels the close outright.
+  const openShip = (id: string) => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setHoveredShip(id);
+  };
+  const closeShip = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setHoveredShip(null), 140);
+  };
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
 
   useEffect(() => {
     const load = () => api.map().then(setData).catch((e) => console.error("map fetch failed", e));
@@ -119,8 +176,6 @@ export default function RiskMap() {
 
   if (!data) return <div className="pg-card pg-empty">Loading map…</div>;
 
-  const ship = data.routes.find((r) => r.shipment_id === selectedShip) ?? null;
-
   const remainingDots = data.routes.flatMap((r) => r.remaining_dots);
 
   return (
@@ -132,6 +187,7 @@ export default function RiskMap() {
         // Trackpad two-finger vertical scroll otherwise zooms the map instead of scrolling the
         // page underneath it — disable that specifically. Pinch (two fingers apart/together,
         // touchZoomRotate) and the +/- NavigationControl buttons stay on as the only zoom paths.
+        onMoveEnd={(e) => setCenter({ lng: e.viewState.longitude, lat: e.viewState.latitude })}
         scrollZoom={false}
         touchZoomRotate={true}
         onMouseMove={(e) => {
@@ -169,32 +225,11 @@ export default function RiskMap() {
         </Source>
 
         {data.routes.map((r) => (
-          <ShipMarker key={r.shipment_id} route={r} selected={r.shipment_id === selectedShip}
-            onSelect={() => setSelectedShip(r.shipment_id === selectedShip ? null : r.shipment_id)} />
+          <ShipMarker key={r.shipment_id} route={r} center={center}
+            active={r.shipment_id === hoveredShip}
+            onOpen={() => openShip(r.shipment_id)} onClose={closeShip} />
         ))}
       </Map>
-
-      {ship && (
-        <div className="pg-card" style={{ position: "absolute", top: 12, right: 12, width: 260, padding: "12px 14px",
-                                          boxShadow: "0 6px 20px rgba(43,51,60,0.16)" }}>
-          <div className="pg-eyebrow">{ship.carrier}</div>
-          <div style={{ fontWeight: 700, fontSize: 15, marginTop: 2 }}>{ship.vessel_name ?? ship.shipment_id}</div>
-          <div style={{ fontSize: 12.5, color: "var(--pg-muted)", marginTop: 4 }}>{ship.label.split(": ")[1]}</div>
-          {ship.cargo_description && (
-            <div style={{ fontSize: 12.5, marginTop: 6 }}>{ship.cargo_description}</div>
-          )}
-          <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-            <Chip text={`${Math.round(ship.progress * 100)}% sailed`} tone="info" />
-            {ship.risk_level
-              ? <Chip text={ship.risk_level.toUpperCase()} tone={RISK_TONE[ship.risk_level]} />
-              : <Chip text="CLEAR" tone="ok" />}
-          </div>
-          <div style={{ fontSize: 11.5, color: "var(--pg-faint)", marginTop: 8, lineHeight: 1.45 }}>
-            ETA {fmtDate(ship.eta)}. Position estimated from voyage timing along the sea route —
-            not live AIS.
-          </div>
-        </div>
-      )}
 
       {hover && (
         <div style={{ position: "absolute", pointerEvents: "none", background: "#fff", border: "1px solid var(--pg-line)",
@@ -213,7 +248,7 @@ export default function RiskMap() {
       <div style={{ padding: "0 14px 14px", fontSize: 12.5, color: "var(--pg-muted)" }}>
         Halos: clustered events (size = reports, colour = severity). Blue line: real sea routes
         (via a maritime shipping-lane network) — solid where sailed, dotted where still ahead.
-        Arrows: each vessel's estimated position from voyage timing (not live AIS) — click one
+        Arrows: each vessel's estimated position from voyage timing (not live AIS) — hover one
         for details.
         {data.routes.length > 0 &&
           ` ${data.routes.length} shipment${data.routes.length === 1 ? "" : "s"} tracked.`}

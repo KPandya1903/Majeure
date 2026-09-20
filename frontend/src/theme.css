@@ -286,3 +286,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 @media (prefers-reduced-motion: reduce) {
   * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
+
+/* Vessel hover card on the risk map. Anchored to its marker (so it travels with the vessel as the
+   map pans) rather than pinned to a map corner, and a DOM child of the marker's hover container so
+   the pointer can move onto it to read or click without it vanishing. `pointer-events: auto`
+   because MapLibre sets `none` on marker content, which would make the card unhoverable and defeat
+   the whole arrangement. */
+.pg-ship-pop {
+  position: absolute; width: 252px; padding: 12px 14px; pointer-events: auto;
+  box-shadow: 0 8px 24px rgba(43,51,60,0.18); line-height: normal; cursor: default;
+  animation: pg-pop 120ms ease-out;
+}
+@keyframes pg-pop { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .pg-ship-pop { animation: none; } }
