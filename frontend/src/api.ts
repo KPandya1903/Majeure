@@ -1,6 +1,14 @@
 // Typed client for the FastAPI backend (backend/app/main.py). Shapes here must match that
 // file's response bodies — there's no shared schema generation yet, so keep them in sync by hand.
-const BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8700";
+//
+// Base URL resolution (first match wins):
+//   1. VITE_PORTGUARD_API_BASE_URL — optional DigitalOcean demo API (or any alternate host)
+//   2. VITE_API_BASE — existing Vercel → Render setting (unchanged default for production)
+//   3. http://localhost:8700 — local FastAPI (backend/app/main.py)
+const BASE =
+  import.meta.env.VITE_PORTGUARD_API_BASE_URL ??
+  import.meta.env.VITE_API_BASE ??
+  "http://localhost:8700";
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`);

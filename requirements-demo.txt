@@ -1,0 +1,9 @@
+# Minimal deps for the DigitalOcean App Platform demo API (src/api.py + src/seed_demo_db.py).
+# Keeps the ~$5 instance small — do not pull Streamlit, searoute, or Postgres drivers here.
+# Local full stack still uses the repo-root requirements.txt.
+fastapi>=0.115,<1
+uvicorn[standard]>=0.32,<1
+pydantic>=2.5,<3
+pandas>=2.0,<4
+numpy>=1.26,<3
+requests>=2.31,<3

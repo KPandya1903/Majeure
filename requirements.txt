@@ -7,3 +7,6 @@ pypdf>=4.0,<7
 searoute>=1.6,<2
 psycopg[binary]>=3.1,<4
 psycopg_pool>=3.2,<4
+# DigitalOcean App Platform demo API (src/api.py). Also used for local `uvicorn api:app --app-dir src`.
+fastapi>=0.115,<1
+uvicorn[standard]>=0.32,<1

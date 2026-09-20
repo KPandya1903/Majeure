@@ -1,0 +1,64 @@
+# DigitalOcean App Platform spec for the PortGuard Demo API.
+# Deploy via the DigitalOcean control panel (Apps → Create App → GitHub → this repo)
+# or by pasting/uploading this file. Do NOT put secrets, tokens, or real CORS domains here.
+#
+# Docs: https://docs.digitalocean.com/products/app-platform/reference/app-spec/
+# Pricing: apps-s-1vcpu-0.5gb ≈ $5/month (smallest practical web service).
+#
+# This is additive to the existing Vercel frontend and Render backend — it does not replace them.
+
+name: portguard-demo
+region: nyc
+
+services:
+  - name: portguard-api
+    environment_slug: python
+    # Repository root: needs docs/SCHEMAS.md, samples/, src/, and requirements-demo.txt together.
+    source_dir: /
+    github:
+      # Replace with your fork if different; UI deploy also lets you pick the repo interactively.
+      repo: KPandya1903/Pixels
+      branch: main
+      deploy_on_push: true
+    # Install deps, then build the tiny demo SQLite DB (no live fetch, no model calls).
+    build_command: pip install -r requirements-demo.txt && python src/seed_demo_db.py
+    # Bind 0.0.0.0 and honour App Platform's PORT (defaults to http_port below).
+    run_command: uvicorn api:app --app-dir src --host 0.0.0.0 --port $PORT
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 10
+      period_seconds: 10
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
+    envs:
+      - key: PORTGUARD_ENV
+        scope: RUN_TIME
+        type: GENERAL
+        value: "production"
+      - key: DEMO_MODE
+        scope: RUN_TIME
+        type: GENERAL
+        value: "true"
+      - key: APP_VERSION
+        scope: RUN_TIME
+        type: GENERAL
+        value: "0.1.0-demo"
+      - key: DB_BACKEND
+        scope: RUN_TIME
+        type: GENERAL
+        value: "sqlite"
+      # Set the real Vercel origin in the DigitalOcean UI after deploy, e.g.
+      # https://pixelsplease.vercel.app — never commit a team-specific URL as a secret requirement.
+      - key: CORS_ORIGINS
+        scope: RUN_TIME
+        type: GENERAL
+        value: ""
+      # Optional: pin Python on App Platform (buildpack reads this when present).
+      - key: PYTHON_VERSION
+        scope: BUILD_TIME
+        type: GENERAL
+        value: "3.12.7"

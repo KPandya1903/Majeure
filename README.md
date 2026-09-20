@@ -12,6 +12,7 @@ approval.
 * **How the parts fit:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 * **Endpoints and cleaning rules for every source:** [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md)
 * **Database schema and every JSON contract:** [docs/SCHEMAS.md](docs/SCHEMAS.md)
+* **DigitalOcean App Platform demo API:** [docs/DIGITALOCEAN_DEPLOY.md](docs/DIGITALOCEAN_DEPLOY.md)
 
 > **For an LLM/agent picking up this repo:** read this README top to bottom first. It explains
 > every file (§4), the invariants you must not break (§5), and the files that have to change
@@ -265,7 +266,11 @@ portguard-ai/
 │   ├── dashboard.py             ← Streamlit dashboard (map, decisions, approvals, drafts, traffic, backtest, chat)
 │   ├── ask.py                   ← Q&A over PortGuard's data with Nemotron
 │   ├── backtest.py              ← replay 5 historical disruptions with real traffic
-│   └── run_pipeline.py          ← run all steps once, or on a schedule (--loop 5)
+│   ├── run_pipeline.py          ← run all steps once, or on a schedule (--loop 5)
+│   ├── seed_demo_db.py          ← deterministic demo SQLite for DigitalOcean
+│   └── api.py                   ← read-only PortGuard Demo API (DigitalOcean App Platform)
+├── .do/
+│   └── app.yaml                 ← App Platform spec (one ~$5 web service, no database)
 ├── ollama/
 │   └── Modelfile                ← tuned Nemotron for Ollama (16k context, temperature 0.2)
 ├── samples/
@@ -291,6 +296,7 @@ portguard-ai/
 | `ARCHITECTURE.md` | …you're changing how stages connect: the flow diagram, the stage table (reads, writes, whether Nemotron is needed), and design decisions. |
 | `DATA_SOURCES.md` | …a source breaks or you're tuning ingestion: URLs, parameters, quirks, cleaning steps, the traffic layers (with the historical check), proximity radii, the classifier, the relevance filter, and the gazetteer. |
 | `SCHEMAS.md` | …you change any table, field, or JSON shape: §1 DDL (executed verbatim) and `MATCH_SQL` (copied verbatim), §2 Xtract Signal, §3 Nemotron payload (v1.1 with `analysis`), §4 decision output and the rules engine. |
+| `DIGITALOCEAN_DEPLOY.md` | …you deploy the read-only demo API on DigitalOcean App Platform (~$5 web service). |
 
 ### 4.3 `src/` (run each script as `python src/<name>.py`)
 
@@ -550,7 +556,96 @@ Tested on 2026-09-19 against the live sources:
 
 ---
 
-## 8. Known limitations
+## 8. DigitalOcean demo deployment
+
+**DigitalOcean App Platform** hosts a public, read-only **PortGuard Demo API** (`src/api.py`) for
+the MLH “Best Use of DigitalOcean” track. The existing **Vercel** frontend and **Render**
+backend stay as they are — this service is additive, not a migration.
+
+| Host | Role |
+|---|---|
+| **Vercel** (`frontend/`) | React UI |
+| **Render** (`backend/app/main.py`) | Full production API (read/write, chat, pipeline trigger, Postgres) |
+| **DigitalOcean** (`src/api.py` + `.do/app.yaml`) | Smallest practical web service (~$5/mo) serving **seeded demo SQLite** |
+
+The DigitalOcean deploy runs `src/seed_demo_db.py` at build time. It does **not** run local
+Nemotron/Ollama, continuous GDELT ingestion, or `run_pipeline.py --loop`.
+
+**Quick start (local):**
+
+```bash
+.venv/bin/python src/seed_demo_db.py
+.venv/bin/uvicorn api:app --app-dir src --host 0.0.0.0 --port 8080
+```
+
+**Endpoints**
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/health` | Liveness + demo DB table counts |
+| `GET` | `/api/meta` | Service name, version, `demo_mode`, data freshness |
+| `GET` | `/api/events` | Clustered disruption events |
+| `GET` | `/api/shipments` | Demo shipments with nested decisions |
+| `GET` | `/api/decisions` | Flat list of priced recommendations |
+| `GET` | `/api/traffic` | Chokepoint / port traffic stats |
+
+Example `/api/meta` shape:
+
+```json
+{
+  "service": "portguard-demo-api",
+  "version": "0.1.0-demo",
+  "environment": "production",
+  "demo_mode": true,
+  "read_only": true,
+  "data_freshness": "2026-09-20T12:00:00Z",
+  "counts": {"events": 3, "shipments": 4, "decision_logs": 3, "traffic_stats": 5}
+}
+```
+
+Example `/api/decisions` item (truncated):
+
+```json
+{
+  "decision_id": 1,
+  "shipment_id": "SHP-DEMO-001",
+  "risk_level": "high",
+  "recommended_action": "invoke_force_majeure",
+  "estimated_cost_usd": 0.0,
+  "rationale": "Demo: Red Sea security threat touches the Bab el-Mandeb / Suez route. …"
+}
+```
+
+Frontend: set `VITE_PORTGUARD_API_BASE_URL` on Vercel to the DigitalOcean URL (optional). If
+unset, the UI keeps using `VITE_API_BASE` (Render). Full step-by-step deploy and teardown:
+[docs/DIGITALOCEAN_DEPLOY.md](docs/DIGITALOCEAN_DEPLOY.md).
+
+### Teammate handoff (copy/paste)
+
+```text
+PortGuard DigitalOcean demo API is live at:
+
+  BASE_URL=https://YOUR-APP.ondigitalocean.app
+
+Read-only endpoints (JSON):
+  GET $BASE_URL/health
+  GET $BASE_URL/api/meta
+  GET $BASE_URL/api/events
+  GET $BASE_URL/api/shipments
+  GET $BASE_URL/api/decisions
+  GET $BASE_URL/api/traffic
+
+CORS: ask for your Vercel origin to be added to the DigitalOcean env var CORS_ORIGINS
+(comma-separated; no wildcards), e.g. https://pixelsplease.vercel.app
+
+Frontend (Vite): set Vercel env VITE_PORTGUARD_API_BASE_URL=$BASE_URL and redeploy.
+If unset, existing VITE_API_BASE (Render) is unchanged.
+
+Note: DO serves seeded demo data only (subset of routes). Full dashboard features
+(map, KPIs, ask, approvals) remain on Render.
+```
+
+## 9. Known limitations
 
 * **Cost figures are planning estimates** from stated assumptions (delay tables, surcharges,
   haulage), not quotes. The backtest shows where they're off: the 2024 US port strike lasted
@@ -567,7 +662,7 @@ Tested on 2026-09-19 against the live sources:
 * **GDACS radii are heuristics;** PortWatch `region` events without ports never match.
 * **Shipments are demo data** until real B/L data is loaded.
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
 | Symptom | Fix |
 |---|---|
@@ -585,7 +680,7 @@ Tested on 2026-09-19 against the live sources:
 | `portwatch_ports.csv not found` | Run `fetch_portwatch.py` first (`run_pipeline.py` does). |
 | `CHECK constraint failed` after an upgrade | New sources or match methods need `init_db.py --reset`. This wipes shipments and decisions, so reload them. |
 
-## 10. Data attribution
+## 11. Data attribution
 
 IMF PortWatch (portwatch.imf.org: disruption events, ports, daily traffic). GDACS (European
 Commission JRC / UN OCHA). The GDELT Project. gCaptain, The Maritime Executive, Seatrade
