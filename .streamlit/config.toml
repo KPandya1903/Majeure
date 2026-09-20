@@ -1,0 +1,17 @@
+# PortGuard UI theme: white cards on a light grey canvas, one blue accent.
+# The look is defined in docs/UI_REDESIGN.md; src/dashboard.py adds the component CSS.
+[theme]
+base = "light"
+backgroundColor = "#F4F5F7"
+secondaryBackgroundColor = "#FFFFFF"
+primaryColor = "#0B5CD5"
+textColor = "#2B333C"
+font = "sans serif"
+dataframeHeaderBackgroundColor = "#F7F8FA"
+dataframeBorderColor = "#E1E5EA"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false
