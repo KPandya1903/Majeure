@@ -157,23 +157,28 @@ export default function App() {
     <div className="pg-layout">
       <Sidebar />
       <div className="pg-shell">
-      {topEvent && !dismissed && (
-        <AlertStrip
-          text={`<strong>${topEvent.title}</strong> · ${topEvent.n_signals} reports from ${topEvent.n_publishers} publishers`}
-          onDismiss={() => setDismissed(true)}
-        />
-      )}
-      {/* Brand/tagline/freshness live in the sidebar now — repeating them here was noise. */}
-      {kpis && <KpiRow kpis={kpis} />}
-      <Tabs tabs={TABS} active={tab} onChange={setTab} />
-      <div style={{ marginTop: 16 }}>
-        {tab === "Risk map" && <RiskMap />}
-        {tab === "Shipments & decisions" && <Shipments />}
-        {tab === "Events" && <EventsTab />}
-        {tab === "Traffic" && <TrafficTab />}
-        {tab === "Backtest" && <Backtest />}
-        {tab === "All signals" && <Signals />}
-      </div>
+        {/* Fixed chrome: alert, KPIs and tabs stay put while the panel below them scrolls. */}
+        <div className="pg-shell-head">
+          {topEvent && !dismissed && (
+            <AlertStrip
+              text={`<strong>${topEvent.title}</strong> · ${topEvent.n_signals} reports from ${topEvent.n_publishers} publishers`}
+              onDismiss={() => setDismissed(true)}
+            />
+          )}
+          {/* Brand/tagline/freshness live in the sidebar now — repeating them here was noise. */}
+          {kpis && <KpiRow kpis={kpis} />}
+          <Tabs tabs={TABS} active={tab} onChange={setTab} />
+        </div>
+        {/* `key={tab}` resets scroll position when the tab changes: without it, switching from the
+            bottom of a long signals list to a short tab leaves you staring at empty space. */}
+        <div className="pg-tabpanel" key={tab}>
+          {tab === "Risk map" && <RiskMap />}
+          {tab === "Shipments & decisions" && <Shipments />}
+          {tab === "Events" && <EventsTab />}
+          {tab === "Traffic" && <TrafficTab />}
+          {tab === "Backtest" && <Backtest />}
+          {tab === "All signals" && <Signals />}
+        </div>
       </div>
       <ChatWidget />
     </div>

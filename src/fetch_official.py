@@ -66,7 +66,13 @@ _NGA_COORD_RE = re.compile(r"(\d{2})-(\d{2}(?:\.\d+)?)\s*([NS])\s+(\d{3})-(\d{2}
 # JTWC puts every storm's products in one RSS item; each storm has its own warning-text URL.
 _JTWC_PRODUCT_RE = re.compile(
     r"""href=["'](https://www\.metoc\.navy\.mil/jtwc/products/[^"']+web\.txt)["']""", re.I)
-_JTWC_STORM_RE = re.compile(r"<b>\s*(.+?)\s*</b>", re.S)
+# Capture only the text immediately inside <b>, stopping at the next tag rather than at </b>.
+# JTWC's feed contains an UNCLOSED <b> ("<b>Issued at 20/0600Z<b>"), so a lazy `</b>` match runs on
+# past it and swallows every link label until the next storm's heading -- producing titles like
+# "Issued at 20/0600Z TCFA Text TCFA Graphic JMV 3.0 Data Google Earth Overlay IR Satellite
+# Imagery Tropical Cyclone Formation Alert WTPN21". Those still passed the storm filter below,
+# because the real heading was buried inside the garbage.
+_JTWC_STORM_RE = re.compile(r"<b>\s*([^<]+)", re.S)
 _TAG_RE = re.compile(r"<[^>]+>")
 
 log = logging.getLogger("portguard.official")

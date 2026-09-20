@@ -34,6 +34,7 @@ export default function Sidebar() {
 
   return (
     <aside className="pg-sidebar">
+      <div className="pg-sidebar-head">
       <div className="pg-brand">
         <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true" style={{ alignSelf: "center" }}>
           <path d="M16 2 4 6.5v9.8c0 7.3 5 13 12 14.2 7-1.2 12-6.9 12-14.2V6.5L16 2z" fill="var(--pg-blue)"/>
@@ -73,10 +74,15 @@ export default function Sidebar() {
       ) : null}
 
       <div className="pg-eyebrow" style={{ marginTop: 20 }}>Sources</div>
-      <div style={{ fontSize: 11, color: "var(--pg-faint)", marginTop: 3, lineHeight: 1.4 }}>
+      <div style={{ fontSize: 11, color: "var(--pg-faint)", marginTop: 3, marginBottom: 8, lineHeight: 1.4 }}>
         When each source was last polled. Hover a row for the age of its newest article — a
         quiet feed is fetched on schedule but may have published nothing for days.
       </div>
+      </div>
+
+      {/* Twenty-five sources will not fit beside the dashboard, and letting them push the rail
+          taller is what made the whole page scroll. They get their own scroll region instead. */}
+      <div className="pg-sidebar-scroll">
       {!sources ? (
         <div className="pg-sub" style={{ marginTop: 8 }}>{unreachable ? "Unavailable" : "Loading…"}</div>
       ) : (
@@ -99,6 +105,7 @@ export default function Sidebar() {
           </tbody>
         </table>
       )}
+      </div>
     </aside>
   );
 }

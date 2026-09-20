@@ -45,10 +45,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 .pg-card { background: var(--pg-card); border: 1px solid var(--pg-line); border-radius: var(--pg-radius);
   padding: var(--pg-s4) 18px; box-shadow: 0 1px 2px rgba(43,51,60,0.05); }
-.pg-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--pg-s4); margin: 2px 0 6px; }
+/* Six KPIs on one line. auto-fit with a 190px floor needed ~1220px and only ~1180px is available
+   next to the rail on a 1512px laptop, so the last card wrapped to a row of its own and ate ~110px
+   of the height the table now depends on. Explicit column counts per breakpoint instead of a floor
+   that happens to be one card too wide. `minmax(0, 1fr)` rather than `1fr` so a long value cannot
+   push a column past its share. */
+.pg-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin: 2px 0 6px; }
+@media (max-width: 1360px) { .pg-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px)  { .pg-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .pg-kpi-label { font-size: 0.8rem; color: var(--pg-muted); font-weight: 500; }
-.pg-kpi-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.85rem; font-weight: 700;
-  letter-spacing: -0.8px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.pg-kpi-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.6rem; font-weight: 700;
+  letter-spacing: -0.8px; margin-top: 2px; font-variant-numeric: tabular-nums; }
 .pg-kpi-note { font-size: 0.8rem; color: var(--pg-muted); margin-top: 2px; }
 .pg-kpi-due { background: #FFFDF8; border-color: #F0CFA0; }
 .pg-kpi-due .pg-kpi-label, .pg-kpi-due .pg-kpi-value { color: var(--pg-amber); }
@@ -57,9 +64,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   border-radius: 8px; padding: 9px 14px; font-size: 0.85rem; color: #4A545F; margin-bottom: 10px; }
 .pg-strip strong { color: var(--pg-text); font-weight: 700; }
 .pg-brand { display: flex; align-items: baseline; gap: 8px; }
-.pg-brand-name { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.3rem; font-weight: 700; letter-spacing: -0.5px; }
-.pg-brand-tag { font-size: 0.68rem; font-weight: 700; color: var(--pg-blue); background: var(--pg-blue-soft);
-  border-radius: 5px; padding: 2px 6px; letter-spacing: 0.5px; }
+.pg-brand-name { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.62rem; font-weight: 800;
+  letter-spacing: -0.8px; line-height: 1.1; }
+.pg-brand-tag { font-size: 0.72rem; font-weight: 700; color: var(--pg-blue); background: var(--pg-blue-soft);
+  border-radius: 5px; padding: 2.5px 7px; letter-spacing: 0.5px; }
 .pg-sub { font-size: 0.85rem; color: var(--pg-muted); }
 
 .pg-chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 6px; font-size: 0.72rem;
@@ -104,15 +112,61 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .pg-empty { text-align: center; color: var(--pg-muted); font-size: 0.9rem; padding: 26px 12px; }
 
 .pg-layout { display: flex; align-items: flex-start; min-height: 100%; }
+/* App shell: the window never scrolls. The rail and the tab panel each scroll on their own, so
+   the KPI row, the tab bar and the source list stay put while a long table moves underneath them.
+   `min-height: 0` on the scrolling children is load-bearing, not decoration -- a flex item's
+   default `min-height: auto` refuses to shrink below its content, so without it the children grow
+   past the viewport and the whole page scrolls again, which is the behaviour being replaced. */
+.pg-layout { height: 100vh; overflow: hidden; }
+
 .pg-sidebar {
-  width: 260px; flex-shrink: 0; align-self: stretch; background: var(--pg-card);
-  border-right: 1px solid var(--pg-line); padding: var(--pg-s5) 18px; min-height: 100vh;
+  width: 284px; flex-shrink: 0; align-self: stretch; background: var(--pg-card);
+  border-right: 1px solid var(--pg-line); padding: var(--pg-s5) 18px 0;
+  height: 100vh; display: flex; flex-direction: column; overflow: hidden;
 }
-.pg-shell { flex-grow: 1; min-width: 0; max-width: 1560px; margin: 0 auto; padding: var(--pg-s3) var(--pg-s5) var(--pg-s5); }
-/* Below tablet width the rail costs more than it gives — stack it above the content instead. */
+/* Brand, tagline and freshness: always visible, never scrolls away. */
+.pg-sidebar-head { flex: 0 0 auto; }
+/* The source list: the only part of the rail that scrolls, and it scrolls inside its own box. */
+.pg-sidebar-scroll {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  margin: 0 -18px; padding: 0 18px var(--pg-s4);
+}
+
+.pg-shell {
+  flex-grow: 1; min-width: 0; max-width: 1560px; margin: 0 auto;
+  padding: var(--pg-s3) var(--pg-s5) 0;
+  height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+}
+/* Alert strip, KPI row and tab bar: fixed chrome. */
+.pg-shell-head { flex: 0 0 auto; }
+/* Whichever tab is open scrolls here, on its own, rather than moving the page. */
+.pg-tabpanel {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  margin-top: var(--pg-s4); padding-bottom: var(--pg-s5);
+  /* Room for the floating Ask PortGuard launcher so it never covers the last row. */
+  scroll-padding-bottom: 72px;
+}
+/* A table header inside a scrolling pane should stay readable while its rows move under it. */
+.pg-tabpanel .pg-table thead th, .pg-sidebar-scroll .pg-table thead th {
+  position: sticky; top: 0; z-index: 2;
+}
+/* `overflow: hidden` on the table clips the sticky header; the rounded corners come from the
+   wrapper instead so both behaviours can coexist. */
+.pg-tabpanel .pg-table, .pg-sidebar-scroll .pg-table { overflow: visible; }
+/* The rail is narrow; the shared header tracking is what pushed "FETCHED" past the edge. */
+.pg-sidebar-scroll .pg-table th { letter-spacing: 0.3px; padding: 8px 10px; font-size: 0.64rem; }
+.pg-sidebar-scroll .pg-table td { font-size: 0.78rem; }
+/* Below tablet width the rail costs more than it gives — stack it above the content instead.
+   The app shell is also dropped here: nested scroll regions on a phone fight the browser's own
+   address-bar behaviour and trap the user's scroll, so the page scrolls normally again. */
 @media (max-width: 860px) {
-  .pg-layout { flex-direction: column; }
-  .pg-sidebar { width: 100%; min-height: 0; border-right: 0; border-bottom: 1px solid var(--pg-line); padding: var(--pg-s4) 18px; }
+  .pg-layout { flex-direction: column; height: auto; overflow: visible; }
+  .pg-sidebar { width: 100%; height: auto; overflow: visible; border-right: 0;
+    border-bottom: 1px solid var(--pg-line); padding: var(--pg-s4) 18px; }
+  .pg-sidebar-scroll { overflow: visible; margin: 0; padding: 0 0 var(--pg-s3); }
+  .pg-shell { height: auto; overflow: visible; padding: var(--pg-s3) var(--pg-s4) var(--pg-s5); }
+  .pg-tabpanel { overflow: visible; }
+  .pg-tabpanel .pg-table thead th, .pg-sidebar-scroll .pg-table thead th { position: static; }
 }
 .pg-header-row { display: flex; align-items: center; gap: 14px; padding: 6px 0 10px; }
 .pg-panel-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 16px; }
