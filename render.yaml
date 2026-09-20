@@ -23,3 +23,14 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      # Protects POST /api/pipeline/run (the external-cron data-refresh trigger, see
+      # backend/app/main.py) from being called by anyone else who finds the URL. Render
+      # generates a random value on first deploy — copy it from this service's Environment
+      # tab into the cron job's URL as ?token=<value>.
+      - key: PIPELINE_TRIGGER_TOKEN
+        generateValue: true
+      # "rules" needs no reachable LLM, so scheduled runs keep producing decisions even
+      # without NEMOTRON_API_KEY/GEMINI_API_KEY set. Change to "nemotron" once one of those
+      # is configured and you want cited, model-reasoned decisions instead.
+      - key: PIPELINE_ENGINE
+        value: rules

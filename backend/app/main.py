@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import sqlite3
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -321,4 +323,39 @@ def ask(body: ChatRequest):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "db_exists": DB_PATH.exists()}
+    return {"ok": True, "db_exists": DB_PATH.exists(), "pipeline_running": _pipeline_running()}
+
+
+# --------------------------------------------------------------------------- pipeline trigger
+#
+# Render's free tier has no persistent disk and no scheduler of its own, so there's no
+# `run_pipeline.py --loop 5` running here the way there is locally. Instead, an external free
+# cron service (e.g. cron-job.org) hits this endpoint every 5-10 minutes: each hit both runs
+# one pipeline tick AND, as a side effect, counts as traffic that keeps this free instance from
+# idling out (Render spins a free service down after ~15 min of no requests, which would
+# otherwise reset the filesystem back to whatever's in the last deploy on the next request).
+# Note this does NOT survive an actual code redeploy — that always resets to the git-committed
+# snapshot in data/portguard.db, disk or no disk, since the deploy checks out fresh from git.
+
+PIPELINE_TOKEN = os.environ.get("PIPELINE_TRIGGER_TOKEN")
+_pipeline_proc: Optional[subprocess.Popen] = None
+
+
+def _pipeline_running() -> bool:
+    return _pipeline_proc is not None and _pipeline_proc.poll() is None
+
+
+@app.post("/api/pipeline/run")
+def trigger_pipeline(token: Optional[str] = None):
+    """Fire-and-forget one pipeline tick. Non-blocking (Popen, not run) so it doesn't stall
+    the single request worker (WEB_CONCURRENCY=1 on Render's free plan) for other users while
+    it's fetching/deciding; a module-level guard skips starting a second run if one is still
+    going, since two processes writing the same SQLite file at once can deadlock/corrupt it."""
+    if PIPELINE_TOKEN and token != PIPELINE_TOKEN:
+        raise HTTPException(403, "invalid or missing token")
+    global _pipeline_proc
+    if _pipeline_running():
+        return {"ok": True, "status": "already_running"}
+    engine = os.environ.get("PIPELINE_ENGINE", "rules")  # "rules" needs no reachable LLM
+    _pipeline_proc = subprocess.Popen([sys.executable, str(SRC / "run_pipeline.py"), "--engine", engine], cwd=ROOT)
+    return {"ok": True, "status": "started", "engine": engine}
