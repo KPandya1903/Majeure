@@ -1,66 +1,117 @@
-# Handoff — continue the UI restyle in a new session
+# Handoff — PortGuard AI
 
-Paste the block below into a new chat. State as of this handoff:
-
-* Pushed: GitHub `KPandya1903/Pixels`, branch `main`, commit `0515000` (pipeline, dashboard,
-  Nemotron, docs all working).
-* Uncommitted: `.streamlit/config.toml`, `src/theme.py`, `docs/UI_REDESIGN.md`, this file.
-* Running in the background: `run_pipeline.py --loop 5` (log: `data/pipeline.log`) and the
-  dashboard on http://localhost:8599.
-* Local model: Ollama `portguard-nemotron` (16k context); `.env` already configured.
-* Approved mockup: https://claude.ai/artifact/EyDNXmqH3nLukco1E8r1Hq
+Paste the block below into a new chat to pick this up.
 
 ---
 
 I'm working on PortGuard AI at /Users/enzo/Desktop/Pixels/portguard-ai
-(GitHub: https://github.com/KPandya1903/Pixels, branch main, last commit 0515000).
+(GitHub: https://github.com/KPandya1903/Pixels, branch `main`).
 
-READ FIRST: README.md, then docs/UI_REDESIGN.md (the design brief).
-The README explains every file, the invariants, and which files must change together.
+READ FIRST: README.md (explains every file, the invariants in §5, and which files must change
+together in §5.6), then docs/SCHEMAS.md before touching any data shape.
 
-WHAT IT IS
-Maritime disruption monitoring. It ingests IMF PortWatch, GDACS, 5 maritime RSS feeds,
-GDELT raw files and Google News; clusters reports into events; matches events to shipments
-by port/chokepoint; prices the options (wait / reroute / invoke force majeure) from each
-Bill of Lading's contract terms; asks NVIDIA Nemotron for a cited recommendation; drafts the
-force majeure notice and customer email; and shows it all on a Streamlit dashboard.
+## What it is
 
-CURRENT STATE
-- A pipeline loop runs every 5 minutes in the background (nohup run_pipeline.py --loop 5,
-  logging to data/pipeline.log). The dashboard runs on http://localhost:8599.
-  Stop with: pkill -f "run_pipeline.py --loop"; pkill -f "streamlit run src/dashboard.py"
-- Nemotron runs locally via Ollama as model "portguard-nemotron" (16k context, built from
-  ollama/Modelfile). .env is already set (thinking off + JSON schema on; measured best).
-- Use the venv: .venv/bin/python and .venv/bin/streamlit
+Maritime disruption monitoring. Ingests IMF PortWatch, GDACS, 5 maritime RSS feeds, GDELT raw
+files and Google News; clusters reports into events; matches events to shipments by
+port/chokepoint; prices the options (wait / reroute / invoke force majeure) from each Bill of
+Lading's contract terms; asks an LLM for a cited recommendation; drafts the force majeure
+notice and customer email; shows it all on a dashboard for human approval.
 
-MY TASK FOR YOU: finish the UI restyle of src/dashboard.py
-Design direction (already decided, see docs/UI_REDESIGN.md): the look of portcast.io crossed
-with flexport.com. White cards on a light grey canvas #F4F5F7, charcoal text #2B333C, ONE blue
-accent #0B5CD5, amber #B4661B only where a deadline is counting down, red/amber/green only on
-status chips, light-blue map. No navy anywhere. Approved mockup of the three screens:
-https://claude.ai/artifact/EyDNXmqH3nLukco1E8r1Hq
+## Architecture (changed substantially — the README predates this)
 
-Already done (uncommitted): .streamlit/config.toml (light theme) and src/theme.py
-(design tokens + full component CSS: cards, KPI tiles, chips, dense table, decision panel,
-focus rings, 160ms transitions, reduced-motion). src/dashboard.py does NOT use them yet.
+It was a single Streamlit app. It is now **React + FastAPI, deployed publicly**, with the
+Streamlit app kept as a legacy/local tool.
 
-Please:
-1. Import theme.py in src/dashboard.py, inject theme.CSS once, and restyle:
-   - an alert strip built from the most severe active event, plus a brand header row
-   - KPI row as HTML cards (not st.metric), including the force majeure countdown card
-   - the risk map: light basemap (Carto Voyager or similar light-blue ocean, NOT greyscale),
-     blue sailed route with a dotted remainder, red halos sized by report count, grey port dots
-   - the fleet table as one dense HTML table: LOCODE path, contract ETA, PortGuard ETA,
-     delay chip, status chip, recommendation
-   - the decision panel: priced options as bars with the recommended one in blue, deadline
-     banner, corroboration facts, evidence links, Approve/Override, draft popovers
-2. Follow the ui-ux-pro-max skill's checklists: 4/8px spacing, 4.5:1 contrast, visible focus
-   rings, 44px touch targets, status conveyed by word + colour (never colour alone), tabular
-   figures for money, empty states.
-3. Verify before telling me it works: run the dashboard headless and check with
-   streamlit.testing.v1.AppTest that there are no exceptions and the tabs/buttons still work;
-   then screenshot it in Chrome (Playwright driving channel="chrome" works on this Mac; no
-   browser download needed) and look at the screenshots.
-4. Don't commit or push unless I ask.
+| Piece | Where | Notes |
+|---|---|---|
+| Ingest pipeline | `src/*.py` | Unchanged. `run_pipeline.py --loop 5` locally. |
+| Database | `data/portguard.db` (SQLite) | A snapshot is **committed** so the deployed backend has data. |
+| Backend API | `backend/app/main.py` (FastAPI) | Reads/writes the same SQLite file. |
+| Frontend | `frontend/` (React + Vite + TS) | Design tokens in `frontend/src/theme.css`, ported 1:1 from `src/theme.py`. |
+| Legacy dashboard | `src/dashboard.py` (Streamlit) | Still works; run on :8599. Not the deployment target. |
 
-Keep the data pipeline untouched — this is a presentation-layer change only.
+**Live:**
+- Frontend: https://pixelsplease.vercel.app (Vercel, Root Directory = `frontend`, env `VITE_API_BASE`)
+- Backend: https://portguard-api.onrender.com (Render, blueprint in `render.yaml`, free tier)
+
+## Running locally
+
+```bash
+.venv/bin/uvicorn app.main:app --app-dir backend --port 8700   # API
+cd frontend && npm install && npm run dev                      # UI on :5173
+nohup .venv/bin/python src/run_pipeline.py --loop 5 >> data/pipeline.log 2>&1 &
+```
+Use `.venv/bin/python`. Verify UI changes with `npx tsc -b --noEmit && npm run build`, then
+`npx vite preview --port 4173` + Playwright (`channel="chrome"`) DOM checks — screenshots are
+fine but DOM assertions catch more.
+
+## LLM setup
+
+- **Local dev:** Ollama, `NEMOTRON_MODEL=portguard-nemotron` (16k ctx, `ollama/Modelfile`).
+- **Deployed:** NVIDIA hosted API (`nvidia/nemotron-3.5-lightning-30b-a3b`). It's a *thinking*
+  model with highly variable latency — a trivial prompt returns in ~1s, a real analytical one
+  can exceed 60s even with `reasoning_effort=none`.
+- **Gemini is the fallback** (`gemini-3.6-flash`) and in practice does most of the answering.
+  `/api/ask` gives Nemotron a **20s** budget (overriding `NEMOTRON_TIMEOUT`'s 300s default,
+  which otherwise blocked the fallback for 5 minutes) then falls through. Response includes
+  `"via": "gemini-fallback"` when it does.
+- Keys live in `.env` locally and in Render's Environment tab for the deploy.
+
+## Live data refresh on the deployed site
+
+Render's free tier has **no persistent disk and no scheduler**. An external cron (cron-job.org,
+every 15 min) POSTs to:
+
+```
+https://portguard-api.onrender.com/api/pipeline/run?token=<PIPELINE_TRIGGER_TOKEN>
+```
+
+Two gotchas that cost time: it must be **POST** (a browser GET returns 405), and the token is
+base64 so `+` and `=` **must be URL-encoded** (`%2B`, `%3D`) or it silently 403s. The token is
+auto-generated by Render — read it from the service's Environment tab.
+
+Hitting this also keeps the free instance from idling out. **A code redeploy always resets
+`data/portguard.db` to the committed snapshot**, regardless of pipeline runs in between.
+
+## Traps worth knowing (each of these cost real debugging time)
+
+1. **`init_db.py` was once ported to Snowflake and never reverted**, which silently broke the
+   pipeline's DB step for an hour — fetches succeeded, nothing reached the database. If data
+   looks frozen, check `data/pipeline.log` for `Database FAIL`.
+2. **Snowflake is parked, not used.** `src/db.py` + `docs/SNOWFLAKE_SCHEMA.sql` exist and are
+   complete but wired to nothing. SQLite is the live path.
+3. **MapLibre's worker needs two files.** `maplibre-gl-worker.mjs` is imported via `?url` in
+   `RiskMap.tsx`, and its sibling `maplibre-gl-shared.mjs` is copied to `public/assets/` by a
+   `postinstall` script. Miss either and the map renders blank *with no console error* — the
+   failure happens inside the worker thread. Check rendered canvas pixels, not error logs.
+4. **Locale-dependent formatting.** `toLocaleString()`/`strftime("%b")` follow the viewer's
+   locale ($32 500 vs $32,500; French month names). Use `fmtMoney`/`fmtDate` in `api.ts`.
+5. **Ship positions are estimates, not AIS.** Computed from elapsed ETD→ETA along the
+   `searoute` path. No ingested source carries vessel positions. The UI says so explicitly —
+   keep it that way.
+6. **Routes must use `src/routing.py`.** Straight port-to-port lines visibly cut across land.
+   Both the Streamlit map and the API share that module deliberately.
+7. **Sidebar freshness has two different clocks**: `last_fetched_min` (did the pipeline run —
+   from `pipeline_state.json`) vs `last_ingested` (age of a source's newest article). A quiet
+   trade feed is polled every 5 min but may not have published for days. Don't conflate them.
+
+## Current state
+
+Working and deployed: risk map (real sea routes, vessel markers, event halos), shipments &
+decisions (fleet table + priced options, approve/override, drafts), events and traffic with
+charts, backtest, all-signals article cards, floating Ask PortGuard chat, sidebar with source
+freshness, cost-avoided KPI, cron-driven refresh.
+
+## Not done
+
+- **Per-company fleet page** — group shipments by carrier. Note there are **5 distinct
+  carriers** in the demo data (Demo Ocean Line has 2 shipments; the rest have 1 each), so a
+  "two companies" view needs either grouping or relabelled sample data.
+- **Ship movement animation** — markers currently tween between refreshes (`ShipMarker` in
+  `RiskMap.tsx`). A demo-friendly accelerated playback was discussed but not built. Anything
+  here must not imply live tracking we don't have.
+- **A "what happened → what we decided → what it saved" demo story sequence** — the
+  cost-avoided KPI exists; a narrative walkthrough does not.
+- `.Tech` domain never registered/pointed.
+- README.md still describes the Streamlit-only architecture and needs updating.
