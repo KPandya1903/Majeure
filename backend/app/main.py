@@ -53,6 +53,16 @@ def _row(sql: str, params: tuple = ()) -> Optional[dict]:
     return rows[0] if rows else None
 
 
+def _bearing(a: list[float], b: list[float]) -> float:
+    """Compass heading in degrees (0 = north) from [lon, lat] a to b, for rotating a ship icon
+    so it points where the vessel is going rather than always pointing north."""
+    lon1, lat1, lon2, lat2 = map(math.radians, [a[0], a[1], b[0], b[1]])
+    dlon = lon2 - lon1
+    y = math.sin(dlon) * math.cos(lat2)
+    x = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(dlon)
+    return (math.degrees(math.atan2(y, x)) + 360) % 360
+
+
 def hours_until(ts: Optional[str]) -> Optional[float]:
     if not ts:
         return None
@@ -141,6 +151,16 @@ def map_data():
             "sailed": sailed,
             "remaining_dots": dotted_points(remaining, n=dot_count(remaining)),
             "progress": progress,
+            # Estimated position: where the vessel should be along its real sea route given how
+            # much of the ETD->ETA window has elapsed. NOT AIS/GPS telemetry — none of our
+            # sources carry vessel positions — so it's a scheduling estimate, labelled as such
+            # in the UI. `bearing` is the heading of the last sailed leg, for icon rotation.
+            "position": sailed[-1] if sailed else None,
+            "bearing": _bearing(sailed[-2], sailed[-1]) if len(sailed) >= 2 else 0,
+            "vessel_name": r["vessel_name"],
+            "carrier": r["carrier"],
+            "cargo_description": r["cargo_description"],
+            "eta": r["eta"],
             "risk_level": top["risk_level"] if top else None,
             "recommended_action": top["recommended_action"] if top else None,
             "label": f"{r['shipment_id']}: {coords[r['pol_port_id']][2]} → {coords[r['pod_port_id']][2]}",

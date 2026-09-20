@@ -35,6 +35,14 @@ export interface Route {
   sailed: [number, number][];
   remaining_dots: [number, number][];
   progress: number;
+  /** Estimated position along the real sea route from elapsed ETD->ETA time — not AIS/GPS. */
+  position: [number, number] | null;
+  /** Heading in degrees (0 = north) of the last sailed leg, for rotating the ship icon. */
+  bearing: number;
+  vessel_name: string | null;
+  carrier: string | null;
+  cargo_description: string | null;
+  eta: string;
   risk_level: string | null;
   recommended_action: string | null;
   label: string;
