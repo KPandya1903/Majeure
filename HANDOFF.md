@@ -84,6 +84,16 @@ so call sites did not have to branch.
 Run `python src/migrate_to_postgres.py` to copy SQLite -> Postgres and diff every table's row
 count; `--dry-run` reports without writing, `--verify-only` just diffs.
 
+`data/portguard.db` is **no longer committed**. Postgres is the deployed source of truth, so the
+old trick of committing a snapshot (and the 2.3 MB of binary churn on every push) is gone. A fresh
+clone has no database until you either point `DATABASE_URL` at Supabase or run the pipeline once
+locally to build a SQLite one.
+
+Because of that, never guard on `db_path.exists()` -- use `store.database_ready(db)`. The file is
+genuinely absent on the deployed service, and a bare `.exists()` check would refuse to run against
+a perfectly healthy Supabase instance. Eight such guards existed and all had to be converted; the
+one in the API's `_connect()` would have answered 503 to every request.
+
 Things that will bite you here:
 
 * **Use Supabase's Session pooler string.** The direct `db.<ref>.supabase.co` host is IPv6-only and

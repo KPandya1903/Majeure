@@ -363,6 +363,17 @@ def connect(db_path: Path = DB_PATH):
     return PgConnection(psycopg.connect(url, autocommit=False, prepare_threshold=None))
 
 
+def database_ready(db_path: Path = DB_PATH) -> bool:
+    """Is there a database to talk to?
+
+    On SQLite that means the file exists. On Postgres the file is irrelevant -- and asking about it
+    is actively harmful: once data/portguard.db stops being committed, every `if not
+    db.exists(): abort` guard in the codebase would refuse to run against a perfectly healthy
+    Supabase instance, and the API would answer 503 to everything.
+    """
+    return True if is_postgres() else db_path.exists()
+
+
 def table_columns(conn, table: str) -> list[str]:
     """Replacement for `PRAGMA table_info(table)`, in declared order, on either backend."""
     if not is_postgres():

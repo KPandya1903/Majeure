@@ -16,6 +16,7 @@ from typing import Optional
 
 from pydantic import ValidationError
 
+import store
 from common import CHOKEPOINTS, ROOT, iso, setup_logging, utcnow
 from init_db import DB_PATH, connect
 from schemas import Shipment
@@ -83,7 +84,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(argv)
     setup_logging(args.verbose)
 
-    if not args.db.exists():
+    if not store.database_ready(args.db):
         log.error("%s not found: run init_db.py first", args.db)
         return 1
     conn = connect(args.db)

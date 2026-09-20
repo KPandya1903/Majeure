@@ -64,7 +64,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 
 def _connect() -> sqlite3.Connection:
-    if not DB_PATH.exists():
+    if not store.database_ready(DB_PATH):
         raise HTTPException(503, "No database yet — run the pipeline first (see README §1).")
     return store.connect(DB_PATH)
 
@@ -488,7 +488,8 @@ def sources():
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "db_exists": DB_PATH.exists(), "pipeline_running": _pipeline_running()}
+    return {"ok": True, "backend": store.backend(), "db_exists": store.database_ready(DB_PATH),
+            "pipeline_running": _pipeline_running()}
 
 
 # --------------------------------------------------------------------------- pipeline trigger

@@ -25,6 +25,7 @@ import requests
 from pydantic import ValidationError
 
 from cluster_events import corroboration_for
+import store
 from common import DATA_DIR, iso, nearby_ports, setup_logging, utcnow
 from exposure import compute_exposure
 from init_db import DB_PATH, connect
@@ -340,7 +341,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(argv)
     setup_logging(args.verbose)
 
-    if not args.db.exists():
+    if not store.database_ready(args.db):
         log.error("%s not found: run the ingestion scripts and init_db.py first (see README)", args.db)
         return 1
     conn = connect(args.db)

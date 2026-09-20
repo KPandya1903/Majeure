@@ -50,7 +50,7 @@ def ingest_steps(loop: bool) -> list[tuple[str, list[str], bool]]:
 
 def downstream_steps(args: argparse.Namespace) -> list[tuple[str, list[str], bool]]:
     db = DATA_DIR / "portguard.db"
-    need_shipments = args.shipments or not db.exists() or not _has_shipments(db)
+    need_shipments = args.shipments or not store.database_ready(db) or not _has_shipments(db)
     decide = ["run_nemotron.py", "--engine", args.engine] + (["--dry-run"] if args.dry_run else [])
     return [
         ("Database", ["init_db.py"], True),
