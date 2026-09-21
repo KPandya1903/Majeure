@@ -62,7 +62,7 @@ _ELLIPSIS_RE = re.compile(r"\s*(?:\[(?:…|\.\.\.)\]|…|\.\.\.)$")
 # Wire-story byline + dateline, e.g. "By A, B and C Sep 19, 2026 (Bloomberg) –"
 _BYLINE_RE = re.compile(r"^By\s[^()]{3,200}?\([A-Z][\w .&-]{1,40}\)\s*[–—-]+\s*")
 
-log = logging.getLogger("portguard.rss")
+log = logging.getLogger("majeure.rss")
 
 
 def clean_snippet(value: Optional[str]) -> str:

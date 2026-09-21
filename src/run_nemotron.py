@@ -35,7 +35,7 @@ from schemas import (Analysis, BillOfLading, ContractTerms, MatchContext, Nemotr
 
 PAYLOAD_DIR = DATA_DIR / "payloads"
 REASON_PRIORITY = ["port_of_discharge", "port_of_loading", "transshipment_port", "route_chokepoint"]
-RULES_MODEL = "portguard-rules-v1"
+RULES_MODEL = "majeure-rules-v1"
 
 # One row per (signal, shipment, matched port/chokepoint). Same query as docs/SCHEMAS.md section 1.
 MATCH_SQL = """
@@ -60,7 +60,7 @@ WHERE s.status <> 'dismissed'
 ORDER BY s.source = 'portwatch' DESC, s.published_at DESC, sh.shipment_id  -- authoritative events first
 """
 
-SYSTEM_PROMPT = """You are PortGuard AI, a maritime supply-chain risk analyst.
+SYSTEM_PROMPT = """You are Majeure, a maritime supply-chain risk analyst.
 You receive one JSON payload with: `signal` (a disruption report and its source_url), `shipment` (Bill of Lading and
 contract terms), `match_context` (why they were paired), `analysis` and `task`.
 `analysis` may contain:
@@ -91,7 +91,7 @@ Respond with ONLY a JSON object, no markdown, exactly in this shape:
 TASK_INSTRUCTIONS = ("Assess delay and cost exposure for this shipment given the event, the analysis and the contract "
                      "terms. Cite signal.source_url.")
 
-log = logging.getLogger("portguard.nemotron")
+log = logging.getLogger("majeure.nemotron")
 
 
 # --------------------------------------------------------------------------- matching

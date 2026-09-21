@@ -6,7 +6,7 @@ contract (force majeure only when covered, no reroute when impossible); the cost
 computed option costs; the event's source is cited. Nothing is written to the database.
 
     python src/eval_model.py --config ctx4k:nemotron-3-nano:4b:default:off \\
-                             --config tuned:portguard-nemotron:default:on --pairs 3
+                             --config tuned:majeure-nemotron:default:on --pairs 3
 Config format: name:model:reasoning:structured[:temperature]   (reasoning = default|none|low|medium|high)
 """
 from __future__ import annotations
@@ -29,7 +29,7 @@ from nemotron import NemotronClient, env, extract_json, load_dotenv
 from run_nemotron import SYSTEM_PROMPT, build_payload, decision_schema, find_pairs, group_by_event, level_for
 from schemas import NemotronDecision, NemotronPayload
 
-log = logging.getLogger("portguard.eval")
+log = logging.getLogger("majeure.eval")
 CHECKS = ["parsed", "level_matches", "pre_mitigation", "action_fits", "cost_grounded", "cites_source"]
 
 

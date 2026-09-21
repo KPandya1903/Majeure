@@ -33,7 +33,7 @@ AUTO_MIN_ALERT = {"TC": "green", "TS": "green", "EQ": "green", "FL": "green", "V
 RADIUS_KM = {"TC": 400, "TS": 400, "EQ": 150, "FL": 100, "VO": 100, "WF": 50, "DR": 0}
 MAX_PORTS = 25
 
-log = logging.getLogger("portguard.gdacs")
+log = logging.getLogger("majeure.gdacs")
 
 
 def _date(value: Optional[str]) -> Optional[datetime]:

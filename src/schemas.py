@@ -1,4 +1,4 @@
-"""Pydantic models for PortGuard AI. Mirrors docs/SCHEMAS.md (keep them in sync)."""
+"""Pydantic models for Majeure. Mirrors docs/SCHEMAS.md (keep them in sync)."""
 from __future__ import annotations
 
 from datetime import datetime, timezone

@@ -1,10 +1,10 @@
-# PortGuard AI
+# Majeure
 
-PortGuard AI watches free, real-world maritime data for disruptions: port strikes, chokepoint
+Majeure watches free, real-world maritime data for disruptions: port strikes, chokepoint
 crises, cyclones, earthquakes, attacks on shipping. It links each disruption to the shipments
 whose route it touches and prices the options from each shipment's **Bill of Lading contract
 terms** (wait, reroute, invoke force majeure). Then **NVIDIA Nemotron** makes a cited,
-contract-aware recommendation. PortGuard drafts the force majeure notice and the customer
+contract-aware recommendation. The system drafts the force majeure notice and the customer
 email, starts the notice-deadline clock, and puts everything on a dashboard for human
 approval.
 
@@ -25,7 +25,7 @@ approval.
 keys for data. Nemotron is optional: without it, use `--engine rules`.
 
 ```bash
-git clone https://github.com/KPandya1903/Pixels.git portguard-ai && cd portguard-ai
+git clone https://github.com/KPandya1903/Pixels.git majeure && cd majeure
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt          # Windows: .venv\Scripts\pip install -r requirements.txt
 cp .env.example .env                               # set NEMOTRON_BASE_URL (see §2)
@@ -120,7 +120,7 @@ flags override it.
 | `NEMOTRON_API_KEY` | *(empty)* | Hosted endpoints only (`Authorization: Bearer …`) |
 | `NEMOTRON_TEMPERATURE` / `NEMOTRON_MAX_TOKENS` / `NEMOTRON_TIMEOUT` | `0.2` / `2048` / `300` | Raise max tokens if a reasoning model's reply gets cut off |
 | `NEMOTRON_REASONING` | `default` | Thinking effort, sent as `reasoning_effort`: `none` turns thinking off (fastest), or `low` / `medium` / `high` |
-| `NEMOTRON_STRUCTURED` | `on` | Sends a JSON Schema as `response_format`, so replies are forced into PortGuard's shape |
+| `NEMOTRON_STRUCTURED` | `on` | Sends a JSON Schema as `response_format`, so replies are forced into Majeure's shape |
 | `NEMOTRON_SEED` | *(empty)* | Fixed sampling seed, for reproducible runs |
 | `SLACK_WEBHOOK_URL` | *(empty → console)* | Incoming-webhook URL for `alerts.py` |
 
@@ -147,8 +147,8 @@ that can't be used is logged with `recommended_action = NULL` and retried on the
   so the default can truncate it. [`ollama/Modelfile`](ollama/Modelfile) creates a tuned
   variant with a 16k window (the same weights, so nothing new to download):
   ```bash
-  ollama create portguard-nemotron -f ollama/Modelfile   # edit FROM to tune a bigger Nemotron
-  # .env: NEMOTRON_MODEL=portguard-nemotron
+  ollama create majeure-nemotron -f ollama/Modelfile   # edit FROM to tune a bigger Nemotron
+  # .env: NEMOTRON_MODEL=majeure-nemotron
   ```
   Check with `ollama ps`: the CONTEXT column should read 16384.
 * **Knobs sent with each request:** `NEMOTRON_REASONING`, `NEMOTRON_STRUCTURED`,
@@ -163,7 +163,7 @@ that can't be used is logged with `recommended_action = NULL` and retried on the
   cited. It also records latency:
   ```bash
   .venv/bin/python src/eval_model.py --pairs 3 --repeats 2 \
-      --config "tuned:portguard-nemotron:default:on" --config "fast:portguard-nemotron:none:on"
+      --config "tuned:majeure-nemotron:default:on" --config "fast:majeure-nemotron:none:on"
   ```
   Config format: `name:model:reasoning:structured[:temperature]`.
 
@@ -183,7 +183,7 @@ risk after its own mitigation. With thinking off, repeats were identical. Since 
 `task.allowed_actions` only lists **feasible** actions: an impossible reroute, or force
 majeure the clause excludes, is removed, so a schema-constrained model cannot pick them.
 **Recommended for small local models:**
-`NEMOTRON_MODEL=portguard-nemotron`, `NEMOTRON_REASONING=none`, `NEMOTRON_STRUCTURED=on`.
+`NEMOTRON_MODEL=majeure-nemotron`, `NEMOTRON_REASONING=none`, `NEMOTRON_STRUCTURED=on`.
 Bigger Nemotron models may use thinking well: re-run `eval_model.py` on your hardware and
 pick the winner.
 
@@ -227,7 +227,7 @@ pick the winner.
 ## 4. Every file and what it is for
 
 ```
-portguard-ai/
+majeure/
 ├── README.md                    ← you are here: setup, file map, conventions
 ├── requirements.txt             ← requests, feedparser, pandas, pydantic, streamlit, pypdf
 ├── .env.example                 ← Nemotron + Slack settings template (copy to .env)
@@ -263,7 +263,7 @@ portguard-ai/
 │   ├── alerts.py                ← Slack/console alerts for high-risk pending decisions
 │   │   ── review + validate ──
 │   ├── dashboard.py             ← Streamlit dashboard (map, decisions, approvals, drafts, traffic, backtest, chat)
-│   ├── ask.py                   ← Q&A over PortGuard's data with Nemotron
+│   ├── ask.py                   ← Q&A over Majeure's data with Nemotron
 │   ├── backtest.py              ← replay 5 historical disruptions with real traffic
 │   └── run_pipeline.py          ← run all steps once, or on a schedule (--loop 5)
 ├── ollama/
@@ -281,7 +281,7 @@ portguard-ai/
 | `requirements.txt` | `requests` (HTTP, including Nemotron), `feedparser` (RSS), `pandas` (tables; brings `numpy` for distances), `pydantic` v2 (validation), `streamlit` (dashboard; brings `pydeck` for the map), `pypdf` (contract PDFs). No OpenAI SDK. |
 | `.env.example` | `NEMOTRON_*` and `SLACK_WEBHOOK_URL` template. Read by `nemotron.load_dotenv()`, a small built-in parser. Never commit `.env`. |
 | `.gitignore` | Keeps secrets, virtualenvs, and generated `data/` out of git. |
-| `ollama/Modelfile` | Builds `portguard-nemotron` on Ollama: `FROM nemotron-3-nano:4b` with a 16k context (Ollama's 4,096 default truncates decision prompts), temperature 0.2, and top_p 0.95. Change `FROM` for a bigger Nemotron. |
+| `ollama/Modelfile` | Builds `majeure-nemotron` on Ollama: `FROM nemotron-3-nano:4b` with a 16k context (Ollama's 4,096 default truncates decision prompts), temperature 0.2, and top_p 0.95. Change `FROM` for a bigger Nemotron. |
 
 ### 4.2 `docs/`
 
@@ -396,7 +396,7 @@ import each other as plain modules (`src/` is on the path). There's no package.
   - Tabs: **Risk map** (pydeck: events sized by reports, routes coloured by risk, chokepoints
     red when traffic is down 30%+), **Shipments & decisions** (options table, deadline
     countdown, sources, Approve/Override with notes, editable drafts, the raw payload, and
-    contract upload), **Events**, **Traffic** (charts), **Backtest**, **Ask PortGuard**, and
+    contract upload), **Events**, **Traffic** (charts), **Backtest**, **Ask Majeure**, and
     **All signals**.
   - Sidebar buttons re-run pipeline steps.
 * **`ask.py`:** builds a compact JSON context (shipments, decisions with options, events,
@@ -440,7 +440,7 @@ import each other as plain modules (`src/` is on the path). There's no package.
 | `portwatch_ports.csv`, `portwatch_signals.json` | `fetch_portwatch.py` |
 | `gdacs_signals.json`, `rss_signals.json`, `gdelt_signals.json`, `google_news_signals.json` | the other ingesters |
 | `traffic_daily.csv`, `traffic_stats.csv` | `fetch_traffic.py` |
-| `portguard.db` | `init_db.py` + every later step (tables: ports, signals, signal_ports, events, event_signals, traffic_daily, traffic_stats, shipments, decision_logs, action_drafts, xtract_results, alerts_sent) |
+| `majeure.db` | `init_db.py` + every later step (tables: ports, signals, signal_ports, events, event_signals, traffic_daily, traffic_stats, shipments, decision_logs, action_drafts, xtract_results, alerts_sent) |
 | `payloads/*.json` | `run_nemotron.py --dry-run` |
 | `pipeline_state.json`, `gdelt_state.json` | `run_pipeline.py --loop` (last fetch per source), `fetch_gdelt.py --incremental` (newest GKG file processed) |
 | `pipeline.log`, `dashboard.log` | the background commands above |
@@ -506,7 +506,7 @@ JSON/CSV files are snapshots; the database accumulates history.
 * **Dismiss a noisy signal:** `UPDATE signals SET status = 'dismissed' WHERE signal_id = '…';`
   (or override its decision in the dashboard).
 
-**Useful queries** (`sqlite3 data/portguard.db` or any SQLite viewer):
+**Useful queries** (`sqlite3 data/majeure.db` or any SQLite viewer):
 
 ```sql
 -- Open decisions, most expensive first

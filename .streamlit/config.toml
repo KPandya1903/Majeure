@@ -1,4 +1,4 @@
-# PortGuard UI theme: white cards on a light grey canvas, one blue accent.
+# Majeure UI theme: white cards on a light grey canvas, one blue accent.
 # The look is defined in docs/UI_REDESIGN.md; src/dashboard.py adds the component CSS.
 [theme]
 base = "light"

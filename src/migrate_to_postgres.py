@@ -1,4 +1,4 @@
-"""Copy data/portguard.db into Postgres (Supabase), then verify both sides agree.
+"""Copy data/majeure.db into Postgres (Supabase), then verify both sides agree.
 
 One-shot, idempotent and re-runnable: the schema is created from docs/SCHEMAS.md the same way
 init_db.py creates it, rows are upserted on their primary key, and every table's row count is
@@ -24,7 +24,7 @@ from typing import Optional
 import store
 from common import setup_logging
 
-DB_PATH = Path(__file__).resolve().parent.parent / "data" / "portguard.db"
+DB_PATH = Path(__file__).resolve().parent.parent / "data" / "majeure.db"
 
 # Parents before children: every table here is referenced only by tables later in the list.
 ORDER = (
@@ -38,7 +38,7 @@ ORDER = (
 IDENTITY = {"decision_logs": "decision_id", "action_drafts": "draft_id"}
 BATCH = 500
 
-log = logging.getLogger("portguard.migrate")
+log = logging.getLogger("majeure.migrate")
 
 
 def sqlite_conn() -> sqlite3.Connection:

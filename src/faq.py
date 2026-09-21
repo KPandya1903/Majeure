@@ -1,6 +1,6 @@
-"""Instant answers for the questions people actually ask PortGuard.
+"""Instant answers for the questions people actually ask Majeure.
 
-Ask PortGuard routes every question to a reasoning model, which costs 8-40 seconds on the hosted
+Ask Majeure routes every question to a reasoning model, which costs 8-40 seconds on the hosted
 NVIDIA endpoint. Most questions in a demo or a daily standup are not novel -- they are the same
 thirty or so questions about risk, exposure, force majeure and cost, asked in different words. This
 module answers those directly from SQLite in single-digit milliseconds and leaves the model for the
@@ -26,7 +26,7 @@ import sys
 from pathlib import Path
 from typing import Callable, Iterable, NamedTuple, Optional
 
-DB_PATH = Path(__file__).resolve().parent.parent / "data" / "portguard.db"
+DB_PATH = Path(__file__).resolve().parent.parent / "data" / "majeure.db"
 
 # Words that carry no topic signal. Kept deliberately small: dropping too much makes distinct
 # questions collide (e.g. "cost to reroute" vs "cost to wait" differ only in their last word).
@@ -38,7 +38,7 @@ _STOP = {
     "have", "has", "had", "been", "get", "got", "show", "tell", "give", "list", "please", "about",
     # Generic request verbs. They read as topical but appear across every entry, so on their own they
     # were enough to match: "summarise the news in gaza" scored 0.40 against "summarise the shipments"
-    # on the single shared word, and "explain quantum entanglement" against "explain portguard".
+    # on the single shared word, and "explain quantum entanglement" against "explain majeure".
     "summarise", "summarize", "explain", "describe", "summary",
 }
 _WORD_RE = re.compile(r"[a-z0-9]+")
@@ -206,8 +206,8 @@ def a_force_majeure(conn: sqlite3.Connection) -> str:
                               WHERE d.force_majeure_applicable = 1) ranked
                           WHERE rn = 1""")
     if not rows:
-        return ("No shipment currently qualifies for force majeure. PortGuard marks a clause as "
-                "applicable only when the event type is named in the Bill of Lading's clause text.")
+        return ("No shipment currently qualifies for force majeure. A clause is marked applicable "
+                "only when the event type is named in the Bill of Lading's clause text.")
     lines = [f"- **{r['vessel_name'] or r['shipment_id']}** ({r['carrier']}) — triggered by "
              f"*{r['title']}*, recommended **{(r['recommended_action'] or '').replace('_', ' ')}**"
              for r in rows]
@@ -230,7 +230,7 @@ def a_fm_meaning(conn: sqlite3.Connection) -> str:
     row = _one(conn, "SELECT force_majeure_clause FROM shipments WHERE force_majeure_clause IS NOT NULL LIMIT 1")
     clause = f"\n\nExample clause on file:\n> {row['force_majeure_clause']}" if row else ""
     return ("Force majeure excuses a party from contractual performance when a named, uncontrollable "
-            "event prevents it. PortGuard treats it as available only when three things hold: the "
+            "event prevents it. The clause is treated as available only when three things hold: the "
             "event type is named in the clause, the disruption is on the shipment's route, and the "
             "notice window has not expired." + clause)
 
@@ -372,7 +372,7 @@ def a_sources(conn: sqlite3.Connection) -> str:
         return _no_data("ingested signal")
     total = sum(r["n"] for r in rows)
     top = ", ".join(f"{r['source'].replace('_', ' ')} ({r['n']})" for r in rows[:8])
-    return (f"PortGuard is ingesting **{len(rows)} sources**, **{total} signals** in total. "
+    return (f"Majeure is ingesting **{len(rows)} sources**, **{total} signals** in total. "
             f"Largest: {top}. They are tiered by credibility — official bodies (IMF PortWatch, GDACS, "
             f"NGA, NOAA, JTWC, USGS) outrank trade press, which outranks news aggregators.")
 
@@ -398,8 +398,8 @@ def a_confidence(conn: sqlite3.Connection) -> str:
             f"corroborates it, so one official advisory can outrank several aggregators.")
 
 
-def a_what_is_portguard(conn: sqlite3.Connection) -> str:
-    return ("PortGuard AI monitors maritime disruption and turns it into shipment-specific, "
+def a_what_is_majeure(conn: sqlite3.Connection) -> str:
+    return ("Majeure monitors maritime disruption and turns it into shipment-specific, "
             "contract-aware decisions. It ingests official hazard data, government warnings and "
             "maritime trade press; clusters reports into events; matches each event to your shipments "
             "by port and chokepoint; prices the options (wait, reroute, expedite, hold, force majeure) "
@@ -408,7 +408,7 @@ def a_what_is_portguard(conn: sqlite3.Connection) -> str:
 
 
 def a_how_costs(conn: sqlite3.Connection) -> str:
-    return ("Costs are rule-based, not model-guessed. For each option PortGuard computes delay days "
+    return ("Costs are rule-based, not model-guessed. For each option Majeure computes delay days "
             "and multiplies them by the contract's own demurrage, detention and late-delivery penalty "
             "rates, adding rerouting distance cost where a deviation is permitted. Every figure is an "
             "estimate from stated assumptions, and the assumptions travel with the number.")
@@ -442,7 +442,7 @@ def a_vessel_positions(conn: sqlite3.Connection) -> str:
                      f"ETD {(r['etd'] or '')[:10]}, ETA {r['eta'][:10]}")
     return ("These are real vessels with verifiable IMO numbers, but their positions on the map are "
             "**estimated** — computed from elapsed time between ETD and ETA along the real sea route. "
-            "PortGuard ingests no AIS feed, so this is a scheduling estimate, not live tracking.\n"
+            "Majeure ingests no AIS feed, so this is a scheduling estimate, not live tracking.\n"
             + "\n".join(lines))
 
 
@@ -543,7 +543,7 @@ BANK: tuple[Entry, ...] = (
         "total estimated cost", "what is the overall cost",
     ), a_total_exposure, frozenset({"total", "overall"})),
     Entry("cost_avoided", (
-        "how much have we saved", "what is the cost avoided", "what did portguard save us",
+        "how much have we saved", "what is the cost avoided", "what did majeure save us",
         "how much money did we avoid losing", "what is the roi", "savings so far",
     ), a_cost_avoided, frozenset({"saved", "save", "avoided", "avoid", "roi", "saving"})),
     Entry("demurrage", (
@@ -553,7 +553,7 @@ BANK: tuple[Entry, ...] = (
     ), a_demurrage),
     Entry("recommendations", (
         "what do you recommend", "what actions are recommended", "what should we do",
-        "summarise the recommendations", "what is portguard recommending",
+        "summarise the recommendations", "what is majeure recommending",
     ), a_recommendations),
     Entry("pending_approval", (
         "what is waiting for approval", "what needs approving", "what is pending",
@@ -600,11 +600,12 @@ BANK: tuple[Entry, ...] = (
         "how many publishers confirm this", "what is the confidence score",
         "how do you score confidence", "is this verified",
     ), a_confidence, frozenset({"confident", "confidence", "corroborated", "publisher", "verified"})),
-    Entry("what_is_portguard", (
-        "what is portguard", "what does this app do", "explain portguard",
+    Entry("what_is_majeure", (
+        "what is majeure", "what does this app do", "explain majeure",
         "what are you", "how does this work", "what is this dashboard",
-        "what does portguard do", "what problem does this solve",
-    ), a_what_is_portguard, frozenset({"portguard", "app", "dashboard", "work", "solve"})),
+        "what does majeure do", "what problem does this solve",
+        "how does majeure work",
+    ), a_what_is_majeure, frozenset({"majeure", "app", "dashboard", "work", "solve"})),
     Entry("how_costs", (
         "how do you calculate cost", "where do the numbers come from",
         "how are the estimates produced", "how is cost computed", "are these real quotes",

@@ -1,6 +1,6 @@
 """Build a shipment book around REAL vessels operated by REAL carriers.
 
-The demo book shipped with PortGuard was synthetic end to end: "Demo Ocean Line" sailing the "DEMO
+The demo book shipped with Majeure was synthetic end to end: "Demo Ocean Line" sailing the "DEMO
 VOYAGER". That made every downstream number unfalsifiable, because nobody could check the vessel
 existed. This module replaces the vessel *identity* with public-registry fact while leaving the
 commercial terms synthetic, and records which is which so the UI can say so.
@@ -43,7 +43,7 @@ from common import ROOT, iso, load_ports, setup_logging, utcnow
 
 SAMPLE_OUT = ROOT / "samples" / "shipments.real.json"
 
-log = logging.getLogger("portguard.fleet")
+log = logging.getLogger("majeure.fleet")
 
 
 # --------------------------------------------------------------------------- vessel identity

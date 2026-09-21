@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- PortGuard mark: a shield (guard) around a ship's helm/anchor cross (port). -->
+  <!-- Majeure mark: a white anchor (ring, shank, stock crossbar, curved arms) on a solid blue shield. -->
   <path d="M16 2 4 6.5v9.8c0 7.3 5 13 12 14.2 7-1.2 12-6.9 12-14.2V6.5L16 2z" fill="#0B5CD5"/>
   <g stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none">
     <path d="M16 9v13"/>

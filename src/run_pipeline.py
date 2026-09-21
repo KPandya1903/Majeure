@@ -1,4 +1,4 @@
-"""Run the whole PortGuard pipeline in order: ingest -> database -> (Xtract) -> events -> decisions ->
+"""Run the whole Majeure pipeline in order: ingest -> database -> (Xtract) -> events -> decisions ->
 drafts -> alerts. Once, or every N minutes with --loop.
 
 In a loop, each source is fetched only when it can have changed (SCHEDULE_MIN below): checking every
@@ -35,7 +35,7 @@ SCHEDULE_MIN = {
     "Google News": 10,         # unofficial feed: stay polite
     "PortWatch traffic": 360,  # daily data, published ~5-7 days late
 }
-log = logging.getLogger("portguard.pipeline")
+log = logging.getLogger("majeure.pipeline")
 
 
 def ingest_steps(loop: bool) -> list[tuple[str, list[str], bool]]:
@@ -51,7 +51,7 @@ def ingest_steps(loop: bool) -> list[tuple[str, list[str], bool]]:
 
 
 def downstream_steps(args: argparse.Namespace) -> list[tuple[str, list[str], bool]]:
-    db = DATA_DIR / "portguard.db"
+    db = DATA_DIR / "majeure.db"
     need_shipments = args.shipments or not store.database_ready(db) or not _has_shipments(db)
     decide = ["run_nemotron.py", "--engine", args.engine] + (["--dry-run"] if args.dry_run else [])
     return [
@@ -89,7 +89,7 @@ def _save_state(state: dict, failed: Optional[list[str]] = None) -> None:
     """
     STATE_JSON.parent.mkdir(parents=True, exist_ok=True)
     STATE_JSON.write_text(json.dumps(state))
-    db = DATA_DIR / "portguard.db"
+    db = DATA_DIR / "majeure.db"
     if not store.is_postgres() and not db.exists():
         return  # first ever run: init_db.py creates the table a few steps later
     bad = set(failed or ())

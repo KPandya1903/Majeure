@@ -1,5 +1,5 @@
-"""Ask PortGuard: answer questions about shipments, events and decisions with Nemotron, using only
-PortGuard's own data (sent as a compact JSON context) and citing sources.
+"""Ask Majeure: answer questions about shipments, events and decisions with Nemotron, using only
+Majeure's own data (sent as a compact JSON context) and citing sources.
 
     python src/ask.py "Which shipments go through Hormuz, and can we invoke force majeure?"
 """
@@ -15,10 +15,10 @@ from typing import Optional
 
 from nemotron import NemotronClient, client_from_env
 
-DB_PATH = Path(__file__).resolve().parent.parent / "data" / "portguard.db"
-SYSTEM_PROMPT = """You are PortGuard AI's analyst assistant for a logistics team.
+DB_PATH = Path(__file__).resolve().parent.parent / "data" / "majeure.db"
+SYSTEM_PROMPT = """You are Majeure's analyst assistant for a logistics team.
 Answer the user's question using ONLY the JSON context (their shipments with contract terms, current disruption events,
-PortGuard's decisions with cost estimates, and measured traffic). If the context does not contain the answer, say so.
+Majeure's decisions with cost estimates, and measured traffic). If the context does not contain the answer, say so.
 Be concise: short paragraphs or bullet points, dollar figures where relevant, shipment ids in bold.
 Cite sources as numbered markdown links using URLs from the context, numbering them from 1 in the order you
 use them: write [1](https://example.com/article), then [2](...), and so on. Never write a literal "[n]" -- n is a

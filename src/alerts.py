@@ -23,7 +23,7 @@ from nemotron import env, load_dotenv
 ACTIONS = {"monitor": "Monitor", "notify_customer": "Notify customer", "reroute": "Reroute", "expedite": "Expedite",
            "hold_cargo": "Hold cargo", "invoke_force_majeure": "Invoke force majeure"}
 RISK_ORDER = ["low", "medium", "high", "critical"]
-log = logging.getLogger("portguard.alerts")
+log = logging.getLogger("majeure.alerts")
 
 
 def message(d: sqlite3.Row) -> str:
@@ -33,7 +33,7 @@ def message(d: sqlite3.Row) -> str:
     corr = (payload.get("analysis") or {}).get("corroboration") or {}
     wait = next((o["cost_usd"] for o in exp.get("options", []) if o["action"] == "monitor"), None)
     lines = [
-        f"*PortGuard: {d['risk_level'].upper()} risk* for {d['shipment_id']} "
+        f"*Majeure: {d['risk_level'].upper()} risk* for {d['shipment_id']} "
         f"({bl['port_of_loading']['name']} → {bl['port_of_discharge']['name']}, ETA {bl['eta'][:10]})",
         f"Event: {payload['signal']['title']}" + (f" ({corr['n_reports']} reports, {corr['n_publishers']} publishers)" if corr else ""),
         f"Recommendation: *{ACTIONS.get(d['recommended_action'], d['recommended_action'])}*"
@@ -45,7 +45,7 @@ def message(d: sqlite3.Row) -> str:
         hours = (due - datetime.now(timezone.utc)).total_seconds() / 3600
         lines.append(f"Force majeure notice due in {hours:.0f} h" if hours > 0 else f"Force majeure notice deadline passed {-hours:.0f} h ago")
     lines.append(f"Source: {payload['signal']['source_url']}")
-    lines.append("Review and approve in the PortGuard dashboard.")
+    lines.append("Review and approve in the Majeure dashboard.")
     return "\n".join(lines)
 
 

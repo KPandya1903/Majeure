@@ -1,4 +1,4 @@
-"""Shared helpers for the PortGuard AI ingestion scripts.
+"""Shared helpers for the Majeure ingestion scripts.
 
 Paths, HTTP with retry/backoff, text + URL cleaning, the rule-based event classifier and the
 port/chokepoint gazetteer. Rules are documented in docs/DATA_SOURCES.md ("Shared enrichment").
@@ -25,9 +25,9 @@ from schemas import EventType, PortLocation, XtractSignal
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 PORTS_CSV = DATA_DIR / "portwatch_ports.csv"
-USER_AGENT = "PortGuardAI/0.1 (maritime disruption research)"  # some WAFs (GDACS) block "python-requests"
+USER_AGENT = "Majeure/0.1 (maritime disruption research)"  # some WAFs (GDACS) block "python-requests"
 
-log = logging.getLogger("portguard")
+log = logging.getLogger("majeure")
 
 
 def setup_logging(verbose: bool = False) -> None:

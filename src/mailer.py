@@ -1,6 +1,6 @@
 """Send an approved draft as email, via Resend.
 
-PortGuard drafts a force majeure notice and a customer email, and a human approves them. This is
+Majeure drafts a force majeure notice and a customer email, and a human approves them. This is
 the last step: actually putting one in someone's inbox.
 
 Resend rather than SMTP because the deployed service runs on Render's free tier, which commonly
@@ -32,7 +32,7 @@ API_URL = "https://api.resend.com/emails"
 # Resend's shared sender. It needs no DNS setup, which is what makes it usable in a demo, but it
 # will only deliver to the email address that owns the Resend account -- a real deployment sets
 # NOTICE_FROM to an address on its own verified domain.
-DEFAULT_FROM = "PortGuard AI <onboarding@resend.dev>"
+DEFAULT_FROM = "Majeure <onboarding@resend.dev>"
 TIMEOUT = 20
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")

@@ -1,4 +1,4 @@
-# PortGuard AI — Data Sources
+# Majeure — Data Sources
 
 This file covers every free, unauthenticated source, how each is queried, and how the raw
 response becomes clean data. Everything here was checked against the live endpoints on
@@ -12,7 +12,7 @@ response becomes clean data. Everything here was checked against the live endpoi
 | 4 | GDACS live hazard alerts | RSS 2.0 + GDACS/GeoRSS tags | `src/fetch_gdacs.py` | `data/gdacs_signals.json` | ~30 alerts, ~10 linked to ports |
 | 5 | Google News search | RSS 2.0 | `src/fetch_google_news.py` | `data/google_news_signals.json` | ~60 stories from 3 days |
 
-All requests send `User-Agent: PortGuardAI/0.1 (maritime disruption research)`. Keep
+All requests send `User-Agent: Majeure/0.1 (maritime disruption research)`. Keep
 "python-requests" out of it: GDACS's firewall returns 403 for a User-Agent containing it.
 
 ---
@@ -255,12 +255,12 @@ tail going back to 2021, which is another reason it is STRICT-filtered rather th
 Checked and **not** usable from a server: UKMTO (`/rss/incidents`), MARAD MSCI advisories and Port
 Technology all return 403 behind a WAF; Lloyd's List and TradeWinds return 500/404 without a
 subscription; ReCAAP and EMSA publish no RSS at the documented paths. UKMTO and MARAD are the most
-authoritative sources for the Hormuz and Bab el-Mandeb events PortGuard cares most about, so they
+authoritative sources for the Hormuz and Bab el-Mandeb events Majeure cares most about, so they
 are worth revisiting with a headless fetch or an email-to-feed bridge.
 
 **Per-item fields used:** `title`, `link` (the citation), `published`/`updated`,
 `author`, `tags` (categories), `id` (guid), and `summary` (the excerpt). No feed carries full
-articles, and PortGuard stores excerpts only, as citations.
+articles, and Majeure stores excerpts only, as citations.
 
 ### Cleaning (`parse_rss.py`)
 
@@ -497,7 +497,7 @@ defence, aviation, and sports stories.
 * **GDELT:** free and open. Cite "The GDELT Project". In API mode, stay within 1 request per
   5 s.
 * **Trade press (gCaptain, Maritime Executive, Seatrade Maritime, Hellenic Shipping News,
-  Splash247):** articles are copyrighted. PortGuard stores only titles, links, excerpts, and
+  Splash247):** articles are copyrighted. Majeure stores only titles, links, excerpts, and
   categories, as citations, and never republishes full text.
 * **Google News:** an unofficial RSS endpoint. Titles and links are stored as citations; one
   request per run.

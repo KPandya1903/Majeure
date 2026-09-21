@@ -37,7 +37,7 @@ Return ONLY a JSON object with this shape (use null when the document does not s
    "governing_law": str}}
 Convert notice periods to hours (e.g. 3 days = 72). Copy numbers exactly; do not guess missing values."""
 
-log = logging.getLogger("portguard.contract")
+log = logging.getLogger("majeure.contract")
 
 
 def read_text(path: Path) -> str:

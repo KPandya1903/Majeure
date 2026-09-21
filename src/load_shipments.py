@@ -38,7 +38,7 @@ UPSERT = (
     + ", ".join(f"{c} = excluded.{c}" for c in COLUMNS if c not in ("shipment_id", "created_at"))
 )
 
-log = logging.getLogger("portguard.shipments")
+log = logging.getLogger("majeure.shipments")
 
 
 def shipment_row(s: Shipment, now: datetime) -> dict:

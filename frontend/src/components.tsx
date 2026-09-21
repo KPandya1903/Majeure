@@ -56,8 +56,7 @@ export function Header({ updatedAgo }: { updatedAgo: string | null }) {
   return (
     <div className="pg-header-row">
       <div className="pg-brand">
-        <span className="pg-brand-name">PortGuard</span>
-        <span className="pg-brand-tag">AI</span>
+        <span className="pg-brand-name">Majeure</span>
       </div>
       <span className="pg-sub">
         Contract-grade disruption decisions — IMF PortWatch · GDACS · GDELT · Google News · maritime trade press.

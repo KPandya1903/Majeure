@@ -26,11 +26,11 @@ CHOKEPOINT_LAYER = f"{ARCGIS_ROOT}/Daily_Chokepoints_Data/FeatureServer/0/query"
 PORT_LAYER = f"{ARCGIS_ROOT}/Daily_Ports_Data/FeatureServer/0/query"
 DAILY_CSV = DATA_DIR / "traffic_daily.csv"
 STATS_CSV = DATA_DIR / "traffic_stats.csv"
-DB_PATH = DATA_DIR / "portguard.db"
+DB_PATH = DATA_DIR / "majeure.db"
 SAMPLE_SHIPMENTS = ROOT / "samples" / "shipments.sample.json"
 RECENT_DAYS, BASELINE_DAYS = 7, 90
 
-log = logging.getLogger("portguard.traffic")
+log = logging.getLogger("majeure.traffic")
 
 
 def query_daily(layer: str, where: str, value_field: str) -> pd.DataFrame:

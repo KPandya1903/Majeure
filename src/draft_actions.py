@@ -31,7 +31,7 @@ quote the force majeure clause verbatim, name the event, state the expected dela
 notice period; for a customer_email explain the situation, the recommended action and the cost options in plain
 language. Always cite the source URLs. Respond with ONLY a JSON object: {"subject": "...", "body": "..."}"""
 
-log = logging.getLogger("portguard.drafts")
+log = logging.getLogger("majeure.drafts")
 
 
 def needed_kinds(decision: sqlite3.Row) -> list[str]:

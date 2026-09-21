@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-09-19T19:40:52Z",
-  "note": "Historical replay. Events and traffic are real (IMF PortWatch); each shipment is a synthetic example routed through the affected place. Decisions use only what was known the day after the event started.",
+  "note": "Historical replay. Events and traffic are real (IMF PortWatch); each shipment is a synthetic example routed through the affected place. Decisions use only what was known the day after the event started. These results were produced by the rules engine when it was named portguard-rules-v1; the engine was renamed majeure-rules-v1 on 2026-09-21 and the model labels below were updated to match. The engine logic is unchanged.",
   "scenarios": [
     {
       "scenario": "Red Sea crisis (Dec 2023)",
@@ -21,9 +21,9 @@
       "savings_usd": 10000.0,
       "recommended_action": "invoke_force_majeure",
       "risk_level": "high",
-      "model": "portguard-rules-v1",
+      "model": "majeure-rules-v1",
       "rationale": "RED SEA TENSIONS (security_threat, high risk). Cheapest available option: invoke_force_majeure at about $0. The clause covers this kind of event. Written notice is due by 2023-12-19 00:00 UTC.",
-      "summary": "RED SEA TENSIONS started 16 Dec 2023. The example shipment (Shanghai \u2192 Rotterdam) matches via route chokepoint (Bab el-Mandeb Strait), 26 days before its ETA. PortGuard would recommend **invoke force majeure** (high risk): waiting would cost ~$10,000, the best available option ~$0. Over the following month, measured transits at Bab el-Mandeb Strait changed -41% vs the month before.",
+      "summary": "RED SEA TENSIONS started 16 Dec 2023. The example shipment (Shanghai \u2192 Rotterdam) matches via route chokepoint (Bab el-Mandeb Strait), 26 days before its ETA. Majeure would recommend **invoke force majeure** (high risk): waiting would cost ~$10,000, the best available option ~$0. Over the following month, measured transits at Bab el-Mandeb Strait changed -41% vs the month before.",
       "traffic_series": [
         {
           "date": "2023-11-01",
@@ -576,9 +576,9 @@
       "savings_usd": 8400.0,
       "recommended_action": "invoke_force_majeure",
       "risk_level": "high",
-      "model": "portguard-rules-v1",
+      "model": "majeure-rules-v1",
       "rationale": "COLLAPSE FRANCIS SCOTT KEY BRIDGE (port_closure, high risk). Cheapest available option: invoke_force_majeure at about $10,000. The clause covers this kind of event. Written notice is due by 2024-03-29 00:00 UTC.",
-      "summary": "COLLAPSE FRANCIS SCOTT KEY BRIDGE started 26 Mar 2024. The example shipment (Rotterdam \u2192 Baltimore) matches via port of discharge (Baltimore), 5 days before its ETA. PortGuard would recommend **invoke force majeure** (high risk): waiting would cost ~$18,400, the best available option ~$10,000. Over the following month, measured port calls at Baltimore changed -76% vs the month before.",
+      "summary": "COLLAPSE FRANCIS SCOTT KEY BRIDGE started 26 Mar 2024. The example shipment (Rotterdam \u2192 Baltimore) matches via port of discharge (Baltimore), 5 days before its ETA. Majeure would recommend **invoke force majeure** (high risk): waiting would cost ~$18,400, the best available option ~$10,000. Over the following month, measured port calls at Baltimore changed -76% vs the month before.",
       "traffic_series": [
         {
           "date": "2024-02-10",
@@ -1131,9 +1131,9 @@
       "savings_usd": 28630.0,
       "recommended_action": "reroute",
       "risk_level": "high",
-      "model": "portguard-rules-v1",
+      "model": "majeure-rules-v1",
       "rationale": "US PORTS STRIKE (labor_strike, high risk). Cheapest available option: reroute at about $19,370. Divert to New Haven (130 km away) and haul the rest.",
-      "summary": "US PORTS STRIKE started 01 Oct 2024. The example shipment (Shanghai \u2192 New York-New Jersey) matches via port of discharge (New York-New Jersey), 2 days before its ETA. PortGuard would recommend **reroute** (high risk): waiting would cost ~$48,000, the best available option ~$19,370. Over the following month, measured port calls at New York-New Jersey changed -8% vs the month before.",
+      "summary": "US PORTS STRIKE started 01 Oct 2024. The example shipment (Shanghai \u2192 New York-New Jersey) matches via port of discharge (New York-New Jersey), 2 days before its ETA. Majeure would recommend **reroute** (high risk): waiting would cost ~$48,000, the best available option ~$19,370. Over the following month, measured port calls at New York-New Jersey changed -8% vs the month before.",
       "traffic_series": [
         {
           "date": "2024-08-17",
@@ -1686,9 +1686,9 @@
       "savings_usd": 0.0,
       "recommended_action": "notify_customer",
       "risk_level": "high",
-      "model": "portguard-rules-v1",
+      "model": "majeure-rules-v1",
       "rationale": "RESTRICTIONS PANAMA CANAL (chokepoint_disruption, high risk). Cheapest available option: monitor at about $9,600. Wait it out: ~12 days of delay (chokepoint_disruption, severity high).",
-      "summary": "RESTRICTIONS PANAMA CANAL started 03 Nov 2023. The example shipment (Shanghai \u2192 Houston (US-TX)) matches via route chokepoint (Panama Canal), 19 days before its ETA. PortGuard would recommend **notify customer** (high risk): waiting would cost ~$9,600, the best available option ~$9,600. Over the following month, measured transits at Panama Canal changed -24% vs the month before.",
+      "summary": "RESTRICTIONS PANAMA CANAL started 03 Nov 2023. The example shipment (Shanghai \u2192 Houston (US-TX)) matches via route chokepoint (Panama Canal), 19 days before its ETA. Majeure would recommend **notify customer** (high risk): waiting would cost ~$9,600, the best available option ~$9,600. Over the following month, measured transits at Panama Canal changed -24% vs the month before.",
       "traffic_series": [
         {
           "date": "2023-09-19",
@@ -2241,9 +2241,9 @@
       "savings_usd": 0.0,
       "recommended_action": "notify_customer",
       "risk_level": "high",
-      "model": "portguard-rules-v1",
+      "model": "majeure-rules-v1",
       "rationale": "HORMUZ-26 (chokepoint_disruption, high risk). Cheapest available option: monitor at about $30,000. Wait it out: ~12 days of delay (chokepoint_disruption, severity high).",
-      "summary": "HORMUZ-26 started 01 Mar 2026. The example shipment (Jebel Ali \u2192 Mumbai-Jawaharlal Nehru (Nhava Sheva)) matches via route chokepoint (Strait of Hormuz), 4 days before its ETA. PortGuard would recommend **notify customer** (high risk): waiting would cost ~$30,000, the best available option ~$30,000. Over the following month, measured transits at Strait of Hormuz changed -96% vs the month before.",
+      "summary": "HORMUZ-26 started 01 Mar 2026. The example shipment (Jebel Ali \u2192 Mumbai-Jawaharlal Nehru (Nhava Sheva)) matches via route chokepoint (Strait of Hormuz), 4 days before its ETA. Majeure would recommend **notify customer** (high risk): waiting would cost ~$30,000, the best available option ~$30,000. Over the following month, measured transits at Strait of Hormuz changed -96% vs the month before.",
       "traffic_series": [
         {
           "date": "2026-01-15",

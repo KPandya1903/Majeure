@@ -47,7 +47,7 @@ PORT_COLUMNS = {
 TEXT_COLUMNS = ["port_id", "port_name", "full_name", "country", "iso3", "continent", "locode",
                 "industry_top1", "industry_top2", "industry_top3", "pageid"]
 
-log = logging.getLogger("portguard.portwatch")
+log = logging.getLogger("majeure.portwatch")
 
 
 def query_layer(layer_url: str) -> list[dict]:

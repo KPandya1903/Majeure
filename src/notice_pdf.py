@@ -183,7 +183,7 @@ def build(kind: str, subject: str, body: str, shipment: dict,
     pdf.set_font("Helvetica", "I", 7.5)
     pdf.set_text_color(140, 146, 154)
     pdf.multi_cell(166, 4, _ascii(
-        f"Prepared by PortGuard AI{' (' + generated_by + ')' if generated_by else ''} from the "
+        f"Prepared by Majeure{' (' + generated_by + ')' if generated_by else ''} from the "
         f"cited sources and the contract terms on file. Cost and delay figures are estimates from "
         f"stated assumptions, not quotations. This document requires human approval before it is "
         f"served and does not itself constitute legal advice."))

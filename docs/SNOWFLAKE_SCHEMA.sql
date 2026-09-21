@@ -1,4 +1,4 @@
--- PortGuard AI — Snowflake schema (replaces the SQLite DDL formerly in docs/SCHEMAS.md §1).
+-- Majeure — Snowflake schema (replaces the SQLite DDL formerly in docs/SCHEMAS.md §1).
 -- Executed by src/init_db.py via src/db.py. Differences from the SQLite version, and why:
 --
 -- * No `PRAGMA foreign_keys` — not a Snowflake concept.

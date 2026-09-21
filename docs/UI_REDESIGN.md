@@ -1,4 +1,4 @@
-# PortGuard UI: the Windward look, examined and mapped
+# Majeure UI: the Windward look, examined and mapped
 
 Examined windward.ai on 2026-09-19 by loading it in Chrome and reading its computed styles
 (exact colours, fonts, type scale below), plus their product screenshot. This file is the design
@@ -46,19 +46,19 @@ headings**, and **defence-intel chrome** (corner brackets, reticles, mono micro-
    `POD` pins, reticles around points of interest.
 10. **Quote cards**: dark card, 1px orange border, 4px radius, grey logo.
 
-## 3. Mapping to PortGuard
+## 3. Mapping to Majeure
 
 | Theirs | Ours | Source of the data |
 |---|---|---|
 | Alert strip "TRACK VESSEL ACTIVITY IN THE STRAIT OF HORMUZ · MONITOR LIVE" | **"⚠ HORMUZ-26 · TRANSITS DOWN 93% · 71 REPORTS · VIEW"** rotating through active events | `events` + `traffic_stats` |
-| Eyebrow "WINDWARD MARITIME AI™" | **"PORTGUARD DECISION AI"** | static |
+| Eyebrow "WINDWARD MARITIME AI™" | **"MAJEURE DECISION AI"** | static |
 | H1 "MISSION-GRADE ALL-SOURCE OPERATIONAL INTELLIGENCE" | **"CONTRACT-GRADE DISRUPTION DECISIONS"** | static |
 | Corner-bracket card `DARK ACTIVITY ☀ EO` | Same frame for each KPI: `ACTIVE EVENTS`, `AT RISK`, `EXPOSURE ⌁ USD`, `NEXT NOTICE ⏱` | KPI queries |
 | Stat chip `↓ 32% DECREASE IN ACTIVITY COUNT` | `↓ 93% TRANSITS · STRAIT OF HORMUZ` | `traffic_stats.pct_change` |
 | Map chip `📍 STRAIT OF HORMUZ` | Same, on the matched chokepoint | `signal_ports` |
 | Map chip `⚠ BEHAVIORAL RISK / GNSS MANIPULATION` | `⚠ SECURITY THREAT / RED SEA TENSIONS` (uppercase label over bold value) | `signals.event_type` + title |
 | Table `LHFA → USLA` + `Direct`/`1 TSP` | `CNSGH → NLRTM` + `Direct` / `1 TSP` | `ports.locode`, `transshipment_port_ids` |
-| `Latest carrier ETA` vs `Maritime AI™ Predicted ETA` | `CONTRACT ETA` vs `PORTGUARD ETA` (ETA + expected delay) | `shipments.eta` + `exposure` |
+| `Latest carrier ETA` vs `Maritime AI™ Predicted ETA` | `CONTRACT ETA` vs `MAJEURE ETA` (ETA + expected delay) | `shipments.eta` + `exposure` |
 | Status chips `+8d delay`, `On time` | `+10d`, `FM 46h`, `$30K`, `APPROVAL NEEDED` | exposure, deadline, decision |
 | Status dot + insight | Risk dot + recommended action | `decision_logs` |
 | Orange/dashed route, POL/POD pins | Same: solid to the ship's estimated position, dashed to arrival | `etd`, `eta`, port coordinates |
@@ -77,7 +77,7 @@ menu, footer and header; sets headings to uppercase weight 300 with −1px track
 pseudo-elements), `.eyebrow`, `.micro` (IBM Plex Mono, 11px, uppercase, letterspaced).
 
 **Step 2: header + alert strip (~30 min).** An HTML block: alert strip built from the most
-severe active event, then a brand row (`PORTGUARD°`, tabs, 🔔 with the pending count, "RUN
+severe active event, then a brand row (`MAJEURE°`, tabs, 🔔 with the pending count, "RUN
 DECISIONS" button).
 
 **Step 3: map restyle (~1.5 h).** Dark basemap; routes as two `PathLayer`s (solid orange
@@ -86,7 +86,7 @@ halos sized by report count; chokepoints dimmed to 20% opacity unless disrupted;
 chips as a `TextLayer` with background, in the chip style.
 
 **Step 4: fleet table + details panel (~1.5 h).** Replace stacked expanders with one dense
-dark table (LOCODE path, contract ETA, PortGuard ETA, delay chip, risk dot, recommendation,
+dark table (LOCODE path, contract ETA, Majeure ETA, delay chip, risk dot, recommendation,
 exposure) and a right-hand details panel for the selected row: options, deadline, sources,
 Approve/Override, drafts.
 

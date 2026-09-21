@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { SourceRow } from "./api";
 import { api, fmtAgo } from "./api";
 
-/** Left rail, ported from the Streamlit build's sidebar: what PortGuard is, how fresh the data
+/** Left rail, ported from the Streamlit build's sidebar: what Majeure is, how fresh the data
  * is, and which sources it came from. Freshness is the important bit — if the ingest pipeline
  * stops, every number on screen silently goes stale, and this is the only place that shows it. */
 export default function Sidebar() {
@@ -43,8 +43,7 @@ export default function Sidebar() {
           </g>
           <circle cx="16" cy="8" r="2.1" fill="#fff"/>
         </svg>
-        <span className="pg-brand-name">PortGuard</span>
-        <span className="pg-brand-tag">AI</span>
+        <span className="pg-brand-name">Majeure</span>
       </div>
       <div className="pg-sub" style={{ marginTop: 6, lineHeight: 1.45 }}>
         Maritime disruptions → shipment-specific, contract-aware decisions.

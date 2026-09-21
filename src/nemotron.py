@@ -18,7 +18,7 @@ import requests
 from common import ROOT, USER_AGENT
 
 _THINK_RE = re.compile(r"<think>.*?</think>", re.S | re.I)
-log = logging.getLogger("portguard.nemotron")
+log = logging.getLogger("majeure.nemotron")
 
 
 def load_dotenv(path: Path = ROOT / ".env") -> None:
@@ -73,7 +73,7 @@ class NemotronClient:
         body = {"model": self.model, "temperature": self.temperature, "max_tokens": max_tokens or self.max_tokens,
                 "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
         if schema is not None and self.structured:
-            body["response_format"] = {"type": "json_schema", "json_schema": {"name": "portguard", "schema": schema}}
+            body["response_format"] = {"type": "json_schema", "json_schema": {"name": "majeure", "schema": schema}}
         if self.reasoning:
             body["reasoning_effort"] = self.reasoning
         if self.seed is not None:

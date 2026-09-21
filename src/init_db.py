@@ -1,4 +1,4 @@
-"""Initialise data/portguard.db and load the PortWatch CSV plus all signal JSON files.
+"""Initialise data/majeure.db and load the PortWatch CSV plus all signal JSON files.
 
 The DDL is read from the ```sql block in docs/SCHEMAS.md, so the docs are the schema. Loading is
 idempotent: ports and signals are upserted, and re-running never duplicates rows.
@@ -23,7 +23,7 @@ import store
 from common import DATA_DIR, PORTS_CSV, ROOT, SEA_AREA_LINKS, iso, setup_logging, utcnow
 from schemas import XtractSignal
 
-DB_PATH = DATA_DIR / "portguard.db"
+DB_PATH = DATA_DIR / "majeure.db"
 SCHEMAS_MD = ROOT / "docs" / "SCHEMAS.md"
 # Load order = precedence when the same URL arrives from two sources (first one wins):
 # structured data first, then publishers' own feeds, then news aggregators.
@@ -44,7 +44,7 @@ UPSERT_SIGNAL = (
     f"ON CONFLICT (signal_id) DO UPDATE SET {', '.join(f'{c} = excluded.{c}' for c in _UPDATABLE)}"
 )
 
-log = logging.getLogger("portguard.db")
+log = logging.getLogger("majeure.db")
 
 
 def load_ddl(path: Path = SCHEMAS_MD) -> str:

@@ -63,7 +63,7 @@ ASSUMPTIONS = [
     "container carrier surcharge; diverting to another port adds "
     f"${PORT_DIVERSION_FEE_PER_CONTAINER:,.0f}/container plus ${HAULAGE_USD_PER_KM_PER_CONTAINER:g}/km/container haulage.",
     "Invoking force majeure excuses the late-delivery penalty but not demurrage/detention; it requires notice within "
-    "the contract's notice period, counted from when PortGuard first saw the signal.",
+    "the contract's notice period, counted from when Majeure first saw the signal.",
     "These are planning estimates, not quotes.",
 ]
 

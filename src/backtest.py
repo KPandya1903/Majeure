@@ -1,7 +1,7 @@
-"""Backtest: replay historical disruptions and show what PortGuard would have done.
+"""Backtest: replay historical disruptions and show what Majeure would have done.
 
 For each scenario, the event (from IMF PortWatch) and the traffic data are real; the shipment is a
-synthetic example routed through the affected place. PortGuard is evaluated "as of" the day after the
+synthetic example routed through the affected place. Majeure is evaluated "as of" the day after the
 event started, using only the traffic known then; the traffic of the following month is reported
 separately as what actually happened. Output: data/backtest.json (shown in the dashboard) + a table.
 """
@@ -51,7 +51,7 @@ SCENARIOS = [
      "eta_offset_days": 5, "containers": 30, "value": 610000, "fm": FM_NARROW, "deviation": False, "penalty": 2500},
 ]
 
-log = logging.getLogger("portguard.backtest")
+log = logging.getLogger("majeure.backtest")
 _CHOKE = {c.location_id: c for c in CHOKEPOINTS}
 
 
@@ -146,7 +146,7 @@ def run_scenario(sc: dict, signals: dict, ports: pd.DataFrame, client=None) -> d
     loc_name = _CHOKE[location_id].name if location_id in _CHOKE else ports.set_index("port_id").loc[location_id, "port_name"]
     summary = (f"{signal.title} started {start:%d %b %Y}. The example shipment ({shipment.bill_of_lading.port_of_loading.name} → "
                f"{shipment.bill_of_lading.port_of_discharge.name}) matches via {reason.replace('_', ' ')} ({loc_name}), "
-               f"{mc.days_until_eta:g} days before its ETA. PortGuard would recommend **{decision.recommended_action.replace('_', ' ')}** "
+               f"{mc.days_until_eta:g} days before its ETA. Majeure would recommend **{decision.recommended_action.replace('_', ' ')}** "
                f"({decision.risk_level} risk): waiting would cost ~${wait.cost_usd:,.0f}, the best available option ~${best.cost_usd:,.0f}."
                + (f" Over the following month, measured {'transits' if location_id in _CHOKE else 'port calls'} at {loc_name} "
                   f"changed {change:+.0f}% vs the month before." if change is not None else ""))

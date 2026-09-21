@@ -1,10 +1,10 @@
-# PortGuard AI
+# Majeure
 
 ## SteelHacks XIII — 12-slide presentation script
 
 **Tracks:** Xtract (Signal-to-Insight Engine) · Beyond the Chatbot (Best Use of NVIDIA Nemotron)
 
-**Live:** pixelsplease.vercel.app · **API:** portguard-api.onrender.com
+**Live:** pixelsplease.vercel.app · **API:** majeure-api.onrender.com
 
 Every figure in this deck is either externally cited or measured from the running
 system. Nothing is estimated for effect.
@@ -15,7 +15,7 @@ system. Nothing is estimated for effect.
 
 **Visual:** full dashboard screenshot — Risk map tab, carrier index open, 33 vessels on the map.
 
-# PortGuard AI
+# Majeure
 
 ### Maritime disruption → shipment-specific, contract-aware decisions
 
@@ -314,7 +314,7 @@ ourselves — yes. **No LANXESS data** — correct, none is used.
    cheapest option, derived from that Bill of Lading's own clause.
 5. **The draft** — a force majeure notice, already written, awaiting approval.
    **Not sent.**
-6. **Ask PortGuard** — *"How many ships does Cosco Africa have in transit?"* Answers
+6. **Ask Majeure** — *"How many ships does Cosco Africa have in transit?"* Answers
    instantly, and corrects the premise: COSCO AFRICA is a ship, not a company.
 
 **Close on:** *"Everything you have just seen runs on 29 live public sources. The
@@ -349,4 +349,4 @@ them."*
   `blog.btxglobal.com/2026/the-hidden-cost-of-demurrage-and-detention-how-global-shippers-lose-millions-without-realizing-it`
 - Reroute cost per TEU — Transporeon,
   `transporeon.com/en/community/blog/the-red-sea-crisis-and-its-impacts-on-supply-chain`
-- Chokepoint traffic figures — IMF PortWatch, measured in PortGuard as of 2026-09-13
+- Chokepoint traffic figures — IMF PortWatch, measured in Majeure as of 2026-09-13

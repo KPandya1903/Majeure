@@ -1,4 +1,4 @@
-# PortGuard AI — Schemas
+# Majeure — Schemas
 
 The source of truth is the Pydantic models in [`src/schemas.py`](../src/schemas.py). The DDL
 below is executed verbatim by `src/init_db.py`. If you change this file, change those two as
@@ -21,7 +21,7 @@ well.
 
 ## 1. SQLite database schema
 
-File: `data/portguard.db`. The spec asks for `signals`, `shipments` and `decision_logs`. The
+File: `data/majeure.db`. The spec asks for `signals`, `shipments` and `decision_logs`. The
 supporting tables are:
 
 | Table | Written by | Purpose |
@@ -720,7 +720,7 @@ payload (`input_payload`) and the raw API response (`output_payload`).
 ```
 
 `run_nemotron.py --engine rules` produces the same object without a model (`model =
-portguard-rules-v1`): the cheapest available option from `analysis.exposure` (upgraded from
+majeure-rules-v1`): the cheapest available option from `analysis.exposure` (upgraded from
 `monitor` to `notify_customer` at high risk), with a risk score built from severity, measured
 traffic, corroboration, and time to ETA. Use it as a baseline, or when no GPU is available.
 

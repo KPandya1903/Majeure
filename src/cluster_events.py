@@ -22,7 +22,7 @@ import store
 from common import TIER_CONFIDENCE, best_tier, iso, setup_logging, utcnow
 from schemas import Corroboration, Headline
 
-DB_PATH = Path(__file__).resolve().parent.parent / "data" / "portguard.db"
+DB_PATH = Path(__file__).resolve().parent.parent / "data" / "majeure.db"
 STRUCTURED = {"portwatch", "gdacs"}
 SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2, "critical": 3}
 GAP = timedelta(days=3)
@@ -33,7 +33,7 @@ FAMILIES = {
     "vessel_incident": {"ops"}, "port_congestion": {"ops"}, "port_closure": {"conflict", "labor", "hazard", "ops"},
 }
 
-log = logging.getLogger("portguard.events")
+log = logging.getLogger("majeure.events")
 
 
 def publisher(row: sqlite3.Row) -> str:

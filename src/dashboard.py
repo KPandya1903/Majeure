@@ -1,6 +1,6 @@
-"""PortGuard AI dashboard: risk map, decision board with approvals and drafts, events, traffic,
+"""Majeure dashboard: risk map, decision board with approvals and drafts, events, traffic,
 backtest and Q&A. Run with:  streamlit run src/dashboard.py
-Reads and writes data/portguard.db; pipeline buttons run the same scripts as the command line.
+Reads and writes data/majeure.db; pipeline buttons run the same scripts as the command line.
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ import streamlit as st
 
 SRC = Path(__file__).resolve().parent
 ROOT = SRC.parent
-DB = ROOT / "data" / "portguard.db"
+DB = ROOT / "data" / "majeure.db"
 BACKTEST_JSON = ROOT / "data" / "backtest.json"
 sys.path.insert(0, str(SRC))
 from common import CHOKEPOINTS  # noqa: E402
@@ -29,7 +29,7 @@ RISK_ORDER = {"low": 0, "medium": 1, "high": 2, "critical": 3}
 ACTIONS = {"monitor": "Monitor", "notify_customer": "Notify customer", "reroute": "Reroute", "expedite": "Expedite",
            "hold_cargo": "Hold cargo", "invoke_force_majeure": "Invoke force majeure"}
 
-st.set_page_config(page_title="PortGuard AI", page_icon="⚓", layout="wide")
+st.set_page_config(page_title="Majeure", page_icon="⚓", layout="wide")
 st.markdown(theme.CSS, unsafe_allow_html=True)
 
 
@@ -145,7 +145,7 @@ def chip(text: str, tone: str = "mute") -> str:
 # --------------------------------------------------------------------------- guard + sidebar
 
 if not DB.exists():
-    st.title("⚓ PortGuard AI")
+    st.title("⚓ Majeure")
     st.error("No database yet. Run the ingestion steps in README §1 (or `python src/run_pipeline.py`), then reload.")
     st.stop()
 
@@ -175,8 +175,8 @@ def freshness_watcher() -> None:
 
 
 with st.sidebar:
-    st.markdown('<div class="pg-brand"><span class="pg-brand-name">PortGuard</span>'
-                '<span class="pg-brand-tag">AI</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="pg-brand"><span class="pg-brand-name">Majeure</span></div>',
+                unsafe_allow_html=True)
     st.caption("Maritime disruptions → shipment-specific, contract-aware decisions by NVIDIA Nemotron.")
     freshness_watcher()
     fresh = q("SELECT source, COUNT(*) AS signals, MAX(ingested_at) AS last_ingested FROM signals GROUP BY source ORDER BY signals DESC")
@@ -243,7 +243,7 @@ if last_fetch:
 
 st.markdown(
     f'<div style="display:flex;align-items:center;gap:14px;padding:6px 0 10px;">'
-    f'<div class="pg-brand"><span class="pg-brand-name">PortGuard</span><span class="pg-brand-tag">AI</span></div>'
+    f'<div class="pg-brand"><span class="pg-brand-name">Majeure</span></div>'
     f'<span class="pg-sub">Contract-grade disruption decisions — IMF PortWatch · GDACS · GDELT · '
     f'Google News · maritime trade press.</span><span style="flex-grow:1;"></span>{fresh_note}</div>',
     unsafe_allow_html=True)
@@ -264,7 +264,7 @@ st.markdown(f'<div class="pg-kpis" style="grid-template-columns:repeat(5, minmax
             unsafe_allow_html=True)
 
 tab_map, tab_ship, tab_events, tab_traffic, tab_backtest, tab_ask, tab_signals = st.tabs(
-    ["Risk map", "Shipments & decisions", "Events", "Traffic", "Backtest", "Ask PortGuard", "All signals"])
+    ["Risk map", "Shipments & decisions", "Events", "Traffic", "Backtest", "Ask Majeure", "All signals"])
 
 # --------------------------------------------------------------------------- map
 
@@ -401,7 +401,7 @@ with tab_map:
 
 
 def fleet_table_html(rows: list[dict]) -> str:
-    head = ('<tr><th>Shipment · B/L</th><th>Path</th><th>Contract ETA</th><th>PortGuard ETA</th>'
+    head = ('<tr><th>Shipment · B/L</th><th>Path</th><th>Contract ETA</th><th>Majeure ETA</th>'
             '<th>Status &amp; recommendation</th></tr>')
     body = []
     for r in rows:
@@ -688,7 +688,7 @@ with tab_ask:
     st.session_state.setdefault("chat", [])
     st.markdown(
         '<div class="pg-sub" style="padding:4px 0 var(--pg-s3);">Ask about your shipments, events and decisions. '
-        'Nemotron answers only from PortGuard’s data and cites sources.</div>',
+        'Nemotron answers only from Majeure’s data and cites sources.</div>',
         unsafe_allow_html=True)
 
     if not st.session_state["chat"]:

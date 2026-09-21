@@ -288,7 +288,7 @@ function DecisionPanel({ shipment, decision, onReviewed }: { shipment: Shipment;
         )}
         <span style={{ color: "var(--pg-muted)" }}>
           {decision.human_decision === "approved"
-            ? "Notice signed off and ready to send. PortGuard does not transmit it."
+            ? "Notice signed off and ready to send. Majeure does not transmit it."
             : decision.human_decision === "overridden"
             ? "Recommendation rejected; the drafted notice was discarded."
             : "No document is sent until a human approves it."}
@@ -418,7 +418,7 @@ export default function Shipments() {
       <table className="pg-table">
         <thead>
           <tr>
-            <th>Shipment · B/L</th><th>Path</th><th>Contract ETA</th><th>PortGuard ETA</th><th>Status &amp; recommendation</th>
+            <th>Shipment · B/L</th><th>Path</th><th>Contract ETA</th><th>Majeure ETA</th><th>Status &amp; recommendation</th>
           </tr>
         </thead>
         <tbody>

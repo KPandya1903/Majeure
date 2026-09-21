@@ -1,6 +1,6 @@
-# PortGuard AI — Architecture
+# Majeure — Architecture
 
-PortGuard AI watches for real-world maritime disruptions and decides, for each affected
+Majeure watches for real-world maritime disruptions and decides, for each affected
 shipment, what the disruption means under that shipment's Bill of Lading (B/L) contract terms.
 For the product idea, see [MAIN_IDEA.md](MAIN_IDEA.md). For a file-by-file guide, see the
 [README](../README.md).
@@ -17,7 +17,7 @@ For the product idea, see [MAIN_IDEA.md](MAIN_IDEA.md). For a file-by-file guide
  fetch_traffic.py            │                        │                      │                │
        └────────── ports CSV = gazetteer + proximity table ─────────────────┴────────────────┘
                                           ▼
- STORE ────────────────────────────── init_db.py ──► data/portguard.db
+ STORE ────────────────────────────── init_db.py ──► data/majeure.db
                                           │            (re-applies Xtract refinements after each load)
  UNDERSTAND ─── xtract.py (optional, Nemotron re-reads news: type, place, severity)
                                           │
@@ -62,7 +62,7 @@ For the product idea, see [MAIN_IDEA.md](MAIN_IDEA.md). For a file-by-file guide
 | Ingest | `fetch_gdelt.py` | GDELT GKG files (or Doc API), ports CSV | `gdelt_signals.json` | no |
 | Ingest | `fetch_google_news.py` | Google News RSS, ports CSV | `google_news_signals.json` | no |
 | Ingest | `fetch_traffic.py` | PortWatch daily layers, shipment ports | `traffic_daily.csv`, `traffic_stats.csv` | no |
-| Store | `init_db.py` | SCHEMAS.md DDL, all CSV/JSON | `portguard.db` | no |
+| Store | `init_db.py` | SCHEMAS.md DDL, all CSV/JSON | `majeure.db` | no |
 | Shipments | `load_shipments.py` / `extract_contract.py` | shipments JSON / contract PDF | `shipments` | only for contracts |
 | Understand | `xtract.py` | news signals | `xtract_results`, refined `signals` | yes |
 | Cluster | `cluster_events.py` | signals, `signal_ports` | `events`, `event_signals` | no |

@@ -1,6 +1,6 @@
 """Fetch trade-policy actions -- tariffs, sanctions, trade remedies -- into Xtract Signals.
 
-PortGuard tracked physical disruption and nothing else, even though `regulatory_sanctions` has
+Majeure tracked physical disruption and nothing else, even though `regulatory_sanctions` has
 been an event type since the first schema. A tariff schedule change or an export control can
 strand a container as effectively as a closed strait, and it arrives with more warning, which is
 exactly the kind of lead time this product exists to use.
@@ -74,7 +74,7 @@ _TRADE_RE = re.compile(
     r"antidumping|anti-dumping|countervailing|section 30[12]|section 232|section 301|"
     r"harmonized tariff|de minimis|origin|port of entry|shipment|cargo|vessel|maritime)\b", re.I)
 
-log = logging.getLogger("portguard.policy")
+log = logging.getLogger("majeure.policy")
 
 
 def is_trade_relevant(text: str) -> bool:

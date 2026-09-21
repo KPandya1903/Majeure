@@ -1,6 +1,6 @@
-"""PortGuard AI API — FastAPI backend serving the React frontend.
+"""Majeure API — FastAPI backend serving the React frontend.
 
-Reads/writes the same data/portguard.db SQLite database the pipeline and (legacy) Streamlit
+Reads/writes the same data/majeure.db SQLite database the pipeline and (legacy) Streamlit
 dashboard use. Swap to Snowflake later by pointing DB_BACKEND=snowflake and using src/db.py's
 connection instead of _connect() below — the query shapes returned to the frontend don't change.
 """
@@ -23,7 +23,7 @@ from pydantic import BaseModel
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SRC = ROOT / "src"
-DB_PATH = ROOT / "data" / "portguard.db"
+DB_PATH = ROOT / "data" / "majeure.db"
 sys.path.insert(0, str(SRC))
 import store  # noqa: E402
 from common import CHOKEPOINTS  # noqa: E402
@@ -61,7 +61,7 @@ def log_faq_failure(exc: Exception) -> None:
           file=sys.stderr, flush=True)
 
 
-app = FastAPI(title="PortGuard AI API")
+app = FastAPI(title="Majeure API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
@@ -139,7 +139,7 @@ def kpis():
     deadlines = [h for h in (hours_until(d["deadline_at"]) for d in drafts) if h is not None]
 
     # What acting on the recommendation avoids: for each decision, the gap between the costliest
-    # option still on the table and the one PortGuard recommends. That difference is the whole
+    # option still on the table and the one Majeure recommends. That difference is the whole
     # product claim, so it's computed from the same priced options the decision panel shows —
     # not a separate estimate. Only counts decisions not overridden by a human.
     avoided = 0.0
@@ -574,7 +574,7 @@ def health():
 # idling out (Render spins a free service down after ~15 min of no requests, which would
 # otherwise reset the filesystem back to whatever's in the last deploy on the next request).
 # Note this does NOT survive an actual code redeploy — that always resets to the git-committed
-# snapshot in data/portguard.db, disk or no disk, since the deploy checks out fresh from git.
+# snapshot in data/majeure.db, disk or no disk, since the deploy checks out fresh from git.
 
 PIPELINE_TOKEN = os.environ.get("PIPELINE_TRIGGER_TOKEN")
 _pipeline_proc: Optional[subprocess.Popen] = None

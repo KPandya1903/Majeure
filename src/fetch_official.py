@@ -50,7 +50,7 @@ NGA_PERMALINK = "https://msi.nga.mil/NavWarnings?navArea={area}&msgYear={year}&m
 QUAKE_RADIUS_KM = 300.0
 MAX_PORTS = 25
 # NAVAREA warnings are mostly routine (drilling-rig position lists, buoy outages). Only warnings whose
-# text names a port or chokepoint PortGuard actually tracks are worth a signal; the rest are noise.
+# text names a port or chokepoint Majeure actually tracks are worth a signal; the rest are noise.
 NGA_MIN_YEAR = 2020
 # Much tighter than QUAKE_RADIUS_KM: a quake 300 km away can still shake a port, but a navigational
 # warning concerns one specific piece of water. Beyond this the "nearest port" is a coincidence rather
@@ -75,7 +75,7 @@ _JTWC_PRODUCT_RE = re.compile(
 _JTWC_STORM_RE = re.compile(r"<b>\s*([^<]+)", re.S)
 _TAG_RE = re.compile(r"<[^>]+>")
 
-log = logging.getLogger("portguard.official")
+log = logging.getLogger("majeure.official")
 
 
 # --------------------------------------------------------------------------- shared helpers
@@ -87,7 +87,7 @@ def _rss_datetime(entry) -> Optional[datetime]:
 
 
 def _storm_severity(text: str) -> str:
-    """Map a cyclone's own classification to PortGuard severity. The publisher already graded it."""
+    """Map a cyclone's own classification to Majeure severity. The publisher already graded it."""
     lowered = text.lower()
     if re.search(r"\b(?:super typhoon|category [45]|major hurricane)\b", lowered):
         return "critical"
@@ -270,7 +270,7 @@ def nga_signals(gazetteer: PortGazetteer, ports, now: datetime) -> list[XtractSi
         year, number, area = item.get("msgYear"), item.get("msgNumber"), item.get("navArea")
         if not text or not year or number is None or year < NGA_MIN_YEAR:
             continue
-        # Only keep a warning that names somewhere PortGuard tracks -- a rig-position list in an area
+        # Only keep a warning that names somewhere Majeure tracks -- a rig-position list in an area
         # with no tracked port cannot affect any shipment, and there are hundreds of them.
         location = gazetteer.match(text)
         lat, lon = _nga_coords(text)

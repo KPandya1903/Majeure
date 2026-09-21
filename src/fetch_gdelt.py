@@ -39,7 +39,7 @@ GDELT_RETRIES = 6  # waits 6+12+24+48+96 s at most: GDELT's throttle can take mi
 # GKG 2.1 columns used (tab-separated, no header)
 GKG_DATE, GKG_COLLECTION, GKG_DOMAIN, GKG_URL, GKG_EXTRAS = 1, 2, 3, 4, 26
 
-log = logging.getLogger("portguard.gdelt")
+log = logging.getLogger("majeure.gdelt")
 
 
 # --------------------------------------------------------------------------- shared

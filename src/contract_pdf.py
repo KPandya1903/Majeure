@@ -249,7 +249,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
     setup_logging(args.verbose)
-    log = logging.getLogger("portguard.contracts")
+    log = logging.getLogger("majeure.contracts")
 
     bad = [c.vessel for c in CONTRACTS if not valid_imo(c.imo)]
     if bad:

@@ -1,6 +1,6 @@
 """One connection seam for both backends: SQLite locally, Postgres (Supabase) when deployed.
 
-Render's free tier has no persistent disk, so `data/portguard.db` reverts to the committed
+Render's free tier has no persistent disk, so `data/majeure.db` reverts to the committed
 snapshot on every redeploy -- everything the cron pipeline ingests in between is thrown away, and
 so is every human approve/override. That is the bug this module exists to fix.
 
@@ -36,9 +36,9 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Optional, Sequence
 
-DB_PATH = Path(__file__).resolve().parent.parent / "data" / "portguard.db"
+DB_PATH = Path(__file__).resolve().parent.parent / "data" / "majeure.db"
 
-log = logging.getLogger("portguard.store")
+log = logging.getLogger("majeure.store")
 
 
 def backend() -> str:
@@ -394,7 +394,7 @@ def _get_pool():
             # replaced instead of surfacing as a random failure on an unrelated request.
             check=ConnectionPool.check_connection,
             kwargs={"autocommit": False, "prepare_threshold": None},
-            open=True, name="portguard",
+            open=True, name="majeure",
         )
     except Exception as exc:  # pool unavailable: keep working, one connection per call
         _POOL_FAILED = True
@@ -421,7 +421,7 @@ def database_ready(db_path: Path = DB_PATH) -> bool:
     """Is there a database to talk to?
 
     On SQLite that means the file exists. On Postgres the file is irrelevant -- and asking about it
-    is actively harmful: once data/portguard.db stops being committed, every `if not
+    is actively harmful: once data/majeure.db stops being committed, every `if not
     db.exists(): abort` guard in the codebase would refuse to run against a perfectly healthy
     Supabase instance, and the API would answer 503 to everything.
     """

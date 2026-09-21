@@ -22,7 +22,7 @@ import store
 from common import CHOKEPOINTS, PortGazetteer, iso, setup_logging, utcnow
 from schemas import EventType
 
-DB_PATH = Path(__file__).resolve().parent.parent / "data" / "portguard.db"
+DB_PATH = Path(__file__).resolve().parent.parent / "data" / "majeure.db"
 STRUCTURED_SOURCES = ("portwatch", "gdacs")
 EVENT_TYPES = [e.value for e in EventType]
 SEVERITIES = ("low", "medium", "high", "critical")
@@ -50,7 +50,7 @@ ITEM_SCHEMA = {"type": "object", "required": ["id", "is_disruption", "event_type
                               "confidence": {"type": "number", "minimum": 0, "maximum": 1}}}
 RESPONSE_SCHEMA = {"type": "object", "required": ["items"], "properties": {"items": {"type": "array", "items": ITEM_SCHEMA}}}
 
-log = logging.getLogger("portguard.xtract")
+log = logging.getLogger("majeure.xtract")
 _CHOKEPOINTS_BY_ID = {c.location_id: c for c in CHOKEPOINTS}
 
 

@@ -1,6 +1,6 @@
-# PortGuard AI — The Main Idea
+# Majeure — The Main Idea
 
-> **In one sentence:** PortGuard AI turns free, real-time maritime disruption data into
+> **In one sentence:** Majeure turns free, real-time maritime disruption data into
 > shipment-specific, contract-aware decisions. For every disruption that touches a shipment's
 > route, NVIDIA Nemotron reads the Bill of Lading terms and recommends what to do, citing the
 > source.
@@ -34,9 +34,9 @@ force majeure clause, or rerouting when the contract forbids deviation, costs re
 
 ## 2. The solution
 
-PortGuard AI closes all three gaps in one automated loop:
+Majeure closes all three gaps in one automated loop:
 
-| Gap | What PortGuard does | Where in the code |
+| Gap | What Majeure does | Where in the code |
 |---|---|---|
 | Detection | Continuously ingests **free, open sources** (IMF PortWatch, GDACS, five maritime trade-press feeds, GDELT, Google News) into one normalised signal format. | `fetch_*.py`, `parse_rss.py` → `init_db.py` |
 | Relevance | **Matches** each signal to shipments whose port of loading, port of discharge, transshipment port, or route chokepoint it touches, and drops stale signals. | `run_nemotron.py` (`MATCH_SQL`, `find_pairs`) |
@@ -61,9 +61,9 @@ AI recommends; people decide.
 | Track | Source | Strength | Weakness |
 |---|---|---|---|
 | **Structured** | **IMF PortWatch**: the IMF and University of Oxford's port database (2,065 ports) and curated disruption events (GDACS cyclones, earthquakes, and floods, plus events such as the 2024 US East/Gulf Coast port strike, the Red Sea crisis, and the 2026 Hormuz disruption) | Authoritative. Already tagged with the exact affected port and chokepoint IDs, with severity and start/end dates. | Curated, so only notable events, and not instant. |
-| **Structured** | **GDACS** live hazard alerts (EC JRC / UN OCHA) | Real-time, with coordinates. PortGuard links each hazard to the ports within a per-type radius (a cyclone within 400 km, an earthquake within 150 km). | Natural hazards only; radius-based exposure is approximate. |
+| **Structured** | **GDACS** live hazard alerts (EC JRC / UN OCHA) | Real-time, with coordinates. Majeure links each hazard to the ports within a per-type radius (a cyclone within 400 km, an earthquake within 150 km). | Natural hazards only; radius-based exposure is approximate. |
 | **Unstructured** | **Maritime trade press**: gCaptain, Maritime Executive, Seatrade Maritime, Hellenic Shipping News, Splash247 | All maritime, written by specialists; excerpts give context. | More than half is general industry news (filtered out at matching). |
-| **Unstructured** | **GDELT** raw news firehose (every 15 minutes, worldwide) and **Google News** search | Fast and broad. Catches attacks, strikes, and closures within minutes to hours. | Noisy and duplicated, so PortGuard keeps only headlines about shipping *and* a disruption. Headline-only. |
+| **Unstructured** | **GDELT** raw news firehose (every 15 minutes, worldwide) and **Google News** search | Fast and broad. Catches attacks, strikes, and closures within minutes to hours. | Noisy and duplicated, so Majeure keeps only headlines about shipping *and* a disruption. Headline-only. |
 
 Using both tracks gives **coverage and confirmation**: news raises the early alarm, and
 PortWatch and GDACS provide the authoritative anchor. They reinforce each other when they
@@ -107,7 +107,7 @@ alternate port plus haulage), and *invoke force majeure* (penalty excused, but o
 clause covers this kind of event, and only with notice inside the notice period). Measured
 traffic from PortWatch raises the expected delay when a chokepoint is visibly choked.
 
-For each (event, shipment) pair, PortGuard then builds a validated **Nemotron payload**:
+For each (event, shipment) pair, Majeure then builds a validated **Nemotron payload**:
 
 * the full signal (what, where, when, severity, and source);
 * the Bill of Lading (route, ETD/ETA, cargo, value);
@@ -141,12 +141,12 @@ the same code also works with NVIDIA's hosted endpoint.
   comparison. Nemotron writes them when reachable; templates otherwise.
 * `alerts.py` posts high-risk decisions that await approval to Slack (or the console), with
   the hours left before the notice deadline.
-* It runs **continuously**: every 5 minutes PortGuard checks its sources (each at the rate it
+* It runs **continuously**: every 5 minutes Majeure checks its sources (each at the rate it
   actually changes), and new events reach the decision board within minutes of being
   reported.
 * The **dashboard** shows everything: a risk map, a decision card per shipment (options
   table, deadline countdown, sources), Approve / Override with notes, editable drafts, traffic
-  charts, the backtest, and an **Ask PortGuard** chat that answers from the database.
+  charts, the backtest, and an **Ask Majeure** chat that answers from the database.
 * `decision_logs` keeps the model, score, action, cost, rationale, citations, the **complete
   input payload**, the **raw model output**, latency, and the human verdict. Any
   recommendation can be traced back to the exact evidence and contract text the model saw.
@@ -164,7 +164,7 @@ World's Second Oil Chokepoint"*.
 majeure **covers war, blockade, hostilities, and canal closure** with 48 h notice; deviation
 permitted; $1,000/day late penalty.
 
-**What PortGuard computes before asking the model:**
+**What Majeure computes before asking the model:**
 
 | Option | Cost | Why |
 |---|---|---|
@@ -185,7 +185,7 @@ disruption, opposite advice, because the contracts differ. That contrast is the 
 demo.
 
 **Backtest (real history):** replaying five past disruptions with the traffic known on day
-one, PortGuard would have flagged the Red Sea crisis 26 days before the example shipment's
+one, Majeure would have flagged the Red Sea crisis 26 days before the example shipment's
 arrival (Bab el-Mandeb transits then fell 41% in the following month). It would have caught
 the Baltimore bridge collapse (port calls −76%) and the Hormuz closure (−96%), with the
 cheapest contract-compliant option priced each time.
@@ -228,7 +228,7 @@ cheapest contract-compliant option priced each time.
    forbids deviation, so no route or force majeure is available; tell the customer now."
 4. **Backtest:** "Would it have worked? Red Sea 2023: flagged 26 days ahead, and traffic
    then fell 41%."
-5. **Ask PortGuard:** "Which shipments go through Hormuz, and what does it cost us?"
+5. **Ask Majeure:** "Which shipments go through Hormuz, and what does it cost us?"
 6. **Upload** the sample contract: Nemotron turns it into a tracked shipment, which the Red
    Sea event immediately matches.
 

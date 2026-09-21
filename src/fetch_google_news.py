@@ -25,7 +25,7 @@ DEFAULT_QUERY = ('(port OR shipping OR maritime OR vessel OR tanker OR "containe
                  '(strike OR disruption OR closure OR congestion OR attack OR blockade OR delay)')
 SIGNALS_JSON = DATA_DIR / "google_news_signals.json"
 
-log = logging.getLogger("portguard.google_news")
+log = logging.getLogger("majeure.google_news")
 
 
 def title_key(title: str) -> str:
