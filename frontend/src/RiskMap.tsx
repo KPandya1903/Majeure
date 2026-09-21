@@ -9,7 +9,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 // which only shows up in a production build (Vite's dev server serves node_modules directly,
 // so this masks the problem locally).
 import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
-import type { ChokePoint, MapData, PortPoint, Route } from "./api";
+import type { ChokePoint, EventPoint, MapData, PortPoint, Route } from "./api";
 import { api, ACTIONS, RISK_TONE, fmtDate } from "./api";
 import { Chip } from "./components";
 
@@ -150,12 +150,27 @@ function toDotFeatures(points: [number, number][]) {
     features: points.map((p) => ({ type: "Feature" as const, properties: {}, geometry: { type: "Point" as const, coordinates: p } })),
   };
 }
+/** "Houthis Claim Strikes on Yanbu Port - Yanbu - high - 12 reports / 10 publishers"
+ *  The counts are the point: they are what separates a corroborated event from a single rumour,
+ *  and they were computed and then shown nowhere on the map. */
+function eventLabel(e: EventPoint): string {
+  const parts = [e.title.length > 64 ? e.title.slice(0, 63) + "\u2026" : e.title];
+  if (e.location_name) parts.push(e.location_name);
+  if (e.severity) parts.push(e.severity);
+  parts.push(`${e.n_signals} report${e.n_signals === 1 ? "" : "s"} / ${e.n_publishers} publisher${e.n_publishers === 1 ? "" : "s"}`);
+  return parts.join(" \u00b7 ");
+}
+
 function toEventFeatures(data: MapData) {
   return {
     type: "FeatureCollection" as const,
     features: data.events.map((e) => ({
       type: "Feature" as const,
-      properties: { color: SEVERITY_COLOR[e.severity] ?? "#B4661B", radius: Math.min(60, Math.max(10, e.radius / 6000)) },
+      properties: {
+        color: SEVERITY_COLOR[e.severity] ?? "#B4661B",
+        radius: Math.min(60, Math.max(10, e.radius / 6000)),
+        label: eventLabel(e),
+      },
       geometry: { type: "Point" as const, coordinates: [e.lon, e.lat] },
     })),
   };
@@ -300,7 +315,7 @@ export default function RiskMap() {
         // which would otherwise swallow every port sitting inside one.
         // The invisible hit layers come first so a near miss still resolves to the place rather
         // than to a route line passing under the cursor.
-        interactiveLayerIds={["ports-hit", "chokepoints-hit", "events-dot", "routes-line"]}
+        interactiveLayerIds={["ports-hit", "chokepoints-hit", "events-hit", "routes-line"]}
       >
         <NavigationControl position="top-right" />
 
@@ -320,6 +335,10 @@ export default function RiskMap() {
             paint={{ "circle-radius": ["get", "radius"], "circle-color": ["get", "color"], "circle-opacity": 0.18 }} />
           <Layer id="events-dot" type="circle"
             paint={{ "circle-radius": 6, "circle-color": ["get", "color"], "circle-stroke-width": 2, "circle-stroke-color": "#fff" }} />
+          {/* Same catchment as the ports, so the coloured dots are hoverable by hand rather than
+              only at their exact centre. Listed after the ports in interactiveLayerIds, so a port
+              sitting inside an event halo still wins. */}
+          <Layer id="events-hit" type="circle" paint={{ "circle-radius": 14, "circle-opacity": 0 }} />
         </Source>
         <Source id="chokepoints" type="geojson"
                 data={toPointFeatures(data.chokepoints, (c) => chokepointLabel(c))}>
