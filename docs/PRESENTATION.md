@@ -4,7 +4,7 @@
 
 **Tracks:** Xtract (Signal-to-Insight Engine) · Beyond the Chatbot (Best Use of NVIDIA Nemotron)
 
-**Live:** pixelsplease.vercel.app · **API:** majeure-api.onrender.com
+**Live at the event:** pixelsplease.vercel.app · **API:** majeure-api.onrender.com (both since taken down)
 
 Every figure in this deck is either externally cited or measured from the running
 system. Nothing is estimated for effect.

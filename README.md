@@ -8,6 +8,14 @@ contract-aware recommendation. The system drafts the force majeure notice and th
 email, starts the notice-deadline clock, and puts everything on a dashboard for human
 approval.
 
+Built solo by Kunj Pandya at **SteelHacks XIII** (September 19–21, 2026) under the name
+*PortGuard AI*, for the Xtract and "Beyond the Chatbot" (best use of NVIDIA Nemotron) tracks.
+Deck: [docs/PortGuard-SteelHacks-XIII.pdf](docs/PortGuard-SteelHacks-XIII.pdf).
+
+**Two ways to run it:** the React + FastAPI app (`frontend/` + `backend/`, what a deploy runs)
+or the original Streamlit dashboard (`src/dashboard.py`, still works locally). There is no
+public demo running right now; see §11.
+
 * **Why it exists, the demo script, and the roadmap:** [docs/MAIN_IDEA.md](docs/MAIN_IDEA.md)
 * **How the parts fit:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 * **Endpoints and cleaning rules for every source:** [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md)
@@ -25,7 +33,7 @@ approval.
 keys for data. Nemotron is optional: without it, use `--engine rules`.
 
 ```bash
-git clone https://github.com/KPandya1903/Pixels.git majeure && cd majeure
+git clone https://github.com/KPandya1903/Majeure.git majeure && cd majeure
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt          # Windows: .venv\Scripts\pip install -r requirements.txt
 cp .env.example .env                               # set NEMOTRON_BASE_URL (see §2)
@@ -34,7 +42,12 @@ cp .env.example .env                               # set NEMOTRON_BASE_URL (see 
 .venv/bin/python src/run_pipeline.py               # needs Nemotron running
 .venv/bin/python src/run_pipeline.py --engine rules   # ...or without a model (cheapest-option baseline)
 
-# The dashboard (opens http://localhost:8501)
+# The React + FastAPI app (what a deploy runs)
+.venv/bin/pip install -r backend/requirements.txt
+.venv/bin/uvicorn app.main:app --app-dir backend --port 8700     # API on http://localhost:8700
+(cd frontend && npm ci && npm run dev)                           # UI on http://localhost:5173
+
+# ...or the legacy Streamlit dashboard (opens http://localhost:8501)
 .venv/bin/streamlit run src/dashboard.py
 
 # Optional extras
@@ -229,14 +242,31 @@ pick the winner.
 ```
 majeure/
 ├── README.md                    ← you are here: setup, file map, conventions
-├── requirements.txt             ← requests, feedparser, pandas, pydantic, streamlit, pypdf
-├── .env.example                 ← Nemotron + Slack settings template (copy to .env)
-├── .gitignore                   ← ignores .venv, .env, __pycache__, generated data/
+├── HANDOFF.md                   ← deploy notes, traps, current state (React + FastAPI era)
+├── render.yaml                  ← Render blueprint for the API (free plan, rootDir backend/)
+├── requirements.txt             ← pipeline + Streamlit deps (local)
+├── .env.example                 ← every setting: Nemotron, Gemini fallback, DB backend, Resend, Slack, Snowflake
+├── .gitignore                   ← ignores .venv, .env, __pycache__, node_modules, generated data/
+├── backend/
+│   ├── app/main.py              ← FastAPI: kpis, map, shipments, decisions (+review), drafts (+send),
+│   │                              events, signals, traffic, backtest, ask, sources, health, pipeline/run
+│   └── requirements.txt         ← API deps and ingest deps (pipeline/run runs src/ on the server)
+├── frontend/                    ← React 19 + Vite + TypeScript UI (see frontend/README.md)
+│   ├── src/App.tsx              ← app shell and tabs
+│   ├── src/RiskMap.tsx          ← MapLibre risk map: sea routes, event halos, estimated vessel positions
+│   ├── src/Shipments.tsx        ← fleet table, priced options, approve/override, drafts, send
+│   ├── src/Signals.tsx · Backtest.tsx · Charts.tsx · Sidebar.tsx · ChatWidget.tsx · components.tsx · main.tsx
+│   ├── src/api.ts               ← typed API client; reads VITE_API_BASE (default http://localhost:8700)
+│   ├── src/theme.css            ← design tokens, ported 1:1 from src/theme.py
+│   └── scripts/copy-maplibre-shared.mjs ← postinstall: MapLibre's worker needs its sibling module
 ├── docs/
 │   ├── MAIN_IDEA.md             ← the idea, users, worked example, demo script, roadmap, glossary
 │   ├── ARCHITECTURE.md          ← flow diagram, stage table, design decisions
 │   ├── DATA_SOURCES.md          ← endpoints, field notes, cleaning/filtering/tagging rules, traffic layers
-│   └── SCHEMAS.md               ← SQL DDL (executed by init_db.py) + every JSON Schema
+│   ├── SCHEMAS.md               ← SQL DDL (executed by init_db.py) + every JSON Schema
+│   ├── UI_REDESIGN.md           ← design notes for the dashboard and the React port
+│   ├── PRESENTATION.md · PortGuard-SteelHacks-XIII.pdf ← SteelHacks XIII script and deck
+│   └── SNOWFLAKE_SCHEMA.sql     ← parked: used only by src/db.py, which nothing calls
 ├── src/
 │   ├── schemas.py               ← Pydantic models: the source of truth for data shapes
 │   ├── common.py                ← HTTP, cleaning, URL keys, classifier, gazetteer, geo helpers
@@ -248,30 +278,44 @@ majeure/
 │   ├── parse_rss.py             ← 5 trade-press RSS feeds → signals
 │   ├── fetch_gdelt.py           ← GDELT raw news files (or Doc API) → relevant signals
 │   ├── fetch_google_news.py     ← Google News search → relevant signals
+│   ├── fetch_official.py        ← NOAA NHC, JTWC, USGS and NGA government warnings → signals
+│   ├── fetch_policy.py          ← tariffs, sanctions, trade remedies → signals
 │   ├── fetch_traffic.py         ← PortWatch daily transits / port calls → traffic CSVs
 │   │   ── store, understand, cluster ──
-│   ├── init_db.py               ← SQLite schema + load everything (idempotent, migrations)
+│   ├── store.py                 ← the one DB seam: SQLite locally, Postgres (Supabase) when DB_BACKEND=postgres
+│   ├── init_db.py               ← schema + load everything (idempotent, migrations)
+│   ├── migrate_to_postgres.py   ← copy data/majeure.db into Postgres and verify row counts
+│   ├── db.py                    ← parked Snowflake layer (not used)
 │   ├── xtract.py                ← Nemotron re-reads news: type, place, severity (optional)
 │   ├── cluster_events.py        ← reports → events with corroboration + confidence
 │   │   ── shipments ──
+│   ├── fleet.py                 ← shipment book on real vessels and carriers; contract terms are synthetic
 │   ├── load_shipments.py        ← Bill of Lading JSON → shipments table
+│   ├── contract_pdf.py          ← generates the demonstration contract PDFs in samples/contracts/
 │   ├── extract_contract.py      ← contract PDF/TXT → Nemotron → shipment
 │   │   ── decide + act ──
+│   ├── routing.py               ← sea-route geometry shared by the Streamlit map and the API
 │   ├── exposure.py              ← cost of wait / reroute / force majeure; FM coverage; deadline
 │   ├── run_nemotron.py          ← match → payload (with analysis) → Nemotron or rules → decision_logs
 │   ├── draft_actions.py         ← force majeure notice + customer email per decision
+│   ├── notice_pdf.py            ← approved notice → signable PDF
+│   ├── mailer.py                ← sends an approved draft via Resend (off without RESEND_API_KEY)
 │   ├── alerts.py                ← Slack/console alerts for high-risk pending decisions
 │   │   ── review + validate ──
-│   ├── dashboard.py             ← Streamlit dashboard (map, decisions, approvals, drafts, traffic, backtest, chat)
+│   ├── faq.py                   ← common questions answered from SQL before any model call (--selftest)
 │   ├── ask.py                   ← Q&A over Majeure's data with Nemotron
 │   ├── backtest.py              ← replay 5 historical disruptions with real traffic
-│   └── run_pipeline.py          ← run all steps once, or on a schedule (--loop 5)
+│   ├── run_pipeline.py          ← run all steps once, or on a schedule (--loop 5)
+│   ├── dashboard.py             ← legacy Streamlit dashboard (map, decisions, approvals, drafts, traffic, backtest, chat)
+│   └── theme.py                 ← design tokens and CSS for the Streamlit dashboard
 ├── ollama/
 │   └── Modelfile                ← tuned Nemotron for Ollama (16k context, temperature 0.2)
 ├── samples/
 │   ├── shipments.sample.json    ← 4 demo shipments on real routes (fictional companies)
+│   ├── shipments.real.json      ← fleet.py output: real vessels and carriers, synthetic terms
+│   ├── contracts/*.pdf          ← 5 generated demonstration B/L contracts
 │   └── contract.sample.txt      ← fictional sales contract to demo extract_contract.py
-└── data/                        ← generated at run time; git-ignored except .gitkeep
+└── data/                        ← generated at run time; git-ignored except .gitkeep and backtest.json
 ```
 
 ### 4.1 Root files
@@ -545,8 +589,11 @@ Tested on 2026-09-19 against the live sources:
   the map, decisions, traffic, and backtest tabs.
 * **Failure paths:** failed GDACS / GDELT fetches exit 1 and keep the previous output;
   Nemotron down gives a clear error (rules and templates still work).
-* **Not tested:** a **real Nemotron model**. The first real run is the one to watch
-  (`run_nemotron.py --limit 3`).
+* **Real model:** the decision path was also run against a real `nemotron-3-nano:4b` on Ollama
+  (Apple M4, 16 GB) on 2026-09-19. That is the §2.1 table. The mock run above came first and
+  covers parsing edge cases a real model rarely produces.
+* **Not yet tested:** a hosted or larger Nemotron on decisions. The Render blueprint runs
+  `PIPELINE_ENGINE=rules`, so a deployed instance makes model-free decisions unless you change it.
 
 ---
 
@@ -592,3 +639,19 @@ Commission JRC / UN OCHA). The GDELT Project. gCaptain, The Maritime Executive, 
 Maritime News, Hellenic Shipping News Worldwide, and Splash247 (titles, links, excerpts, and
 categories only, as citations). Google News (titles and links only). Map tiles © CARTO ©
 OpenStreetMap contributors.
+
+## 11. Deploying
+
+The API deploys to Render from `render.yaml` (free web service, `rootDir: backend`), and the
+React app deploys to Vercel (Root Directory `frontend`, env `VITE_API_BASE` = the API URL).
+`DATABASE_URL` (a Supabase Postgres connection string) is the only required secret: the
+blueprint sets `DB_BACKEND=postgres`, and `src/store.py` refuses to start without it. Seed the
+database first (`run_pipeline.py --engine rules`, then `migrate_to_postgres.py`), because an
+empty database makes `/api/kpis` return 503.
+
+Before putting it on a public URL: leave `RESEND_API_KEY` unset (the send endpoint has no auth),
+and leave the model keys unset or on a free tier (`/api/ask` spends them for any caller).
+HANDOFF.md covers the data-refresh cron, the database backends and the traps.
+
+The SteelHacks deploy has been taken down. Live links go in the header of this README only
+while they work.

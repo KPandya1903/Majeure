@@ -4,8 +4,7 @@ Paste the block below into a new chat to pick this up.
 
 ---
 
-I'm working on Majeure at /Users/enzo/Desktop/Pixels/majeure
-(GitHub: https://github.com/KPandya1903/Pixels, branch `main`).
+I'm working on Majeure (GitHub: https://github.com/KPandya1903/Majeure, branch `main`).
 
 READ FIRST: README.md (explains every file, the invariants in §5, and which files must change
 together in §5.6), then docs/SCHEMAS.md before touching any data shape.
@@ -18,7 +17,7 @@ port/chokepoint; prices the options (wait / reroute / invoke force majeure) from
 Lading's contract terms; asks an LLM for a cited recommendation; drafts the force majeure
 notice and customer email; shows it all on a dashboard for human approval.
 
-## Architecture (changed substantially — the README predates this)
+## Architecture (README §4 has the full file map)
 
 It was a single Streamlit app. It is now **React + FastAPI, deployed publicly**, with the
 Streamlit app kept as a legacy/local tool.
@@ -31,9 +30,9 @@ Streamlit app kept as a legacy/local tool.
 | Frontend | `frontend/` (React + Vite + TS) | Design tokens in `frontend/src/theme.css`, ported 1:1 from `src/theme.py`. |
 | Legacy dashboard | `src/dashboard.py` (Streamlit) | Still works; run on :8599. Not the deployment target. |
 
-**Live:**
-- Frontend: https://pixelsplease.vercel.app (Vercel, Root Directory = `frontend`, env `VITE_API_BASE`)
-- Backend: https://majeure-api.onrender.com (Render, blueprint in `render.yaml`, free tier)
+**Deploy:** frontend on Vercel (Root Directory = `frontend`, env `VITE_API_BASE`), backend on
+Render (blueprint in `render.yaml`, free tier). See README §11. The SteelHacks deploy has been
+taken down; no public instance is running.
 
 ## Running locally
 
@@ -64,7 +63,7 @@ Render's free tier has **no persistent disk and no scheduler**. An external cron
 every 15 min) POSTs to:
 
 ```
-https://majeure-api.onrender.com/api/pipeline/run?token=<PIPELINE_TRIGGER_TOKEN>
+https://<your-render-service>.onrender.com/api/pipeline/run?token=<PIPELINE_TRIGGER_TOKEN>
 ```
 
 Two gotchas that cost time: it must be **POST** (a browser GET returns 405), and the token is
@@ -195,4 +194,3 @@ freshness, cost-avoided KPI, cron-driven refresh.
 - **A "what happened → what we decided → what it saved" demo story sequence** — the
   cost-avoided KPI exists; a narrative walkthrough does not.
 - `.Tech` domain never registered/pointed.
-- README.md still describes the Streamlit-only architecture and needs updating.
